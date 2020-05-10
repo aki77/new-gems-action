@@ -1,15 +1,14 @@
-import path from 'path'
 import * as core from '@actions/core'
-import execa from 'execa'
+import {detectNewGems} from './gems'
+import {createComment} from './comment'
 
 async function run(): Promise<void> {
   try {
-    const parseScript = path.resolve(__dirname, '../parse_gemfile.rb')
+    const newGems = await detectNewGems()
 
-    const {stdout} = await execa.command(
-      `bundle exec ruby ${parseScript} Gemfile`
-    )
-    core.debug(`stdout: ${stdout}`)
+    if (newGems.length > 0) {
+      await createComment(newGems)
+    }
   } catch (error) {
     core.setFailed(error.message)
   }

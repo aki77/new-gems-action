@@ -28,10 +28,12 @@
     "@actions/core": "^1.2.0",
     "@actions/github": "^2.2.0",
     "@aki77/actions-replace-comment": "^0.1.0",
-    "execa": "^4.0.1"
+    "execa": "^4.0.1",
+    "markdown-table": "^2.0.0"
   },
   "devDependencies": {
     "@types/jest": "^24.0.23",
+    "@types/markdown-table": "^2.0.0",
     "@types/node": "^12.7.12",
     "@typescript-eslint/parser": "^2.8.0",
     "@zeit/ncc": "^0.20.5",
