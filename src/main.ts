@@ -1,16 +1,15 @@
+import path from 'path'
 import * as core from '@actions/core'
-import {wait} from './wait'
+import execa from 'execa'
 
 async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`)
+    const parseScript = path.resolve(__dirname, '../parse_gemfile.rb')
 
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
-
-    core.setOutput('time', new Date().toTimeString())
+    const {stdout} = await execa.command(
+      `bundle exec ruby ${parseScript} Gemfile`
+    )
+    core.debug(`stdout: ${stdout}`)
   } catch (error) {
     core.setFailed(error.message)
   }
