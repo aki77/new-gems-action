@@ -1,6 +1,9 @@
 name: New gems
 description: Add a message in Pull Request with basic information when new gems are added
 author: aki77
+branding:
+  icon: check-circle
+  color: red
 inputs:
   token:
     description: Github token
