@@ -1,16 +1,14 @@
 import * as core from '@actions/core'
-import {wait} from './wait'
+import {detectNewGems} from './gems'
+import {createComment} from './comment'
 
 async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`)
+    const newGems = await detectNewGems()
 
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
-
-    core.setOutput('time', new Date().toTimeString())
+    if (newGems.length > 0) {
+      await createComment(newGems)
+    }
   } catch (error) {
     core.setFailed(error.message)
   }
