@@ -4,15 +4,22 @@ import markdownTable from 'markdown-table'
 import replaceComment from '@aki77/actions-replace-comment'
 import {GemWithInfo} from './gems'
 
+const toMarkdownString = (text?: string): string =>
+  text ? text.replace(/\r?\n/g, '') : ''
+
 const createComment = async (newGems: GemWithInfo[]): Promise<void> => {
   const gemRows = newGems.map(gem => {
     return [
-      `[${gem.name}](${gem.homepage})`,
+      `[${gem.name}](${gem.homepage_uri})`,
       gem.groups.join(', '),
-      `${gem.summary}`
+      toMarkdownString(gem.authors),
+      toMarkdownString(gem.info)
     ]
   })
-  const table = markdownTable([['Name', 'Groups', 'Summary'], ...gemRows])
+  const table = markdownTable([
+    ['Name', 'Groups', 'Authors', 'Summary'],
+    ...gemRows
+  ])
 
   const body = `## :gem: New Gems!
 <details>

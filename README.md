@@ -32,13 +32,6 @@ jobs:
             ${{ runner.os }}-gems-
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.7
-      - name: Bundle install
-        run: |
-          bundle config path vendor/bundle
-          bundle install --jobs 4 --retry 3
-          bundle clean
       - uses: aki77/new-gems-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

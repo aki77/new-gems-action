@@ -1,4 +1,5 @@
 require 'json'
+require 'bundler'
 
 gemfile = ARGV[0]
 raise 'Usage: ruby parse_gemfile.rb GEMFILE_PATH' if gemfile.nil?
