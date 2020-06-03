@@ -45,6 +45,11 @@ const mergeGemInfo = async (gem: Gem): Promise<GemWithInfo> => {
 }
 
 const detectNewGems = async (): Promise<GemWithInfo[]> => {
+  if (!process.env.GITHUB_BASE_REF) {
+    throw new Error('GITHUB_BASE_REF is undefined.')
+  }
+
+  await execa('git', ['fetch', 'origin', process.env.GITHUB_BASE_REF])
   const subProcess = execa('git', [
     'show',
     `remotes/origin/${process.env.GITHUB_BASE_REF}:Gemfile`

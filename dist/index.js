@@ -18270,6 +18270,10 @@ const mergeGemInfo = (gem) => __awaiter(void 0, void 0, void 0, function* () {
 exports.mergeGemInfo = mergeGemInfo;
 const detectNewGems = () => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
+    if (!process.env.GITHUB_BASE_REF) {
+        throw new Error('GITHUB_BASE_REF is undefined.');
+    }
+    yield execa_1.default('git', ['fetch', 'origin', process.env.GITHUB_BASE_REF]);
     const subProcess = execa_1.default('git', [
         'show',
         `remotes/origin/${process.env.GITHUB_BASE_REF}:Gemfile`
