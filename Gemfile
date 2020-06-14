@@ -6,3 +6,4 @@ git_source(:github) {|repo_name| "https://github.com/#{repo_name}" }
 
 gem 'rake'
 gem 'csv'
+gem 'sgcop', github: 'aki77/csb'
