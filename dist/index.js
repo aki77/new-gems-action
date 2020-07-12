@@ -41,58 +41,9 @@ module.exports =
 /******/ 	return startup();
 /******/ })
 /************************************************************************/
-/******/ ([
-/* 0 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
+/******/ ({
 
-const { requestLog } = __webpack_require__(916);
-const {
-  restEndpointMethods
-} = __webpack_require__(842);
-
-const Core = __webpack_require__(529);
-
-const CORE_PLUGINS = [
-  __webpack_require__(190),
-  __webpack_require__(40), // deprecated: remove in v17
-  requestLog,
-  __webpack_require__(148),
-  restEndpointMethods,
-  __webpack_require__(430),
-
-  __webpack_require__(850) // deprecated: remove in v17
-];
-
-const OctokitRest = Core.plugin(CORE_PLUGINS);
-
-function DeprecatedOctokit(options) {
-  const warn =
-    options && options.log && options.log.warn
-      ? options.log.warn
-      : console.warn;
-  warn(
-    '[@octokit/rest] `const Octokit = require("@octokit/rest")` is deprecated. Use `const { Octokit } = require("@octokit/rest")` instead'
-  );
-  return new OctokitRest(options);
-}
-
-const Octokit = Object.assign(DeprecatedOctokit, {
-  Octokit: OctokitRest
-});
-
-Object.keys(OctokitRest).forEach(key => {
-  /* istanbul ignore else */
-  if (OctokitRest.hasOwnProperty(key)) {
-    Octokit[key] = OctokitRest[key];
-  }
-});
-
-module.exports = Octokit;
-
-
-/***/ }),
-/* 1 */,
-/* 2 */
+/***/ 2:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -100,9 +51,10 @@ module.exports = Octokit;
 
 const path = __webpack_require__(622);
 const which = __webpack_require__(55);
-const pathKey = __webpack_require__(565)();
+const getPathKey = __webpack_require__(565);
 
 function resolveCommandAttempt(parsed, withoutPathExt) {
+    const env = parsed.options.env || process.env;
     const cwd = process.cwd();
     const hasCustomCwd = parsed.options.cwd != null;
     // Worker threads do not have process.chdir()
@@ -122,7 +74,7 @@ function resolveCommandAttempt(parsed, withoutPathExt) {
 
     try {
         resolved = which.sync(parsed.command, {
-            path: (parsed.options.env || process.env)[pathKey],
+            path: env[getPathKey({ env })],
             pathExt: withoutPathExt ? path.delimiter : undefined,
         });
     } catch (e) {
@@ -150,12 +102,8 @@ module.exports = resolveCommand;
 
 
 /***/ }),
-/* 3 */,
-/* 4 */,
-/* 5 */,
-/* 6 */,
-/* 7 */,
-/* 8 */
+
+/***/ 8:
 /***/ (function(module) {
 
 "use strict";
@@ -232,7 +180,8 @@ function repeat(str, num) {
 
 
 /***/ }),
-/* 9 */
+
+/***/ 9:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 var once = __webpack_require__(49);
@@ -332,7 +281,8 @@ module.exports = eos;
 
 
 /***/ }),
-/* 10 */
+
+/***/ 10:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -363,7 +313,8 @@ exports.default = (url) => {
 
 
 /***/ }),
-/* 11 */
+
+/***/ 11:
 /***/ (function(module) {
 
 // Returns a wrapper function that returns a wrapped callback
@@ -402,30 +353,8 @@ function wrappy (fn, cb) {
 
 
 /***/ }),
-/* 12 */,
-/* 13 */
-/***/ (function(module) {
 
-module.exports = getPageLinks
-
-function getPageLinks (link) {
-  link = link.link || link.headers.link || ''
-
-  const links = {}
-
-  // link format:
-  // '<https://api.github.com/users/aseemk/followers?page=2>; rel="next", <https://api.github.com/users/aseemk/followers?page=2>; rel="last"'
-  link.replace(/<([^>]*)>;\s*rel="([\w]*)"/g, (m, uri, type) => {
-    links[type] = uri
-  })
-
-  return links
-}
-
-
-/***/ }),
-/* 14 */,
-/* 15 */
+/***/ 15:
 /***/ (function(module) {
 
 "use strict";
@@ -491,27 +420,30 @@ module.exports = {
 
 
 /***/ }),
-/* 16 */
+
+/***/ 16:
 /***/ (function(module) {
 
 module.exports = require("tls");
 
 /***/ }),
-/* 17 */,
-/* 18 */
+
+/***/ 18:
 /***/ (function() {
 
 eval("require")("encoding");
 
 
 /***/ }),
-/* 19 */
+
+/***/ 19:
 /***/ (function(module) {
 
 module.exports = require("http2");
 
 /***/ }),
-/* 20 */
+
+/***/ 20:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -557,22 +489,8 @@ module.exports._enoent = enoent;
 
 
 /***/ }),
-/* 21 */,
-/* 22 */,
-/* 23 */,
-/* 24 */,
-/* 25 */,
-/* 26 */,
-/* 27 */,
-/* 28 */,
-/* 29 */,
-/* 30 */,
-/* 31 */,
-/* 32 */,
-/* 33 */,
-/* 34 */,
-/* 35 */,
-/* 36 */
+
+/***/ 36:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -606,9 +524,8 @@ exports.ParseError = ParseError;
 
 
 /***/ }),
-/* 37 */,
-/* 38 */,
-/* 39 */
+
+/***/ 39:
 /***/ (function(module) {
 
 "use strict";
@@ -628,66 +545,8 @@ module.exports = opts => {
 
 
 /***/ }),
-/* 40 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = authenticationPlugin;
-
-const { Deprecation } = __webpack_require__(692);
-const once = __webpack_require__(49);
-
-const deprecateAuthenticate = once((log, deprecation) => log.warn(deprecation));
-
-const authenticate = __webpack_require__(674);
-const beforeRequest = __webpack_require__(471);
-const requestError = __webpack_require__(349);
-
-function authenticationPlugin(octokit, options) {
-  if (options.auth) {
-    octokit.authenticate = () => {
-      deprecateAuthenticate(
-        octokit.log,
-        new Deprecation(
-          '[@octokit/rest] octokit.authenticate() is deprecated and has no effect when "auth" option is set on Octokit constructor'
-        )
-      );
-    };
-    return;
-  }
-  const state = {
-    octokit,
-    auth: false
-  };
-  octokit.authenticate = authenticate.bind(null, state);
-  octokit.hook.before("request", beforeRequest.bind(null, state));
-  octokit.hook.error("request", requestError.bind(null, state));
-}
-
-
-/***/ }),
-/* 41 */,
-/* 42 */,
-/* 43 */,
-/* 44 */,
-/* 45 */,
-/* 46 */,
-/* 47 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-module.exports = factory;
-
-const Octokit = __webpack_require__(402);
-const registerPlugin = __webpack_require__(855);
-
-function factory(plugins) {
-  const Api = Octokit.bind(null, plugins || []);
-  Api.plugin = registerPlugin.bind(null, plugins || []);
-  return Api;
-}
-
-
-/***/ }),
-/* 48 */
+/***/ 48:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -723,7 +582,8 @@ exports.default = WeakableMap;
 
 
 /***/ }),
-/* 49 */
+
+/***/ 49:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 var wrappy = __webpack_require__(11)
@@ -771,10 +631,8 @@ function onceStrict (fn) {
 
 
 /***/ }),
-/* 50 */,
-/* 51 */,
-/* 52 */,
-/* 53 */
+
+/***/ 53:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -1002,8 +860,8 @@ module.exports.default = normalizeUrl;
 
 
 /***/ }),
-/* 54 */,
-/* 55 */
+
+/***/ 55:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 const isWindows = process.platform === 'win32' ||
@@ -1134,164 +992,8 @@ which.sync = whichSync
 
 
 /***/ }),
-/* 56 */,
-/* 57 */,
-/* 58 */,
-/* 59 */,
-/* 60 */,
-/* 61 */,
-/* 62 */,
-/* 63 */,
-/* 64 */,
-/* 65 */,
-/* 66 */,
-/* 67 */,
-/* 68 */,
-/* 69 */,
-/* 70 */,
-/* 71 */,
-/* 72 */
-/***/ (function(__unusedmodule, exports) {
 
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-const VERSION = "2.2.1";
-
-/**
- * Some “list” response that can be paginated have a different response structure
- *
- * They have a `total_count` key in the response (search also has `incomplete_results`,
- * /installation/repositories also has `repository_selection`), as well as a key with
- * the list of the items which name varies from endpoint to endpoint.
- *
- * Octokit normalizes these responses so that paginated results are always returned following
- * the same structure. One challenge is that if the list response has only one page, no Link
- * header is provided, so this header alone is not sufficient to check wether a response is
- * paginated or not.
- *
- * We check if a "total_count" key is present in the response data, but also make sure that
- * a "url" property is not, as the "Get the combined status for a specific ref" endpoint would
- * otherwise match: https://developer.github.com/v3/repos/statuses/#get-the-combined-status-for-a-specific-ref
- */
-function normalizePaginatedListResponse(response) {
-  const responseNeedsNormalization = "total_count" in response.data && !("url" in response.data);
-  if (!responseNeedsNormalization) return response; // keep the additional properties intact as there is currently no other way
-  // to retrieve the same information.
-
-  const incompleteResults = response.data.incomplete_results;
-  const repositorySelection = response.data.repository_selection;
-  const totalCount = response.data.total_count;
-  delete response.data.incomplete_results;
-  delete response.data.repository_selection;
-  delete response.data.total_count;
-  const namespaceKey = Object.keys(response.data)[0];
-  const data = response.data[namespaceKey];
-  response.data = data;
-
-  if (typeof incompleteResults !== "undefined") {
-    response.data.incomplete_results = incompleteResults;
-  }
-
-  if (typeof repositorySelection !== "undefined") {
-    response.data.repository_selection = repositorySelection;
-  }
-
-  response.data.total_count = totalCount;
-  return response;
-}
-
-function iterator(octokit, route, parameters) {
-  const options = typeof route === "function" ? route.endpoint(parameters) : octokit.request.endpoint(route, parameters);
-  const requestMethod = typeof route === "function" ? route : octokit.request;
-  const method = options.method;
-  const headers = options.headers;
-  let url = options.url;
-  return {
-    [Symbol.asyncIterator]: () => ({
-      next() {
-        if (!url) {
-          return Promise.resolve({
-            done: true
-          });
-        }
-
-        return requestMethod({
-          method,
-          url,
-          headers
-        }).then(normalizePaginatedListResponse).then(response => {
-          // `response.headers.link` format:
-          // '<https://api.github.com/users/aseemk/followers?page=2>; rel="next", <https://api.github.com/users/aseemk/followers?page=2>; rel="last"'
-          // sets `url` to undefined if "next" URL is not present or `link` header is not set
-          url = ((response.headers.link || "").match(/<([^>]+)>;\s*rel="next"/) || [])[1];
-          return {
-            value: response
-          };
-        });
-      }
-
-    })
-  };
-}
-
-function paginate(octokit, route, parameters, mapFn) {
-  if (typeof parameters === "function") {
-    mapFn = parameters;
-    parameters = undefined;
-  }
-
-  return gather(octokit, [], iterator(octokit, route, parameters)[Symbol.asyncIterator](), mapFn);
-}
-
-function gather(octokit, results, iterator, mapFn) {
-  return iterator.next().then(result => {
-    if (result.done) {
-      return results;
-    }
-
-    let earlyExit = false;
-
-    function done() {
-      earlyExit = true;
-    }
-
-    results = results.concat(mapFn ? mapFn(result.value, done) : result.value.data);
-
-    if (earlyExit) {
-      return results;
-    }
-
-    return gather(octokit, results, iterator, mapFn);
-  });
-}
-
-/**
- * @param octokit Octokit instance
- * @param options Options passed to Octokit constructor
- */
-
-function paginateRest(octokit) {
-  return {
-    paginate: Object.assign(paginate.bind(null, octokit), {
-      iterator: iterator.bind(null, octokit)
-    })
-  };
-}
-paginateRest.VERSION = VERSION;
-
-exports.paginateRest = paginateRest;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-/* 73 */,
-/* 74 */,
-/* 75 */,
-/* 76 */,
-/* 77 */
+/***/ 77:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1368,7 +1070,7 @@ const defaults = {
         // TODO: Set this to `true` when Got 12 gets released
         http2: false,
         allowGetBody: false,
-        rejectUnauthorized: true,
+        https: undefined,
         pagination: {
             transform: (response) => {
                 if (response.request.options.responseType === 'json') {
@@ -1403,7 +1105,9 @@ const defaults = {
             countLimit: Infinity,
             requestLimit: 10000,
             stackAllItems: true
-        }
+        },
+        parseJson: (text) => JSON.parse(text),
+        stringifyJson: (object) => JSON.stringify(object)
     },
     handlers: [create_1.defaultHandler],
     mutableDefaults: false
@@ -1418,23 +1122,15 @@ __export(__webpack_require__(577));
 
 
 /***/ }),
-/* 78 */,
-/* 79 */,
-/* 80 */,
-/* 81 */,
-/* 82 */,
-/* 83 */,
-/* 84 */,
-/* 85 */,
-/* 86 */,
-/* 87 */
+
+/***/ 87:
 /***/ (function(module) {
 
 module.exports = require("os");
 
 /***/ }),
-/* 88 */,
-/* 89 */
+
+/***/ 89:
 /***/ (function(module) {
 
 "use strict";
@@ -1518,10 +1214,8 @@ module.exports = (fromStream, toStream) => {
 
 
 /***/ }),
-/* 90 */,
-/* 91 */,
-/* 92 */,
-/* 93 */
+
+/***/ 93:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -1562,18 +1256,8 @@ module.exports = Response;
 
 
 /***/ }),
-/* 94 */,
-/* 95 */,
-/* 96 */,
-/* 97 */,
-/* 98 */,
-/* 99 */,
-/* 100 */,
-/* 101 */,
-/* 102 */,
-/* 103 */,
-/* 104 */,
-/* 105 */
+
+/***/ 105:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -1652,19 +1336,8 @@ exports.createComment = createComment;
 
 
 /***/ }),
-/* 106 */,
-/* 107 */,
-/* 108 */,
-/* 109 */,
-/* 110 */,
-/* 111 */,
-/* 112 */,
-/* 113 */,
-/* 114 */,
-/* 115 */,
-/* 116 */,
-/* 117 */,
-/* 118 */
+
+/***/ 118:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -1672,28 +1345,32 @@ exports.createComment = createComment;
 const os = __webpack_require__(87);
 
 const nameMap = new Map([
-	[19, 'Catalina'],
-	[18, 'Mojave'],
-	[17, 'High Sierra'],
-	[16, 'Sierra'],
-	[15, 'El Capitan'],
-	[14, 'Yosemite'],
-	[13, 'Mavericks'],
-	[12, 'Mountain Lion'],
-	[11, 'Lion'],
-	[10, 'Snow Leopard'],
-	[9, 'Leopard'],
-	[8, 'Tiger'],
-	[7, 'Panther'],
-	[6, 'Jaguar'],
-	[5, 'Puma']
+	[20, ['Big Sur', '11']],
+	[19, ['Catalina', '10.15']],
+	[18, ['Mojave', '10.14']],
+	[17, ['High Sierra', '10.13']],
+	[16, ['Sierra', '10.12']],
+	[15, ['El Capitan', '10.11']],
+	[14, ['Yosemite', '10.10']],
+	[13, ['Mavericks', '10.9']],
+	[12, ['Mountain Lion', '10.8']],
+	[11, ['Lion', '10.7']],
+	[10, ['Snow Leopard', '10.6']],
+	[9, ['Leopard', '10.5']],
+	[8, ['Tiger', '10.4']],
+	[7, ['Panther', '10.3']],
+	[6, ['Jaguar', '10.2']],
+	[5, ['Puma', '10.1']]
 ]);
 
 const macosRelease = release => {
 	release = Number((release || os.release()).split('.')[0]);
+
+	const [name, version] = nameMap.get(release);
+
 	return {
-		name: nameMap.get(release),
-		version: '10.' + (release - 4)
+		name,
+		version
 	};
 };
 
@@ -1703,935 +1380,65 @@ module.exports.default = macosRelease;
 
 
 /***/ }),
-/* 119 */,
-/* 120 */,
-/* 121 */,
-/* 122 */,
-/* 123 */,
-/* 124 */,
-/* 125 */,
-/* 126 */
-/***/ (function(module) {
 
-/**
- * lodash (Custom Build) <https://lodash.com/>
- * Build: `lodash modularize exports="npm" -o ./`
- * Copyright jQuery Foundation and other contributors <https://jquery.org/>
- * Released under MIT license <https://lodash.com/license>
- * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
- * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- */
-
-/** Used as the size to enable large array optimizations. */
-var LARGE_ARRAY_SIZE = 200;
-
-/** Used to stand-in for `undefined` hash values. */
-var HASH_UNDEFINED = '__lodash_hash_undefined__';
-
-/** Used as references for various `Number` constants. */
-var INFINITY = 1 / 0;
-
-/** `Object#toString` result references. */
-var funcTag = '[object Function]',
-    genTag = '[object GeneratorFunction]';
-
-/**
- * Used to match `RegExp`
- * [syntax characters](http://ecma-international.org/ecma-262/7.0/#sec-patterns).
- */
-var reRegExpChar = /[\\^$.*+?()[\]{}|]/g;
-
-/** Used to detect host constructors (Safari). */
-var reIsHostCtor = /^\[object .+?Constructor\]$/;
-
-/** Detect free variable `global` from Node.js. */
-var freeGlobal = typeof global == 'object' && global && global.Object === Object && global;
-
-/** Detect free variable `self`. */
-var freeSelf = typeof self == 'object' && self && self.Object === Object && self;
-
-/** Used as a reference to the global object. */
-var root = freeGlobal || freeSelf || Function('return this')();
-
-/**
- * A specialized version of `_.includes` for arrays without support for
- * specifying an index to search from.
- *
- * @private
- * @param {Array} [array] The array to inspect.
- * @param {*} target The value to search for.
- * @returns {boolean} Returns `true` if `target` is found, else `false`.
- */
-function arrayIncludes(array, value) {
-  var length = array ? array.length : 0;
-  return !!length && baseIndexOf(array, value, 0) > -1;
-}
-
-/**
- * This function is like `arrayIncludes` except that it accepts a comparator.
- *
- * @private
- * @param {Array} [array] The array to inspect.
- * @param {*} target The value to search for.
- * @param {Function} comparator The comparator invoked per element.
- * @returns {boolean} Returns `true` if `target` is found, else `false`.
- */
-function arrayIncludesWith(array, value, comparator) {
-  var index = -1,
-      length = array ? array.length : 0;
-
-  while (++index < length) {
-    if (comparator(value, array[index])) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * The base implementation of `_.findIndex` and `_.findLastIndex` without
- * support for iteratee shorthands.
- *
- * @private
- * @param {Array} array The array to inspect.
- * @param {Function} predicate The function invoked per iteration.
- * @param {number} fromIndex The index to search from.
- * @param {boolean} [fromRight] Specify iterating from right to left.
- * @returns {number} Returns the index of the matched value, else `-1`.
- */
-function baseFindIndex(array, predicate, fromIndex, fromRight) {
-  var length = array.length,
-      index = fromIndex + (fromRight ? 1 : -1);
-
-  while ((fromRight ? index-- : ++index < length)) {
-    if (predicate(array[index], index, array)) {
-      return index;
-    }
-  }
-  return -1;
-}
-
-/**
- * The base implementation of `_.indexOf` without `fromIndex` bounds checks.
- *
- * @private
- * @param {Array} array The array to inspect.
- * @param {*} value The value to search for.
- * @param {number} fromIndex The index to search from.
- * @returns {number} Returns the index of the matched value, else `-1`.
- */
-function baseIndexOf(array, value, fromIndex) {
-  if (value !== value) {
-    return baseFindIndex(array, baseIsNaN, fromIndex);
-  }
-  var index = fromIndex - 1,
-      length = array.length;
-
-  while (++index < length) {
-    if (array[index] === value) {
-      return index;
-    }
-  }
-  return -1;
-}
-
-/**
- * The base implementation of `_.isNaN` without support for number objects.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is `NaN`, else `false`.
- */
-function baseIsNaN(value) {
-  return value !== value;
-}
-
-/**
- * Checks if a cache value for `key` exists.
- *
- * @private
- * @param {Object} cache The cache to query.
- * @param {string} key The key of the entry to check.
- * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
- */
-function cacheHas(cache, key) {
-  return cache.has(key);
-}
-
-/**
- * Gets the value at `key` of `object`.
- *
- * @private
- * @param {Object} [object] The object to query.
- * @param {string} key The key of the property to get.
- * @returns {*} Returns the property value.
- */
-function getValue(object, key) {
-  return object == null ? undefined : object[key];
-}
-
-/**
- * Checks if `value` is a host object in IE < 9.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a host object, else `false`.
- */
-function isHostObject(value) {
-  // Many host objects are `Object` objects that can coerce to strings
-  // despite having improperly defined `toString` methods.
-  var result = false;
-  if (value != null && typeof value.toString != 'function') {
-    try {
-      result = !!(value + '');
-    } catch (e) {}
-  }
-  return result;
-}
-
-/**
- * Converts `set` to an array of its values.
- *
- * @private
- * @param {Object} set The set to convert.
- * @returns {Array} Returns the values.
- */
-function setToArray(set) {
-  var index = -1,
-      result = Array(set.size);
-
-  set.forEach(function(value) {
-    result[++index] = value;
-  });
-  return result;
-}
-
-/** Used for built-in method references. */
-var arrayProto = Array.prototype,
-    funcProto = Function.prototype,
-    objectProto = Object.prototype;
-
-/** Used to detect overreaching core-js shims. */
-var coreJsData = root['__core-js_shared__'];
-
-/** Used to detect methods masquerading as native. */
-var maskSrcKey = (function() {
-  var uid = /[^.]+$/.exec(coreJsData && coreJsData.keys && coreJsData.keys.IE_PROTO || '');
-  return uid ? ('Symbol(src)_1.' + uid) : '';
-}());
-
-/** Used to resolve the decompiled source of functions. */
-var funcToString = funcProto.toString;
-
-/** Used to check objects for own properties. */
-var hasOwnProperty = objectProto.hasOwnProperty;
-
-/**
- * Used to resolve the
- * [`toStringTag`](http://ecma-international.org/ecma-262/7.0/#sec-object.prototype.tostring)
- * of values.
- */
-var objectToString = objectProto.toString;
-
-/** Used to detect if a method is native. */
-var reIsNative = RegExp('^' +
-  funcToString.call(hasOwnProperty).replace(reRegExpChar, '\\$&')
-  .replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$'
-);
-
-/** Built-in value references. */
-var splice = arrayProto.splice;
-
-/* Built-in method references that are verified to be native. */
-var Map = getNative(root, 'Map'),
-    Set = getNative(root, 'Set'),
-    nativeCreate = getNative(Object, 'create');
-
-/**
- * Creates a hash object.
- *
- * @private
- * @constructor
- * @param {Array} [entries] The key-value pairs to cache.
- */
-function Hash(entries) {
-  var index = -1,
-      length = entries ? entries.length : 0;
-
-  this.clear();
-  while (++index < length) {
-    var entry = entries[index];
-    this.set(entry[0], entry[1]);
-  }
-}
-
-/**
- * Removes all key-value entries from the hash.
- *
- * @private
- * @name clear
- * @memberOf Hash
- */
-function hashClear() {
-  this.__data__ = nativeCreate ? nativeCreate(null) : {};
-}
-
-/**
- * Removes `key` and its value from the hash.
- *
- * @private
- * @name delete
- * @memberOf Hash
- * @param {Object} hash The hash to modify.
- * @param {string} key The key of the value to remove.
- * @returns {boolean} Returns `true` if the entry was removed, else `false`.
- */
-function hashDelete(key) {
-  return this.has(key) && delete this.__data__[key];
-}
-
-/**
- * Gets the hash value for `key`.
- *
- * @private
- * @name get
- * @memberOf Hash
- * @param {string} key The key of the value to get.
- * @returns {*} Returns the entry value.
- */
-function hashGet(key) {
-  var data = this.__data__;
-  if (nativeCreate) {
-    var result = data[key];
-    return result === HASH_UNDEFINED ? undefined : result;
-  }
-  return hasOwnProperty.call(data, key) ? data[key] : undefined;
-}
-
-/**
- * Checks if a hash value for `key` exists.
- *
- * @private
- * @name has
- * @memberOf Hash
- * @param {string} key The key of the entry to check.
- * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
- */
-function hashHas(key) {
-  var data = this.__data__;
-  return nativeCreate ? data[key] !== undefined : hasOwnProperty.call(data, key);
-}
-
-/**
- * Sets the hash `key` to `value`.
- *
- * @private
- * @name set
- * @memberOf Hash
- * @param {string} key The key of the value to set.
- * @param {*} value The value to set.
- * @returns {Object} Returns the hash instance.
- */
-function hashSet(key, value) {
-  var data = this.__data__;
-  data[key] = (nativeCreate && value === undefined) ? HASH_UNDEFINED : value;
-  return this;
-}
-
-// Add methods to `Hash`.
-Hash.prototype.clear = hashClear;
-Hash.prototype['delete'] = hashDelete;
-Hash.prototype.get = hashGet;
-Hash.prototype.has = hashHas;
-Hash.prototype.set = hashSet;
-
-/**
- * Creates an list cache object.
- *
- * @private
- * @constructor
- * @param {Array} [entries] The key-value pairs to cache.
- */
-function ListCache(entries) {
-  var index = -1,
-      length = entries ? entries.length : 0;
-
-  this.clear();
-  while (++index < length) {
-    var entry = entries[index];
-    this.set(entry[0], entry[1]);
-  }
-}
-
-/**
- * Removes all key-value entries from the list cache.
- *
- * @private
- * @name clear
- * @memberOf ListCache
- */
-function listCacheClear() {
-  this.__data__ = [];
-}
-
-/**
- * Removes `key` and its value from the list cache.
- *
- * @private
- * @name delete
- * @memberOf ListCache
- * @param {string} key The key of the value to remove.
- * @returns {boolean} Returns `true` if the entry was removed, else `false`.
- */
-function listCacheDelete(key) {
-  var data = this.__data__,
-      index = assocIndexOf(data, key);
-
-  if (index < 0) {
-    return false;
-  }
-  var lastIndex = data.length - 1;
-  if (index == lastIndex) {
-    data.pop();
-  } else {
-    splice.call(data, index, 1);
-  }
-  return true;
-}
-
-/**
- * Gets the list cache value for `key`.
- *
- * @private
- * @name get
- * @memberOf ListCache
- * @param {string} key The key of the value to get.
- * @returns {*} Returns the entry value.
- */
-function listCacheGet(key) {
-  var data = this.__data__,
-      index = assocIndexOf(data, key);
-
-  return index < 0 ? undefined : data[index][1];
-}
-
-/**
- * Checks if a list cache value for `key` exists.
- *
- * @private
- * @name has
- * @memberOf ListCache
- * @param {string} key The key of the entry to check.
- * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
- */
-function listCacheHas(key) {
-  return assocIndexOf(this.__data__, key) > -1;
-}
-
-/**
- * Sets the list cache `key` to `value`.
- *
- * @private
- * @name set
- * @memberOf ListCache
- * @param {string} key The key of the value to set.
- * @param {*} value The value to set.
- * @returns {Object} Returns the list cache instance.
- */
-function listCacheSet(key, value) {
-  var data = this.__data__,
-      index = assocIndexOf(data, key);
-
-  if (index < 0) {
-    data.push([key, value]);
-  } else {
-    data[index][1] = value;
-  }
-  return this;
-}
-
-// Add methods to `ListCache`.
-ListCache.prototype.clear = listCacheClear;
-ListCache.prototype['delete'] = listCacheDelete;
-ListCache.prototype.get = listCacheGet;
-ListCache.prototype.has = listCacheHas;
-ListCache.prototype.set = listCacheSet;
-
-/**
- * Creates a map cache object to store key-value pairs.
- *
- * @private
- * @constructor
- * @param {Array} [entries] The key-value pairs to cache.
- */
-function MapCache(entries) {
-  var index = -1,
-      length = entries ? entries.length : 0;
-
-  this.clear();
-  while (++index < length) {
-    var entry = entries[index];
-    this.set(entry[0], entry[1]);
-  }
-}
-
-/**
- * Removes all key-value entries from the map.
- *
- * @private
- * @name clear
- * @memberOf MapCache
- */
-function mapCacheClear() {
-  this.__data__ = {
-    'hash': new Hash,
-    'map': new (Map || ListCache),
-    'string': new Hash
-  };
-}
-
-/**
- * Removes `key` and its value from the map.
- *
- * @private
- * @name delete
- * @memberOf MapCache
- * @param {string} key The key of the value to remove.
- * @returns {boolean} Returns `true` if the entry was removed, else `false`.
- */
-function mapCacheDelete(key) {
-  return getMapData(this, key)['delete'](key);
-}
-
-/**
- * Gets the map value for `key`.
- *
- * @private
- * @name get
- * @memberOf MapCache
- * @param {string} key The key of the value to get.
- * @returns {*} Returns the entry value.
- */
-function mapCacheGet(key) {
-  return getMapData(this, key).get(key);
-}
-
-/**
- * Checks if a map value for `key` exists.
- *
- * @private
- * @name has
- * @memberOf MapCache
- * @param {string} key The key of the entry to check.
- * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
- */
-function mapCacheHas(key) {
-  return getMapData(this, key).has(key);
-}
-
-/**
- * Sets the map `key` to `value`.
- *
- * @private
- * @name set
- * @memberOf MapCache
- * @param {string} key The key of the value to set.
- * @param {*} value The value to set.
- * @returns {Object} Returns the map cache instance.
- */
-function mapCacheSet(key, value) {
-  getMapData(this, key).set(key, value);
-  return this;
-}
-
-// Add methods to `MapCache`.
-MapCache.prototype.clear = mapCacheClear;
-MapCache.prototype['delete'] = mapCacheDelete;
-MapCache.prototype.get = mapCacheGet;
-MapCache.prototype.has = mapCacheHas;
-MapCache.prototype.set = mapCacheSet;
-
-/**
- *
- * Creates an array cache object to store unique values.
- *
- * @private
- * @constructor
- * @param {Array} [values] The values to cache.
- */
-function SetCache(values) {
-  var index = -1,
-      length = values ? values.length : 0;
-
-  this.__data__ = new MapCache;
-  while (++index < length) {
-    this.add(values[index]);
-  }
-}
-
-/**
- * Adds `value` to the array cache.
- *
- * @private
- * @name add
- * @memberOf SetCache
- * @alias push
- * @param {*} value The value to cache.
- * @returns {Object} Returns the cache instance.
- */
-function setCacheAdd(value) {
-  this.__data__.set(value, HASH_UNDEFINED);
-  return this;
-}
-
-/**
- * Checks if `value` is in the array cache.
- *
- * @private
- * @name has
- * @memberOf SetCache
- * @param {*} value The value to search for.
- * @returns {number} Returns `true` if `value` is found, else `false`.
- */
-function setCacheHas(value) {
-  return this.__data__.has(value);
-}
-
-// Add methods to `SetCache`.
-SetCache.prototype.add = SetCache.prototype.push = setCacheAdd;
-SetCache.prototype.has = setCacheHas;
-
-/**
- * Gets the index at which the `key` is found in `array` of key-value pairs.
- *
- * @private
- * @param {Array} array The array to inspect.
- * @param {*} key The key to search for.
- * @returns {number} Returns the index of the matched value, else `-1`.
- */
-function assocIndexOf(array, key) {
-  var length = array.length;
-  while (length--) {
-    if (eq(array[length][0], key)) {
-      return length;
-    }
-  }
-  return -1;
-}
-
-/**
- * The base implementation of `_.isNative` without bad shim checks.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a native function,
- *  else `false`.
- */
-function baseIsNative(value) {
-  if (!isObject(value) || isMasked(value)) {
-    return false;
-  }
-  var pattern = (isFunction(value) || isHostObject(value)) ? reIsNative : reIsHostCtor;
-  return pattern.test(toSource(value));
-}
-
-/**
- * The base implementation of `_.uniqBy` without support for iteratee shorthands.
- *
- * @private
- * @param {Array} array The array to inspect.
- * @param {Function} [iteratee] The iteratee invoked per element.
- * @param {Function} [comparator] The comparator invoked per element.
- * @returns {Array} Returns the new duplicate free array.
- */
-function baseUniq(array, iteratee, comparator) {
-  var index = -1,
-      includes = arrayIncludes,
-      length = array.length,
-      isCommon = true,
-      result = [],
-      seen = result;
-
-  if (comparator) {
-    isCommon = false;
-    includes = arrayIncludesWith;
-  }
-  else if (length >= LARGE_ARRAY_SIZE) {
-    var set = iteratee ? null : createSet(array);
-    if (set) {
-      return setToArray(set);
-    }
-    isCommon = false;
-    includes = cacheHas;
-    seen = new SetCache;
-  }
-  else {
-    seen = iteratee ? [] : result;
-  }
-  outer:
-  while (++index < length) {
-    var value = array[index],
-        computed = iteratee ? iteratee(value) : value;
-
-    value = (comparator || value !== 0) ? value : 0;
-    if (isCommon && computed === computed) {
-      var seenIndex = seen.length;
-      while (seenIndex--) {
-        if (seen[seenIndex] === computed) {
-          continue outer;
-        }
-      }
-      if (iteratee) {
-        seen.push(computed);
-      }
-      result.push(value);
-    }
-    else if (!includes(seen, computed, comparator)) {
-      if (seen !== result) {
-        seen.push(computed);
-      }
-      result.push(value);
-    }
-  }
-  return result;
-}
-
-/**
- * Creates a set object of `values`.
- *
- * @private
- * @param {Array} values The values to add to the set.
- * @returns {Object} Returns the new set.
- */
-var createSet = !(Set && (1 / setToArray(new Set([,-0]))[1]) == INFINITY) ? noop : function(values) {
-  return new Set(values);
+/***/ 127:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
 };
-
-/**
- * Gets the data for `map`.
- *
- * @private
- * @param {Object} map The map to query.
- * @param {string} key The reference key.
- * @returns {*} Returns the map data.
- */
-function getMapData(map, key) {
-  var data = map.__data__;
-  return isKeyable(key)
-    ? data[typeof key == 'string' ? 'string' : 'hash']
-    : data.map;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getApiBaseUrl = exports.getProxyAgent = exports.getAuthString = void 0;
+const httpClient = __importStar(__webpack_require__(539));
+function getAuthString(token, options) {
+    if (!token && !options.auth) {
+        throw new Error('Parameter token or opts.auth is required');
+    }
+    else if (token && options.auth) {
+        throw new Error('Parameters token and opts.auth may not both be specified');
+    }
+    return typeof options.auth === 'string' ? options.auth : `token ${token}`;
 }
-
-/**
- * Gets the native function at `key` of `object`.
- *
- * @private
- * @param {Object} object The object to query.
- * @param {string} key The key of the method to get.
- * @returns {*} Returns the function if it's native, else `undefined`.
- */
-function getNative(object, key) {
-  var value = getValue(object, key);
-  return baseIsNative(value) ? value : undefined;
+exports.getAuthString = getAuthString;
+function getProxyAgent(destinationUrl) {
+    const hc = new httpClient.HttpClient();
+    return hc.getAgent(destinationUrl);
 }
-
-/**
- * Checks if `value` is suitable for use as unique object key.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is suitable, else `false`.
- */
-function isKeyable(value) {
-  var type = typeof value;
-  return (type == 'string' || type == 'number' || type == 'symbol' || type == 'boolean')
-    ? (value !== '__proto__')
-    : (value === null);
+exports.getProxyAgent = getProxyAgent;
+function getApiBaseUrl() {
+    return process.env['GITHUB_API_URL'] || 'https://api.github.com';
 }
-
-/**
- * Checks if `func` has its source masked.
- *
- * @private
- * @param {Function} func The function to check.
- * @returns {boolean} Returns `true` if `func` is masked, else `false`.
- */
-function isMasked(func) {
-  return !!maskSrcKey && (maskSrcKey in func);
-}
-
-/**
- * Converts `func` to its source code.
- *
- * @private
- * @param {Function} func The function to process.
- * @returns {string} Returns the source code.
- */
-function toSource(func) {
-  if (func != null) {
-    try {
-      return funcToString.call(func);
-    } catch (e) {}
-    try {
-      return (func + '');
-    } catch (e) {}
-  }
-  return '';
-}
-
-/**
- * Creates a duplicate-free version of an array, using
- * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
- * for equality comparisons, in which only the first occurrence of each
- * element is kept.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Array
- * @param {Array} array The array to inspect.
- * @returns {Array} Returns the new duplicate free array.
- * @example
- *
- * _.uniq([2, 1, 2]);
- * // => [2, 1]
- */
-function uniq(array) {
-  return (array && array.length)
-    ? baseUniq(array)
-    : [];
-}
-
-/**
- * Performs a
- * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
- * comparison between two values to determine if they are equivalent.
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to compare.
- * @param {*} other The other value to compare.
- * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
- * @example
- *
- * var object = { 'a': 1 };
- * var other = { 'a': 1 };
- *
- * _.eq(object, object);
- * // => true
- *
- * _.eq(object, other);
- * // => false
- *
- * _.eq('a', 'a');
- * // => true
- *
- * _.eq('a', Object('a'));
- * // => false
- *
- * _.eq(NaN, NaN);
- * // => true
- */
-function eq(value, other) {
-  return value === other || (value !== value && other !== other);
-}
-
-/**
- * Checks if `value` is classified as a `Function` object.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a function, else `false`.
- * @example
- *
- * _.isFunction(_);
- * // => true
- *
- * _.isFunction(/abc/);
- * // => false
- */
-function isFunction(value) {
-  // The use of `Object#toString` avoids issues with the `typeof` operator
-  // in Safari 8-9 which returns 'object' for typed array and other constructors.
-  var tag = isObject(value) ? objectToString.call(value) : '';
-  return tag == funcTag || tag == genTag;
-}
-
-/**
- * Checks if `value` is the
- * [language type](http://www.ecma-international.org/ecma-262/7.0/#sec-ecmascript-language-types)
- * of `Object`. (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is an object, else `false`.
- * @example
- *
- * _.isObject({});
- * // => true
- *
- * _.isObject([1, 2, 3]);
- * // => true
- *
- * _.isObject(_.noop);
- * // => true
- *
- * _.isObject(null);
- * // => false
- */
-function isObject(value) {
-  var type = typeof value;
-  return !!value && (type == 'object' || type == 'function');
-}
-
-/**
- * This method returns `undefined`.
- *
- * @static
- * @memberOf _
- * @since 2.3.0
- * @category Util
- * @example
- *
- * _.times(2, _.noop);
- * // => [undefined, undefined]
- */
-function noop() {
-  // No operation performed.
-}
-
-module.exports = uniq;
-
+exports.getApiBaseUrl = getApiBaseUrl;
+//# sourceMappingURL=utils.js.map
 
 /***/ }),
-/* 127 */,
-/* 128 */,
-/* 129 */
+
+/***/ 129:
 /***/ (function(module) {
 
 module.exports = require("child_process");
 
 /***/ }),
-/* 130 */,
-/* 131 */,
-/* 132 */,
-/* 133 */,
-/* 134 */,
-/* 135 */,
-/* 136 */,
-/* 137 */,
-/* 138 */,
-/* 139 */,
-/* 140 */,
-/* 141 */
+
+/***/ 141:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -2902,38 +1709,8 @@ exports.debug = debug; // for test
 
 
 /***/ }),
-/* 142 */,
-/* 143 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = withAuthorizationPrefix;
-
-const atob = __webpack_require__(368);
-
-const REGEX_IS_BASIC_AUTH = /^[\w-]+:/;
-
-function withAuthorizationPrefix(authorization) {
-  if (/^(basic|bearer|token) /i.test(authorization)) {
-    return authorization;
-  }
-
-  try {
-    if (REGEX_IS_BASIC_AUTH.test(atob(authorization))) {
-      return `basic ${authorization}`;
-    }
-  } catch (error) {}
-
-  if (authorization.split(/\./).length === 3) {
-    return `bearer ${authorization}`;
-  }
-
-  return `token ${authorization}`;
-}
-
-
-/***/ }),
-/* 144 */,
-/* 145 */
+/***/ 145:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -2998,24 +1775,8 @@ module.exports.MaxBufferError = MaxBufferError;
 
 
 /***/ }),
-/* 146 */,
-/* 147 */,
-/* 148 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = paginatePlugin;
-
-const { paginateRest } = __webpack_require__(299);
-
-function paginatePlugin(octokit) {
-  Object.assign(octokit, paginateRest(octokit));
-}
-
-
-/***/ }),
-/* 149 */,
-/* 150 */,
-/* 151 */
+/***/ 151:
 /***/ (function(module) {
 
 "use strict";
@@ -3063,9 +1824,8 @@ module.exports = opts => {
 
 
 /***/ }),
-/* 152 */,
-/* 153 */,
-/* 154 */
+
+/***/ 154:
 /***/ (function(module) {
 
 "use strict";
@@ -3745,9 +2505,8 @@ module.exports = class CachePolicy {
 
 
 /***/ }),
-/* 155 */,
-/* 156 */,
-/* 157 */
+
+/***/ 157:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -3763,6 +2522,7 @@ const request = (url, options, callback) => {
 };
 
 const get = (url, options, callback) => {
+	// eslint-disable-next-line unicorn/prevent-abbreviations
 	const req = new ClientRequest(url, options, callback);
 	req.end();
 
@@ -3781,17 +2541,8 @@ module.exports = {
 
 
 /***/ }),
-/* 158 */,
-/* 159 */,
-/* 160 */,
-/* 161 */,
-/* 162 */,
-/* 163 */,
-/* 164 */,
-/* 165 */,
-/* 166 */,
-/* 167 */,
-/* 168 */
+
+/***/ 168:
 /***/ (function(module) {
 
 "use strict";
@@ -3850,73 +2601,8 @@ module.exports.node = opts => {
 
 
 /***/ }),
-/* 169 */,
-/* 170 */,
-/* 171 */,
-/* 172 */,
-/* 173 */,
-/* 174 */,
-/* 175 */,
-/* 176 */,
-/* 177 */,
-/* 178 */
-/***/ (function(module) {
 
-"use strict";
-
-
-/*!
- * isobject <https://github.com/jonschlinkert/isobject>
- *
- * Copyright (c) 2014-2017, Jon Schlinkert.
- * Released under the MIT License.
- */
-
-function isObject(val) {
-  return val != null && typeof val === 'object' && Array.isArray(val) === false;
-}
-
-/*!
- * is-plain-object <https://github.com/jonschlinkert/is-plain-object>
- *
- * Copyright (c) 2014-2017, Jon Schlinkert.
- * Released under the MIT License.
- */
-
-function isObjectObject(o) {
-  return isObject(o) === true
-    && Object.prototype.toString.call(o) === '[object Object]';
-}
-
-function isPlainObject(o) {
-  var ctor,prot;
-
-  if (isObjectObject(o) === false) return false;
-
-  // If has modified constructor
-  ctor = o.constructor;
-  if (typeof ctor !== 'function') return false;
-
-  // If has modified prototype
-  prot = ctor.prototype;
-  if (isObjectObject(prot) === false) return false;
-
-  // If constructor does not have an Object-specific method
-  if (prot.hasOwnProperty('isPrototypeOf') === false) {
-    return false;
-  }
-
-  // Most likely a plain Object
-  return true;
-}
-
-module.exports = isPlainObject;
-
-
-/***/ }),
-/* 179 */,
-/* 180 */,
-/* 181 */
+/***/ 181:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -3951,7 +2637,7 @@ const kOptions = Symbol('options');
 const kFlushedHeaders = Symbol('flushedHeaders');
 const kJobs = Symbol('jobs');
 
-const isValidHttpToken = /^[\^_`a-zA-Z\-0-9!#$%&'*+.|~]+$/;
+const isValidHttpToken = /^[\^`\-\w!#$%&*+.|~]+$/;
 const isInvalidHeaderValue = /[^\t\u0020-\u007E\u0080-\u00FF]/;
 
 class ClientRequest extends Writable {
@@ -3992,15 +2678,17 @@ class ClientRequest extends Writable {
 			throw new ERR_INVALID_ARG_TYPE('options.agent', ['Agent-like Object', 'undefined', 'false'], options.agent);
 		}
 
-		if (!options.port) {
-			options.port = options.defaultPort || (this.agent && this.agent.defaultPort) || 443;
-		}
-
-		options.host = options.hostname || options.host || 'localhost';
-
 		if (options.protocol && options.protocol !== 'https:') {
 			throw new ERR_INVALID_PROTOCOL(options.protocol, 'https:');
 		}
+
+		const port = options.port || options.defaultPort || (this.agent && this.agent.defaultPort) || 443;
+		const host = options.hostname || options.host || 'localhost';
+
+		// Don't enforce the origin via options. It may be changed in an Agent.
+		delete options.hostname;
+		delete options.host;
+		delete options.port;
 
 		const {timeout} = options;
 		options.timeout = undefined;
@@ -4011,7 +2699,7 @@ class ClientRequest extends Writable {
 		this.socket = null;
 		this.connection = null;
 
-		this.method = options.method;
+		this.method = options.method || 'GET';
 		this.path = options.path;
 
 		this.res = null;
@@ -4034,22 +2722,19 @@ class ClientRequest extends Writable {
 		this[kOptions] = options;
 
 		// Clients that generate HTTP/2 requests directly SHOULD use the :authority pseudo-header field instead of the Host header field.
-		// What about IPv6? Square brackets?
-		if (options.port === 443) {
-			options.origin = `https://${options.host}`;
+		if (port === 443) {
+			this[kOrigin] = `https://${host}`;
 
 			if (!(':authority' in this[kHeaders])) {
-				this[kHeaders][':authority'] = options.host;
+				this[kHeaders][':authority'] = host;
 			}
 		} else {
-			options.origin = `https://${options.host}:${options.port}`;
+			this[kOrigin] = `https://${host}:${port}`;
 
 			if (!(':authority' in this[kHeaders])) {
-				this[kHeaders][':authority'] = `${options.host}:${options.port}`;
+				this[kHeaders][':authority'] = `${host}:${port}`;
 			}
 		}
-
-		this[kOrigin] = options;
 
 		if (timeout) {
 			this.setTimeout(timeout);
@@ -4082,7 +2767,18 @@ class ClientRequest extends Writable {
 		}
 	}
 
+	get _mustNotHaveABody() {
+		return this.method === 'GET' || this.method === 'HEAD' || this.method === 'DELETE';
+	}
+
 	_write(chunk, encoding, callback) {
+		// https://github.com/nodejs/node/blob/654df09ae0c5e17d1b52a900a545f0664d8c7627/lib/internal/http2/util.js#L148-L156
+		if (this._mustNotHaveABody) {
+			callback(new Error('The GET, HEAD and DELETE methods must NOT have a body'));
+			/* istanbul ignore next: Node.js 12 throws directly */
+			return;
+		}
+
 		this.flushHeaders();
 
 		const callWrite = () => this._request.write(chunk, encoding, callback);
@@ -4100,7 +2796,16 @@ class ClientRequest extends Writable {
 
 		this.flushHeaders();
 
-		const callEnd = () => this._request.end(callback);
+		const callEnd = () => {
+			// For GET, HEAD and DELETE
+			if (this._mustNotHaveABody) {
+				callback();
+				return;
+			}
+
+			this._request.end(callback);
+		};
+
 		if (this._request) {
 			callEnd();
 		} else {
@@ -4157,8 +2862,22 @@ class ClientRequest extends Writable {
 				proxyEvents(stream, this, ['timeout', 'continue', 'close', 'error']);
 			}
 
+			// Wait for the `finish` event. We don't want to emit the `response` event
+			// before `request.end()` is called.
+			const waitForEnd = fn => {
+				return (...args) => {
+					if (!this.writable && !this.destroyed) {
+						fn(...args);
+					} else {
+						this.once('finish', () => {
+							fn(...args);
+						});
+					}
+				};
+			};
+
 			// This event tells we are ready to listen for the data.
-			stream.once('response', (headers, flags, rawHeaders) => {
+			stream.once('response', waitForEnd((headers, flags, rawHeaders) => {
 				// If we were to emit raw request stream, it would be as fast as the native approach.
 				// Note that wrapping the raw stream in a Proxy instance won't improve the performance (already tested it).
 				const response = new IncomingMessage(this.socket, stream.readableHighWaterMark);
@@ -4210,18 +2929,20 @@ class ClientRequest extends Writable {
 						response._dump();
 					}
 				}
-			});
+			}));
 
 			// Emits `information` event
-			stream.once('headers', headers => this.emit('information', {statusCode: headers[HTTP2_HEADER_STATUS]}));
+			stream.once('headers', waitForEnd(
+				headers => this.emit('information', {statusCode: headers[HTTP2_HEADER_STATUS]})
+			));
 
-			stream.once('trailers', (trailers, flags, rawTrailers) => {
+			stream.once('trailers', waitForEnd((trailers, flags, rawTrailers) => {
 				const {res} = this;
 
 				// Assigns trailers to the response object.
 				res.trailers = trailers;
 				res.rawTrailers = rawTrailers;
-			});
+			}));
 
 			const {socket} = stream.session;
 			this.socket = socket;
@@ -4237,9 +2958,7 @@ class ClientRequest extends Writable {
 		// Makes a HTTP2 request
 		if (this[kSession]) {
 			try {
-				onStream(this[kSession].request(this[kHeaders], {
-					endStream: false
-				}));
+				onStream(this[kSession].request(this[kHeaders]));
 			} catch (error) {
 				this.emit('error', error);
 			}
@@ -4335,164 +3054,29 @@ module.exports = ClientRequest;
 
 
 /***/ }),
-/* 182 */,
-/* 183 */,
-/* 184 */,
-/* 185 */,
-/* 186 */,
-/* 187 */,
-/* 188 */,
-/* 189 */,
-/* 190 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = authenticationPlugin;
-
-const { createTokenAuth } = __webpack_require__(813);
-const { Deprecation } = __webpack_require__(692);
-const once = __webpack_require__(49);
-
-const beforeRequest = __webpack_require__(863);
-const requestError = __webpack_require__(293);
-const validate = __webpack_require__(954);
-const withAuthorizationPrefix = __webpack_require__(143);
-
-const deprecateAuthBasic = once((log, deprecation) => log.warn(deprecation));
-const deprecateAuthObject = once((log, deprecation) => log.warn(deprecation));
-
-function authenticationPlugin(octokit, options) {
-  // If `options.authStrategy` is set then use it and pass in `options.auth`
-  if (options.authStrategy) {
-    const auth = options.authStrategy(options.auth);
-    octokit.hook.wrap("request", auth.hook);
-    octokit.auth = auth;
-    return;
-  }
-
-  // If neither `options.authStrategy` nor `options.auth` are set, the `octokit` instance
-  // is unauthenticated. The `octokit.auth()` method is a no-op and no request hook is registred.
-  if (!options.auth) {
-    octokit.auth = () =>
-      Promise.resolve({
-        type: "unauthenticated"
-      });
-    return;
-  }
-
-  const isBasicAuthString =
-    typeof options.auth === "string" &&
-    /^basic/.test(withAuthorizationPrefix(options.auth));
-
-  // If only `options.auth` is set to a string, use the default token authentication strategy.
-  if (typeof options.auth === "string" && !isBasicAuthString) {
-    const auth = createTokenAuth(options.auth);
-    octokit.hook.wrap("request", auth.hook);
-    octokit.auth = auth;
-    return;
-  }
-
-  // Otherwise log a deprecation message
-  const [deprecationMethod, deprecationMessapge] = isBasicAuthString
-    ? [
-        deprecateAuthBasic,
-        'Setting the "new Octokit({ auth })" option to a Basic Auth string is deprecated. Use https://github.com/octokit/auth-basic.js instead. See (https://octokit.github.io/rest.js/#authentication)'
-      ]
-    : [
-        deprecateAuthObject,
-        'Setting the "new Octokit({ auth })" option to an object without also setting the "authStrategy" option is deprecated and will be removed in v17. See (https://octokit.github.io/rest.js/#authentication)'
-      ];
-  deprecationMethod(
-    octokit.log,
-    new Deprecation("[@octokit/rest] " + deprecationMessapge)
-  );
-
-  octokit.auth = () =>
-    Promise.resolve({
-      type: "deprecated",
-      message: deprecationMessapge
-    });
-
-  validate(options.auth);
-
-  const state = {
-    octokit,
-    auth: options.auth
-  };
-
-  octokit.hook.before("request", beforeRequest.bind(null, state));
-  octokit.hook.error("request", requestError.bind(null, state));
-}
-
-
-/***/ }),
-/* 191 */,
-/* 192 */,
-/* 193 */,
-/* 194 */,
-/* 195 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
+/***/ 189:
+/***/ (function(__unusedmodule, exports) {
 
 "use strict";
 
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var deprecation = __webpack_require__(692);
-var once = _interopDefault(__webpack_require__(49));
-
-const logOnce = once(deprecation => console.warn(deprecation));
-/**
- * Error with extra properties to help with debugging
- */
-
-class RequestError extends Error {
-  constructor(message, statusCode, options) {
-    super(message); // Maintains proper stack trace (only available on V8)
-
-    /* istanbul ignore next */
-
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
+Object.defineProperty(exports, "__esModule", { value: true });
+const alreadyWarned = new Set();
+exports.default = (message) => {
+    if (alreadyWarned.has(message)) {
+        return;
     }
-
-    this.name = "HttpError";
-    this.status = statusCode;
-    Object.defineProperty(this, "code", {
-      get() {
-        logOnce(new deprecation.Deprecation("[@octokit/request-error] `error.code` is deprecated, use `error.status`."));
-        return statusCode;
-      }
-
+    alreadyWarned.add(message);
+    // @ts-ignore Missing types.
+    process.emitWarning(`Got: ${message}`, {
+        type: 'DeprecationWarning'
     });
-    this.headers = options.headers || {}; // redact request credentials without mutating original request options
-
-    const requestCopy = Object.assign({}, options.request);
-
-    if (options.request.headers.authorization) {
-      requestCopy.headers = Object.assign({}, options.request.headers, {
-        authorization: options.request.headers.authorization.replace(/ .*$/, " [REDACTED]")
-      });
-    }
-
-    requestCopy.url = requestCopy.url // client_id & client_secret can be passed as URL query parameters to increase rate limit
-    // see https://developer.github.com/v3/#increasing-the-unauthenticated-rate-limit-for-oauth-applications
-    .replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]") // OAuth tokens can be passed as URL query parameters, although it is not recommended
-    // see https://developer.github.com/v3/#oauth2-token-sent-in-a-header
-    .replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
-    this.request = requestCopy;
-  }
-
-}
-
-exports.RequestError = RequestError;
-//# sourceMappingURL=index.js.map
+};
 
 
 /***/ }),
-/* 196 */,
-/* 197 */
+
+/***/ 197:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 module.exports = isexe
@@ -4539,7 +3123,8 @@ function checkMode (stat, options) {
 
 
 /***/ }),
-/* 198 */
+
+/***/ 198:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -4593,13 +3178,8 @@ run();
 
 
 /***/ }),
-/* 199 */,
-/* 200 */,
-/* 201 */,
-/* 202 */,
-/* 203 */,
-/* 204 */,
-/* 205 */
+
+/***/ 205:
 /***/ (function(__unusedmodule, exports) {
 
 //TODO: handle reviver/dehydrate function like normal
@@ -4663,11 +3243,8 @@ exports.parse = function (s) {
 
 
 /***/ }),
-/* 206 */,
-/* 207 */,
-/* 208 */,
-/* 209 */,
-/* 210 */
+
+/***/ 210:
 /***/ (function(module) {
 
 "use strict";
@@ -4706,37 +3283,15 @@ module.exports = (fromStream, toStream) => {
 
 
 /***/ }),
-/* 211 */
+
+/***/ 211:
 /***/ (function(module) {
 
 module.exports = require("https");
 
 /***/ }),
-/* 212 */,
-/* 213 */,
-/* 214 */,
-/* 215 */
-/***/ (function(module) {
 
-module.exports = {"name":"@octokit/rest","version":"16.43.1","publishConfig":{"access":"public"},"description":"GitHub REST API client for Node.js","keywords":["octokit","github","rest","api-client"],"author":"Gregor Martynus (https://github.com/gr2m)","contributors":[{"name":"Mike de Boer","email":"info@mikedeboer.nl"},{"name":"Fabian Jakobs","email":"fabian@c9.io"},{"name":"Joe Gallo","email":"joe@brassafrax.com"},{"name":"Gregor Martynus","url":"https://github.com/gr2m"}],"repository":"https://github.com/octokit/rest.js","dependencies":{"@octokit/auth-token":"^2.4.0","@octokit/plugin-paginate-rest":"^1.1.1","@octokit/plugin-request-log":"^1.0.0","@octokit/plugin-rest-endpoint-methods":"2.4.0","@octokit/request":"^5.2.0","@octokit/request-error":"^1.0.2","atob-lite":"^2.0.0","before-after-hook":"^2.0.0","btoa-lite":"^1.0.0","deprecation":"^2.0.0","lodash.get":"^4.4.2","lodash.set":"^4.3.2","lodash.uniq":"^4.5.0","octokit-pagination-methods":"^1.1.0","once":"^1.4.0","universal-user-agent":"^4.0.0"},"devDependencies":{"@gimenete/type-writer":"^0.1.3","@octokit/auth":"^1.1.1","@octokit/fixtures-server":"^5.0.6","@octokit/graphql":"^4.2.0","@types/node":"^13.1.0","bundlesize":"^0.18.0","chai":"^4.1.2","compression-webpack-plugin":"^3.1.0","cypress":"^3.0.0","glob":"^7.1.2","http-proxy-agent":"^4.0.0","lodash.camelcase":"^4.3.0","lodash.merge":"^4.6.1","lodash.upperfirst":"^4.3.1","lolex":"^5.1.2","mkdirp":"^1.0.0","mocha":"^7.0.1","mustache":"^4.0.0","nock":"^11.3.3","npm-run-all":"^4.1.2","nyc":"^15.0.0","prettier":"^1.14.2","proxy":"^1.0.0","semantic-release":"^17.0.0","sinon":"^8.0.0","sinon-chai":"^3.0.0","sort-keys":"^4.0.0","string-to-arraybuffer":"^1.0.0","string-to-jsdoc-comment":"^1.0.0","typescript":"^3.3.1","webpack":"^4.0.0","webpack-bundle-analyzer":"^3.0.0","webpack-cli":"^3.0.0"},"types":"index.d.ts","scripts":{"coverage":"nyc report --reporter=html && open coverage/index.html","lint":"prettier --check '{lib,plugins,scripts,test}/**/*.{js,json,ts}' 'docs/*.{js,json}' 'docs/src/**/*' index.js README.md package.json","lint:fix":"prettier --write '{lib,plugins,scripts,test}/**/*.{js,json,ts}' 'docs/*.{js,json}' 'docs/src/**/*' index.js README.md package.json","pretest":"npm run -s lint","test":"nyc mocha test/mocha-node-setup.js \"test/*/**/*-test.js\"","test:browser":"cypress run --browser chrome","build":"npm-run-all build:*","build:ts":"npm run -s update-endpoints:typescript","prebuild:browser":"mkdirp dist/","build:browser":"npm-run-all build:browser:*","build:browser:development":"webpack --mode development --entry . --output-library=Octokit --output=./dist/octokit-rest.js --profile --json > dist/bundle-stats.json","build:browser:production":"webpack --mode production --entry . --plugin=compression-webpack-plugin --output-library=Octokit --output-path=./dist --output-filename=octokit-rest.min.js --devtool source-map","generate-bundle-report":"webpack-bundle-analyzer dist/bundle-stats.json --mode=static --no-open --report dist/bundle-report.html","update-endpoints":"npm-run-all update-endpoints:*","update-endpoints:fetch-json":"node scripts/update-endpoints/fetch-json","update-endpoints:typescript":"node scripts/update-endpoints/typescript","prevalidate:ts":"npm run -s build:ts","validate:ts":"tsc --target es6 --noImplicitAny index.d.ts","postvalidate:ts":"tsc --noEmit --target es6 test/typescript-validate.ts","start-fixtures-server":"octokit-fixtures-server"},"license":"MIT","files":["index.js","index.d.ts","lib","plugins"],"nyc":{"ignore":["test"]},"release":{"publish":["@semantic-release/npm",{"path":"@semantic-release/github","assets":["dist/*","!dist/*.map.gz"]}]},"bundlesize":[{"path":"./dist/octokit-rest.min.js.gz","maxSize":"33 kB"}]};
-
-/***/ }),
-/* 216 */,
-/* 217 */,
-/* 218 */,
-/* 219 */,
-/* 220 */,
-/* 221 */,
-/* 222 */,
-/* 223 */,
-/* 224 */,
-/* 225 */,
-/* 226 */,
-/* 227 */,
-/* 228 */,
-/* 229 */,
-/* 230 */,
-/* 231 */
+/***/ 231:
 /***/ (function(module) {
 
 "use strict";
@@ -4750,35 +3305,8 @@ module.exports = (from, to, events) => {
 
 
 /***/ }),
-/* 232 */,
-/* 233 */,
-/* 234 */,
-/* 235 */,
-/* 236 */,
-/* 237 */,
-/* 238 */,
-/* 239 */,
-/* 240 */,
-/* 241 */,
-/* 242 */,
-/* 243 */,
-/* 244 */,
-/* 245 */,
-/* 246 */,
-/* 247 */,
-/* 248 */,
-/* 249 */,
-/* 250 */,
-/* 251 */,
-/* 252 */,
-/* 253 */,
-/* 254 */,
-/* 255 */,
-/* 256 */,
-/* 257 */,
-/* 258 */,
-/* 259 */,
-/* 260 */
+
+/***/ 260:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -4803,13 +3331,14 @@ const SIGRTMAX=64;exports.SIGRTMAX=SIGRTMAX;
 //# sourceMappingURL=realtime.js.map
 
 /***/ }),
-/* 261 */,
-/* 262 */
+
+/***/ 262:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Context = void 0;
 const fs_1 = __webpack_require__(747);
 const os_1 = __webpack_require__(87);
 class Context {
@@ -4833,6 +3362,9 @@ class Context {
         this.workflow = process.env.GITHUB_WORKFLOW;
         this.action = process.env.GITHUB_ACTION;
         this.actor = process.env.GITHUB_ACTOR;
+        this.job = process.env.GITHUB_JOB;
+        this.runNumber = parseInt(process.env.GITHUB_RUN_NUMBER, 10);
+        this.runId = parseInt(process.env.GITHUB_RUN_ID, 10);
     }
     get issue() {
         const payload = this.payload;
@@ -4856,53 +3388,8 @@ exports.Context = Context;
 //# sourceMappingURL=context.js.map
 
 /***/ }),
-/* 263 */,
-/* 264 */,
-/* 265 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = getPage
-
-const deprecate = __webpack_require__(370)
-const getPageLinks = __webpack_require__(13)
-const HttpError = __webpack_require__(297)
-
-function getPage (octokit, link, which, headers) {
-  deprecate(`octokit.get${which.charAt(0).toUpperCase() + which.slice(1)}Page() – You can use octokit.paginate or async iterators instead: https://github.com/octokit/rest.js#pagination.`)
-  const url = getPageLinks(link)[which]
-
-  if (!url) {
-    const urlError = new HttpError(`No ${which} page found`, 404)
-    return Promise.reject(urlError)
-  }
-
-  const requestOptions = {
-    url,
-    headers: applyAcceptHeader(link, headers)
-  }
-
-  const promise = octokit.request(requestOptions)
-
-  return promise
-}
-
-function applyAcceptHeader (res, headers) {
-  const previous = res.headers && res.headers['x-github-media-type']
-
-  if (!previous || (headers && headers.accept)) {
-    return headers
-  }
-  headers = headers || {}
-  headers.accept = 'application/vnd.' + previous
-    .replace('; param=', '.')
-    .replace('; format=', '+')
-
-  return headers
-}
-
-
-/***/ }),
-/* 266 */
+/***/ 266:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 module.exports = which
@@ -5043,111 +3530,8 @@ function whichSync (cmd, opt) {
 
 
 /***/ }),
-/* 267 */,
-/* 268 */,
-/* 269 */,
-/* 270 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-var request = __webpack_require__(417);
-var universalUserAgent = __webpack_require__(796);
-
-const VERSION = "4.5.1";
-
-class GraphqlError extends Error {
-  constructor(request, response) {
-    const message = response.data.errors[0].message;
-    super(message);
-    Object.assign(this, response.data);
-    this.name = "GraphqlError";
-    this.request = request; // Maintains proper stack trace (only available on V8)
-
-    /* istanbul ignore next */
-
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    }
-  }
-
-}
-
-const NON_VARIABLE_OPTIONS = ["method", "baseUrl", "url", "headers", "request", "query", "mediaType"];
-function graphql(request, query, options) {
-  options = typeof query === "string" ? options = Object.assign({
-    query
-  }, options) : options = query;
-  const requestOptions = Object.keys(options).reduce((result, key) => {
-    if (NON_VARIABLE_OPTIONS.includes(key)) {
-      result[key] = options[key];
-      return result;
-    }
-
-    if (!result.variables) {
-      result.variables = {};
-    }
-
-    result.variables[key] = options[key];
-    return result;
-  }, {});
-  return request(requestOptions).then(response => {
-    if (response.data.errors) {
-      throw new GraphqlError(requestOptions, {
-        data: response.data
-      });
-    }
-
-    return response.data.data;
-  });
-}
-
-function withDefaults(request$1, newDefaults) {
-  const newRequest = request$1.defaults(newDefaults);
-
-  const newApi = (query, options) => {
-    return graphql(newRequest, query, options);
-  };
-
-  return Object.assign(newApi, {
-    defaults: withDefaults.bind(null, newRequest),
-    endpoint: request.request.endpoint
-  });
-}
-
-const graphql$1 = withDefaults(request.request, {
-  headers: {
-    "user-agent": `octokit-graphql.js/${VERSION} ${universalUserAgent.getUserAgent()}`
-  },
-  method: "POST",
-  url: "/graphql"
-});
-function withCustomRequest(customRequest) {
-  return withDefaults(customRequest, {
-    method: "POST",
-    url: "/graphql"
-  });
-}
-
-exports.graphql = graphql$1;
-exports.withCustomRequest = withCustomRequest;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-/* 271 */,
-/* 272 */,
-/* 273 */,
-/* 274 */,
-/* 275 */,
-/* 276 */,
-/* 277 */,
-/* 278 */,
-/* 279 */,
-/* 280 */
+/***/ 280:
 /***/ (function(module, exports) {
 
 exports = module.exports = SemVer
@@ -6636,8 +5020,8 @@ function coerce (version) {
 
 
 /***/ }),
-/* 281 */,
-/* 282 */
+
+/***/ 282:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -6690,14 +5074,8 @@ module.exports = osName;
 
 
 /***/ }),
-/* 283 */,
-/* 284 */,
-/* 285 */,
-/* 286 */,
-/* 287 */,
-/* 288 */,
-/* 289 */,
-/* 290 */
+
+/***/ 290:
 /***/ (function(module) {
 
 "use strict";
@@ -6827,7 +5205,8 @@ module.exports = QuickLRU;
 
 
 /***/ }),
-/* 291 */
+
+/***/ 291:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -6846,7 +5225,8 @@ exports.default = deepFreeze;
 
 
 /***/ }),
-/* 292 */
+
+/***/ 292:
 /***/ (function(module) {
 
 "use strict";
@@ -6874,193 +5254,8 @@ isStream.transform = function (stream) {
 
 
 /***/ }),
-/* 293 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = authenticationRequestError;
-
-const { RequestError } = __webpack_require__(195);
-
-function authenticationRequestError(state, error, options) {
-  if (!error.headers) throw error;
-
-  const otpRequired = /required/.test(error.headers["x-github-otp"] || "");
-  // handle "2FA required" error only
-  if (error.status !== 401 || !otpRequired) {
-    throw error;
-  }
-
-  if (
-    error.status === 401 &&
-    otpRequired &&
-    error.request &&
-    error.request.headers["x-github-otp"]
-  ) {
-    if (state.otp) {
-      delete state.otp; // no longer valid, request again
-    } else {
-      throw new RequestError(
-        "Invalid one-time password for two-factor authentication",
-        401,
-        {
-          headers: error.headers,
-          request: options
-        }
-      );
-    }
-  }
-
-  if (typeof state.auth.on2fa !== "function") {
-    throw new RequestError(
-      "2FA required, but options.on2fa is not a function. See https://github.com/octokit/rest.js#authentication",
-      401,
-      {
-        headers: error.headers,
-        request: options
-      }
-    );
-  }
-
-  return Promise.resolve()
-    .then(() => {
-      return state.auth.on2fa();
-    })
-    .then(oneTimePassword => {
-      const newOptions = Object.assign(options, {
-        headers: Object.assign(options.headers, {
-          "x-github-otp": oneTimePassword
-        })
-      });
-      return state.octokit.request(newOptions).then(response => {
-        // If OTP still valid, then persist it for following requests
-        state.otp = oneTimePassword;
-        return response;
-      });
-    });
-}
-
-
-/***/ }),
-/* 294 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-module.exports = parseOptions;
-
-const { Deprecation } = __webpack_require__(692);
-const { getUserAgent } = __webpack_require__(619);
-const once = __webpack_require__(49);
-
-const pkg = __webpack_require__(215);
-
-const deprecateOptionsTimeout = once((log, deprecation) =>
-  log.warn(deprecation)
-);
-const deprecateOptionsAgent = once((log, deprecation) => log.warn(deprecation));
-const deprecateOptionsHeaders = once((log, deprecation) =>
-  log.warn(deprecation)
-);
-
-function parseOptions(options, log, hook) {
-  if (options.headers) {
-    options.headers = Object.keys(options.headers).reduce((newObj, key) => {
-      newObj[key.toLowerCase()] = options.headers[key];
-      return newObj;
-    }, {});
-  }
-
-  const clientDefaults = {
-    headers: options.headers || {},
-    request: options.request || {},
-    mediaType: {
-      previews: [],
-      format: ""
-    }
-  };
-
-  if (options.baseUrl) {
-    clientDefaults.baseUrl = options.baseUrl;
-  }
-
-  if (options.userAgent) {
-    clientDefaults.headers["user-agent"] = options.userAgent;
-  }
-
-  if (options.previews) {
-    clientDefaults.mediaType.previews = options.previews;
-  }
-
-  if (options.timeZone) {
-    clientDefaults.headers["time-zone"] = options.timeZone;
-  }
-
-  if (options.timeout) {
-    deprecateOptionsTimeout(
-      log,
-      new Deprecation(
-        "[@octokit/rest] new Octokit({timeout}) is deprecated. Use {request: {timeout}} instead. See https://github.com/octokit/request.js#request"
-      )
-    );
-    clientDefaults.request.timeout = options.timeout;
-  }
-
-  if (options.agent) {
-    deprecateOptionsAgent(
-      log,
-      new Deprecation(
-        "[@octokit/rest] new Octokit({agent}) is deprecated. Use {request: {agent}} instead. See https://github.com/octokit/request.js#request"
-      )
-    );
-    clientDefaults.request.agent = options.agent;
-  }
-
-  if (options.headers) {
-    deprecateOptionsHeaders(
-      log,
-      new Deprecation(
-        "[@octokit/rest] new Octokit({headers}) is deprecated. Use {userAgent, previews} instead. See https://github.com/octokit/request.js#request"
-      )
-    );
-  }
-
-  const userAgentOption = clientDefaults.headers["user-agent"];
-  const defaultUserAgent = `octokit.js/${pkg.version} ${getUserAgent()}`;
-
-  clientDefaults.headers["user-agent"] = [userAgentOption, defaultUserAgent]
-    .filter(Boolean)
-    .join(" ");
-
-  clientDefaults.request.hook = hook.bind(null, "request");
-
-  return clientDefaults;
-}
-
-
-/***/ }),
-/* 295 */,
-/* 296 */,
-/* 297 */
-/***/ (function(module) {
-
-module.exports = class HttpError extends Error {
-  constructor (message, code, headers) {
-    super(message)
-
-    // Maintains proper stack trace (only available on V8)
-    /* istanbul ignore next */
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor)
-    }
-
-    this.name = 'HttpError'
-    this.code = code
-    this.headers = headers
-  }
-}
-
-
-/***/ }),
-/* 298 */,
-/* 299 */
+/***/ 299:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -7068,33 +5263,27 @@ module.exports = class HttpError extends Error {
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-const VERSION = "1.1.2";
+const VERSION = "2.2.3";
 
 /**
  * Some “list” response that can be paginated have a different response structure
  *
  * They have a `total_count` key in the response (search also has `incomplete_results`,
  * /installation/repositories also has `repository_selection`), as well as a key with
- * the list of the items which name varies from endpoint to endpoint:
- *
- * - https://developer.github.com/v3/search/#example (key `items`)
- * - https://developer.github.com/v3/checks/runs/#response-3 (key: `check_runs`)
- * - https://developer.github.com/v3/checks/suites/#response-1 (key: `check_suites`)
- * - https://developer.github.com/v3/apps/installations/#list-repositories (key: `repositories`)
- * - https://developer.github.com/v3/apps/installations/#list-installations-for-a-user (key `installations`)
+ * the list of the items which name varies from endpoint to endpoint.
  *
  * Octokit normalizes these responses so that paginated results are always returned following
  * the same structure. One challenge is that if the list response has only one page, no Link
  * header is provided, so this header alone is not sufficient to check wether a response is
- * paginated or not. For the exceptions with the namespace, a fallback check for the route
- * paths has to be added in order to normalize the response. We cannot check for the total_count
- * property because it also exists in the response of Get the combined status for a specific ref.
+ * paginated or not.
+ *
+ * We check if a "total_count" key is present in the response data, but also make sure that
+ * a "url" property is not, as the "Get the combined status for a specific ref" endpoint would
+ * otherwise match: https://developer.github.com/v3/repos/statuses/#get-the-combined-status-for-a-specific-ref
  */
-const REGEX = [/^\/search\//, /^\/repos\/[^/]+\/[^/]+\/commits\/[^/]+\/(check-runs|check-suites)([^/]|$)/, /^\/installation\/repositories([^/]|$)/, /^\/user\/installations([^/]|$)/, /^\/repos\/[^/]+\/[^/]+\/actions\/secrets([^/]|$)/, /^\/repos\/[^/]+\/[^/]+\/actions\/workflows(\/[^/]+\/runs)?([^/]|$)/, /^\/repos\/[^/]+\/[^/]+\/actions\/runs(\/[^/]+\/(artifacts|jobs))?([^/]|$)/];
-function normalizePaginatedListResponse(octokit, url, response) {
-  const path = url.replace(octokit.request.endpoint.DEFAULTS.baseUrl, "");
-  const responseNeedsNormalization = REGEX.find(regex => regex.test(path));
-  if (!responseNeedsNormalization) return; // keep the additional properties intact as there is currently no other way
+function normalizePaginatedListResponse(response) {
+  const responseNeedsNormalization = "total_count" in response.data && !("url" in response.data);
+  if (!responseNeedsNormalization) return response; // keep the additional properties intact as there is currently no other way
   // to retrieve the same information.
 
   const incompleteResults = response.data.incomplete_results;
@@ -7116,17 +5305,12 @@ function normalizePaginatedListResponse(octokit, url, response) {
   }
 
   response.data.total_count = totalCount;
-  Object.defineProperty(response.data, namespaceKey, {
-    get() {
-      octokit.log.warn(`[@octokit/paginate-rest] "response.data.${namespaceKey}" is deprecated for "GET ${path}". Get the results directly from "response.data"`);
-      return Array.from(data);
-    }
-
-  });
+  return response;
 }
 
 function iterator(octokit, route, parameters) {
-  const options = octokit.request.endpoint(route, parameters);
+  const options = typeof route === "function" ? route.endpoint(parameters) : octokit.request.endpoint(route, parameters);
+  const requestMethod = typeof route === "function" ? route : octokit.request;
   const method = options.method;
   const headers = options.headers;
   let url = options.url;
@@ -7139,15 +5323,14 @@ function iterator(octokit, route, parameters) {
           });
         }
 
-        return octokit.request({
+        return requestMethod({
           method,
           url,
           headers
-        }).then(response => {
-          normalizePaginatedListResponse(octokit, url, response); // `response.headers.link` format:
+        }).then(normalizePaginatedListResponse).then(response => {
+          // `response.headers.link` format:
           // '<https://api.github.com/users/aseemk/followers?page=2>; rel="next", <https://api.github.com/users/aseemk/followers?page=2>; rel="last"'
           // sets `url` to undefined if "next" URL is not present or `link` header is not set
-
           url = ((response.headers.link || "").match(/<([^>]+)>;\s*rel="next"/) || [])[1];
           return {
             value: response
@@ -7209,10 +5392,8 @@ exports.paginateRest = paginateRest;
 
 
 /***/ }),
-/* 300 */,
-/* 301 */,
-/* 302 */,
-/* 303 */
+
+/***/ 303:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -7330,9 +5511,8 @@ module.exports = Keyv;
 
 
 /***/ }),
-/* 304 */,
-/* 305 */,
-/* 306 */
+
+/***/ 306:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -7362,11 +5542,8 @@ module.exports = readShebang;
 
 
 /***/ }),
-/* 307 */,
-/* 308 */,
-/* 309 */,
-/* 310 */,
-/* 311 */
+
+/***/ 311:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -7443,18 +5620,8 @@ const signalsByNumber=getSignalsByNumber();exports.signalsByNumber=signalsByNumb
 //# sourceMappingURL=main.js.map
 
 /***/ }),
-/* 312 */,
-/* 313 */,
-/* 314 */,
-/* 315 */,
-/* 316 */,
-/* 317 */,
-/* 318 */,
-/* 319 */,
-/* 320 */,
-/* 321 */,
-/* 322 */,
-/* 323 */
+
+/***/ 323:
 /***/ (function(module) {
 
 "use strict";
@@ -7490,8 +5657,8 @@ module.exports = isStream;
 
 
 /***/ }),
-/* 324 */,
-/* 325 */
+
+/***/ 325:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -7515,9 +5682,8 @@ module.exports = cloneResponse;
 
 
 /***/ }),
-/* 326 */,
-/* 327 */,
-/* 328 */
+
+/***/ 328:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -7577,94 +5743,8 @@ exports.default = (origin, options) => {
 
 
 /***/ }),
-/* 329 */,
-/* 330 */,
-/* 331 */,
-/* 332 */,
-/* 333 */,
-/* 334 */,
-/* 335 */,
-/* 336 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = hasLastPage
-
-const deprecate = __webpack_require__(370)
-const getPageLinks = __webpack_require__(13)
-
-function hasLastPage (link) {
-  deprecate(`octokit.hasLastPage() – You can use octokit.paginate or async iterators instead: https://github.com/octokit/rest.js#pagination.`)
-  return getPageLinks(link).last
-}
-
-
-/***/ }),
-/* 337 */,
-/* 338 */,
-/* 339 */,
-/* 340 */,
-/* 341 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-async function auth(token) {
-  const tokenType = token.split(/\./).length === 3 ? "app" : /^v\d+\./.test(token) ? "installation" : "oauth";
-  return {
-    type: "token",
-    token: token,
-    tokenType
-  };
-}
-
-/**
- * Prefix token for usage in the Authorization header
- *
- * @param token OAuth token or JSON Web Token
- */
-function withAuthorizationPrefix(token) {
-  if (token.split(/\./).length === 3) {
-    return `bearer ${token}`;
-  }
-
-  return `token ${token}`;
-}
-
-async function hook(token, request, route, parameters) {
-  const endpoint = request.endpoint.merge(route, parameters);
-  endpoint.headers.authorization = withAuthorizationPrefix(token);
-  return request(endpoint);
-}
-
-const createTokenAuth = function createTokenAuth(token) {
-  if (!token) {
-    throw new Error("[@octokit/auth-token] No token passed to createTokenAuth");
-  }
-
-  if (typeof token !== "string") {
-    throw new Error("[@octokit/auth-token] Token passed to createTokenAuth is not a string");
-  }
-
-  token = token.replace(/^(token|bearer) +/i, "");
-  return Object.assign(auth.bind(null, token), {
-    hook: hook.bind(null, token)
-  });
-};
-
-exports.createTokenAuth = createTokenAuth;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-/* 342 */,
-/* 343 */,
-/* 344 */,
-/* 345 */,
-/* 346 */,
-/* 347 */
+/***/ 347:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -7729,244 +5809,15 @@ module.exports = IncomingMessage;
 
 
 /***/ }),
-/* 348 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-"use strict";
-
-
-module.exports = validate;
-
-const { RequestError } = __webpack_require__(195);
-const get = __webpack_require__(854);
-const set = __webpack_require__(883);
-
-function validate(octokit, options) {
-  if (!options.request.validate) {
-    return;
-  }
-  const { validate: params } = options.request;
-
-  Object.keys(params).forEach(parameterName => {
-    const parameter = get(params, parameterName);
-
-    const expectedType = parameter.type;
-    let parentParameterName;
-    let parentValue;
-    let parentParamIsPresent = true;
-    let parentParameterIsArray = false;
-
-    if (/\./.test(parameterName)) {
-      parentParameterName = parameterName.replace(/\.[^.]+$/, "");
-      parentParameterIsArray = parentParameterName.slice(-2) === "[]";
-      if (parentParameterIsArray) {
-        parentParameterName = parentParameterName.slice(0, -2);
-      }
-      parentValue = get(options, parentParameterName);
-      parentParamIsPresent =
-        parentParameterName === "headers" ||
-        (typeof parentValue === "object" && parentValue !== null);
-    }
-
-    const values = parentParameterIsArray
-      ? (get(options, parentParameterName) || []).map(
-          value => value[parameterName.split(/\./).pop()]
-        )
-      : [get(options, parameterName)];
-
-    values.forEach((value, i) => {
-      const valueIsPresent = typeof value !== "undefined";
-      const valueIsNull = value === null;
-      const currentParameterName = parentParameterIsArray
-        ? parameterName.replace(/\[\]/, `[${i}]`)
-        : parameterName;
-
-      if (!parameter.required && !valueIsPresent) {
-        return;
-      }
-
-      // if the parent parameter is of type object but allows null
-      // then the child parameters can be ignored
-      if (!parentParamIsPresent) {
-        return;
-      }
-
-      if (parameter.allowNull && valueIsNull) {
-        return;
-      }
-
-      if (!parameter.allowNull && valueIsNull) {
-        throw new RequestError(
-          `'${currentParameterName}' cannot be null`,
-          400,
-          {
-            request: options
-          }
-        );
-      }
-
-      if (parameter.required && !valueIsPresent) {
-        throw new RequestError(
-          `Empty value for parameter '${currentParameterName}': ${JSON.stringify(
-            value
-          )}`,
-          400,
-          {
-            request: options
-          }
-        );
-      }
-
-      // parse to integer before checking for enum
-      // so that string "1" will match enum with number 1
-      if (expectedType === "integer") {
-        const unparsedValue = value;
-        value = parseInt(value, 10);
-        if (isNaN(value)) {
-          throw new RequestError(
-            `Invalid value for parameter '${currentParameterName}': ${JSON.stringify(
-              unparsedValue
-            )} is NaN`,
-            400,
-            {
-              request: options
-            }
-          );
-        }
-      }
-
-      if (parameter.enum && parameter.enum.indexOf(String(value)) === -1) {
-        throw new RequestError(
-          `Invalid value for parameter '${currentParameterName}': ${JSON.stringify(
-            value
-          )}`,
-          400,
-          {
-            request: options
-          }
-        );
-      }
-
-      if (parameter.validation) {
-        const regex = new RegExp(parameter.validation);
-        if (!regex.test(value)) {
-          throw new RequestError(
-            `Invalid value for parameter '${currentParameterName}': ${JSON.stringify(
-              value
-            )}`,
-            400,
-            {
-              request: options
-            }
-          );
-        }
-      }
-
-      if (expectedType === "object" && typeof value === "string") {
-        try {
-          value = JSON.parse(value);
-        } catch (exception) {
-          throw new RequestError(
-            `JSON parse error of value for parameter '${currentParameterName}': ${JSON.stringify(
-              value
-            )}`,
-            400,
-            {
-              request: options
-            }
-          );
-        }
-      }
-
-      set(options, parameter.mapTo || currentParameterName, value);
-    });
-  });
-
-  return options;
-}
-
-
-/***/ }),
-/* 349 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-module.exports = authenticationRequestError;
-
-const { RequestError } = __webpack_require__(195);
-
-function authenticationRequestError(state, error, options) {
-  /* istanbul ignore next */
-  if (!error.headers) throw error;
-
-  const otpRequired = /required/.test(error.headers["x-github-otp"] || "");
-  // handle "2FA required" error only
-  if (error.status !== 401 || !otpRequired) {
-    throw error;
-  }
-
-  if (
-    error.status === 401 &&
-    otpRequired &&
-    error.request &&
-    error.request.headers["x-github-otp"]
-  ) {
-    throw new RequestError(
-      "Invalid one-time password for two-factor authentication",
-      401,
-      {
-        headers: error.headers,
-        request: options
-      }
-    );
-  }
-
-  if (typeof state.auth.on2fa !== "function") {
-    throw new RequestError(
-      "2FA required, but options.on2fa is not a function. See https://github.com/octokit/rest.js#authentication",
-      401,
-      {
-        headers: error.headers,
-        request: options
-      }
-    );
-  }
-
-  return Promise.resolve()
-    .then(() => {
-      return state.auth.on2fa();
-    })
-    .then(oneTimePassword => {
-      const newOptions = Object.assign(options, {
-        headers: Object.assign(
-          { "x-github-otp": oneTimePassword },
-          options.headers
-        )
-      });
-      return state.octokit.request(newOptions);
-    });
-}
-
-
-/***/ }),
-/* 350 */,
-/* 351 */,
-/* 352 */,
-/* 353 */,
-/* 354 */,
-/* 355 */,
-/* 356 */,
-/* 357 */
+/***/ 357:
 /***/ (function(module) {
 
 module.exports = require("assert");
 
 /***/ }),
-/* 358 */,
-/* 359 */,
-/* 360 */,
-/* 361 */,
-/* 362 */,
-/* 363 */
+
+/***/ 363:
 /***/ (function(module) {
 
 module.exports = register
@@ -8000,9 +5851,8 @@ function register (state, name, method, options) {
 
 
 /***/ }),
-/* 364 */,
-/* 365 */,
-/* 366 */
+
+/***/ 366:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -8258,50 +6108,8 @@ function toAlignment(value) {
 
 
 /***/ }),
-/* 367 */,
-/* 368 */
-/***/ (function(module) {
 
-module.exports = function atob(str) {
-  return Buffer.from(str, 'base64').toString('binary')
-}
-
-
-/***/ }),
-/* 369 */,
-/* 370 */
-/***/ (function(module) {
-
-module.exports = deprecate
-
-const loggedMessages = {}
-
-function deprecate (message) {
-  if (loggedMessages[message]) {
-    return
-  }
-
-  console.warn(`DEPRECATED (@octokit/rest): ${message}`)
-  loggedMessages[message] = 1
-}
-
-
-/***/ }),
-/* 371 */,
-/* 372 */,
-/* 373 */,
-/* 374 */,
-/* 375 */,
-/* 376 */,
-/* 377 */,
-/* 378 */,
-/* 379 */,
-/* 380 */,
-/* 381 */,
-/* 382 */,
-/* 383 */,
-/* 384 */,
-/* 385 */
+/***/ 385:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -8311,7 +6119,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
-var isPlainObject = _interopDefault(__webpack_require__(696));
+var isPlainObject = _interopDefault(__webpack_require__(626));
 var universalUserAgent = __webpack_require__(796);
 
 function lowercaseKeys(object) {
@@ -8662,7 +6470,7 @@ function withDefaults(oldDefaults, newDefaults) {
   });
 }
 
-const VERSION = "6.0.1";
+const VERSION = "6.0.3";
 
 const userAgent = `octokit-endpoint.js/${VERSION} ${universalUserAgent.getUserAgent()}`; // DEFAULTS has all properties set that EndpointOptions has, except url.
 // So we use RequestParameters and add method as additional required property.
@@ -8687,10 +6495,8 @@ exports.endpoint = endpoint;
 
 
 /***/ }),
-/* 386 */,
-/* 387 */,
-/* 388 */,
-/* 389 */
+
+/***/ 389:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -8729,7 +6535,8 @@ module.exports = readShebang;
 
 
 /***/ }),
-/* 390 */
+
+/***/ 390:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -8987,11 +6794,8 @@ module.exports = CacheableRequest;
 
 
 /***/ }),
-/* 391 */,
-/* 392 */,
-/* 393 */,
-/* 394 */,
-/* 395 */
+
+/***/ 395:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -9007,7 +6811,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createComment = exports.deleteComment = exports.findComment = void 0;
-const rest_1 = __webpack_require__(729);
+const rest_1 = __webpack_require__(889);
 const issues = (auth) => {
     return new rest_1.Octokit({ auth }).issues;
 };
@@ -9022,7 +6826,7 @@ exports.findComment = ({ token, owner, repo, issue_number, body }) => __awaiter(
 });
 exports.deleteComment = ({ token, owner, repo, issue_number, body, startsWith = false }) => __awaiter(void 0, void 0, void 0, function* () {
     const { comment_id, exactMatch } = yield exports.findComment({ token, owner, repo, issue_number, body });
-    if (comment_id && (!startsWith || exactMatch)) {
+    if (comment_id && (startsWith || exactMatch)) {
         yield issues(token).deleteComment({ owner, repo, comment_id });
     }
 });
@@ -9031,11 +6835,13 @@ exports.createComment = ({ token, owner, repo, issue_number, body }) => __awaite
 });
 function replaceComment({ token, owner, repo, issue_number, body }) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { exactMatch } = yield exports.findComment({ token, owner, repo, issue_number, body });
+        const { comment_id, exactMatch } = yield exports.findComment({ token, owner, repo, issue_number, body });
         if (exactMatch) {
             return;
         }
-        yield exports.deleteComment({ token, owner, repo, issue_number, body, startsWith: true });
+        if (comment_id) {
+            yield issues(token).deleteComment({ owner, repo, comment_id });
+        }
         return exports.createComment({ token, owner, repo, issue_number, body });
     });
 }
@@ -9043,59 +6849,8 @@ exports.default = replaceComment;
 
 
 /***/ }),
-/* 396 */,
-/* 397 */
-/***/ (function(module) {
 
-module.exports = function btoa(str) {
-  return new Buffer(str).toString('base64')
-}
-
-
-/***/ }),
-/* 398 */,
-/* 399 */,
-/* 400 */,
-/* 401 */,
-/* 402 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-module.exports = Octokit;
-
-const { request } = __webpack_require__(753);
-const Hook = __webpack_require__(523);
-
-const parseClientOptions = __webpack_require__(294);
-
-function Octokit(plugins, options) {
-  options = options || {};
-  const hook = new Hook.Collection();
-  const log = Object.assign(
-    {
-      debug: () => {},
-      info: () => {},
-      warn: console.warn,
-      error: console.error
-    },
-    options && options.log
-  );
-  const api = {
-    hook,
-    log,
-    request: request.defaults(parseClientOptions(options, log, hook))
-  };
-
-  plugins.forEach(pluginFunction => pluginFunction(api, options));
-
-  return api;
-}
-
-
-/***/ }),
-/* 403 */,
-/* 404 */,
-/* 405 */,
-/* 406 */
+/***/ 406:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -9141,177 +6896,15 @@ module.exports.env = opts => {
 
 
 /***/ }),
-/* 407 */,
-/* 408 */,
-/* 409 */,
-/* 410 */,
-/* 411 */,
-/* 412 */,
-/* 413 */
+
+/***/ 413:
 /***/ (function(module) {
 
 module.exports = require("stream");
 
 /***/ }),
-/* 414 */,
-/* 415 */,
-/* 416 */,
-/* 417 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var endpoint = __webpack_require__(498);
-var universalUserAgent = __webpack_require__(796);
-var isPlainObject = _interopDefault(__webpack_require__(932));
-var nodeFetch = _interopDefault(__webpack_require__(454));
-var requestError = __webpack_require__(712);
-
-const VERSION = "5.4.5";
-
-function getBufferResponse(response) {
-  return response.arrayBuffer();
-}
-
-function fetchWrapper(requestOptions) {
-  if (isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body)) {
-    requestOptions.body = JSON.stringify(requestOptions.body);
-  }
-
-  let headers = {};
-  let status;
-  let url;
-  const fetch = requestOptions.request && requestOptions.request.fetch || nodeFetch;
-  return fetch(requestOptions.url, Object.assign({
-    method: requestOptions.method,
-    body: requestOptions.body,
-    headers: requestOptions.headers,
-    redirect: requestOptions.redirect
-  }, requestOptions.request)).then(response => {
-    url = response.url;
-    status = response.status;
-
-    for (const keyAndValue of response.headers) {
-      headers[keyAndValue[0]] = keyAndValue[1];
-    }
-
-    if (status === 204 || status === 205) {
-      return;
-    } // GitHub API returns 200 for HEAD requests
-
-
-    if (requestOptions.method === "HEAD") {
-      if (status < 400) {
-        return;
-      }
-
-      throw new requestError.RequestError(response.statusText, status, {
-        headers,
-        request: requestOptions
-      });
-    }
-
-    if (status === 304) {
-      throw new requestError.RequestError("Not modified", status, {
-        headers,
-        request: requestOptions
-      });
-    }
-
-    if (status >= 400) {
-      return response.text().then(message => {
-        const error = new requestError.RequestError(message, status, {
-          headers,
-          request: requestOptions
-        });
-
-        try {
-          let responseBody = JSON.parse(error.message);
-          Object.assign(error, responseBody);
-          let errors = responseBody.errors; // Assumption `errors` would always be in Array format
-
-          error.message = error.message + ": " + errors.map(JSON.stringify).join(", ");
-        } catch (e) {// ignore, see octokit/rest.js#684
-        }
-
-        throw error;
-      });
-    }
-
-    const contentType = response.headers.get("content-type");
-
-    if (/application\/json/.test(contentType)) {
-      return response.json();
-    }
-
-    if (!contentType || /^text\/|charset=utf-8$/.test(contentType)) {
-      return response.text();
-    }
-
-    return getBufferResponse(response);
-  }).then(data => {
-    return {
-      status,
-      url,
-      headers,
-      data
-    };
-  }).catch(error => {
-    if (error instanceof requestError.RequestError) {
-      throw error;
-    }
-
-    throw new requestError.RequestError(error.message, 500, {
-      headers,
-      request: requestOptions
-    });
-  });
-}
-
-function withDefaults(oldEndpoint, newDefaults) {
-  const endpoint = oldEndpoint.defaults(newDefaults);
-
-  const newApi = function (route, parameters) {
-    const endpointOptions = endpoint.merge(route, parameters);
-
-    if (!endpointOptions.request || !endpointOptions.request.hook) {
-      return fetchWrapper(endpoint.parse(endpointOptions));
-    }
-
-    const request = (route, parameters) => {
-      return fetchWrapper(endpoint.parse(endpoint.merge(route, parameters)));
-    };
-
-    Object.assign(request, {
-      endpoint,
-      defaults: withDefaults.bind(null, endpoint)
-    });
-    return endpointOptions.request.hook(request, endpointOptions);
-  };
-
-  return Object.assign(newApi, {
-    endpoint,
-    defaults: withDefaults.bind(null, endpoint)
-  });
-}
-
-const request = withDefaults(endpoint.endpoint, {
-  headers: {
-    "user-agent": `octokit-request.js/${VERSION} ${universalUserAgent.getUserAgent()}`
-  }
-});
-
-exports.request = request;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-/* 418 */
+/***/ 418:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -9357,31 +6950,8 @@ function errname(uv, code) {
 
 
 /***/ }),
-/* 419 */,
-/* 420 */,
-/* 421 */,
-/* 422 */,
-/* 423 */,
-/* 424 */,
-/* 425 */,
-/* 426 */,
-/* 427 */,
-/* 428 */,
-/* 429 */,
-/* 430 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = octokitValidate;
-
-const validate = __webpack_require__(348);
-
-function octokitValidate(octokit) {
-  octokit.hook.before("request", validate.bind(null, octokit));
-}
-
-
-/***/ }),
-/* 431 */
+/***/ 431:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -9479,28 +7049,216 @@ function escapeProperty(s) {
 //# sourceMappingURL=command.js.map
 
 /***/ }),
-/* 432 */,
-/* 433 */,
-/* 434 */,
-/* 435 */,
-/* 436 */,
-/* 437 */,
-/* 438 */,
-/* 439 */,
-/* 440 */,
-/* 441 */,
-/* 442 */,
-/* 443 */,
-/* 444 */,
-/* 445 */,
-/* 446 */,
-/* 447 */,
-/* 448 */,
-/* 449 */,
-/* 450 */,
-/* 451 */,
-/* 452 */,
-/* 453 */
+
+/***/ 448:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var universalUserAgent = __webpack_require__(796);
+var beforeAfterHook = __webpack_require__(523);
+var request = __webpack_require__(753);
+var graphql = __webpack_require__(898);
+var authToken = __webpack_require__(813);
+
+function _defineProperty(obj, key, value) {
+  if (key in obj) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
+
+  return obj;
+}
+
+function ownKeys(object, enumerableOnly) {
+  var keys = Object.keys(object);
+
+  if (Object.getOwnPropertySymbols) {
+    var symbols = Object.getOwnPropertySymbols(object);
+    if (enumerableOnly) symbols = symbols.filter(function (sym) {
+      return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+    });
+    keys.push.apply(keys, symbols);
+  }
+
+  return keys;
+}
+
+function _objectSpread2(target) {
+  for (var i = 1; i < arguments.length; i++) {
+    var source = arguments[i] != null ? arguments[i] : {};
+
+    if (i % 2) {
+      ownKeys(Object(source), true).forEach(function (key) {
+        _defineProperty(target, key, source[key]);
+      });
+    } else if (Object.getOwnPropertyDescriptors) {
+      Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
+    } else {
+      ownKeys(Object(source)).forEach(function (key) {
+        Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+      });
+    }
+  }
+
+  return target;
+}
+
+const VERSION = "3.1.0";
+
+class Octokit {
+  constructor(options = {}) {
+    const hook = new beforeAfterHook.Collection();
+    const requestDefaults = {
+      baseUrl: request.request.endpoint.DEFAULTS.baseUrl,
+      headers: {},
+      request: Object.assign({}, options.request, {
+        hook: hook.bind(null, "request")
+      }),
+      mediaType: {
+        previews: [],
+        format: ""
+      }
+    }; // prepend default user agent with `options.userAgent` if set
+
+    requestDefaults.headers["user-agent"] = [options.userAgent, `octokit-core.js/${VERSION} ${universalUserAgent.getUserAgent()}`].filter(Boolean).join(" ");
+
+    if (options.baseUrl) {
+      requestDefaults.baseUrl = options.baseUrl;
+    }
+
+    if (options.previews) {
+      requestDefaults.mediaType.previews = options.previews;
+    }
+
+    if (options.timeZone) {
+      requestDefaults.headers["time-zone"] = options.timeZone;
+    }
+
+    this.request = request.request.defaults(requestDefaults);
+    this.graphql = graphql.withCustomRequest(this.request).defaults(_objectSpread2(_objectSpread2({}, requestDefaults), {}, {
+      baseUrl: requestDefaults.baseUrl.replace(/\/api\/v3$/, "/api")
+    }));
+    this.log = Object.assign({
+      debug: () => {},
+      info: () => {},
+      warn: console.warn.bind(console),
+      error: console.error.bind(console)
+    }, options.log);
+    this.hook = hook; // (1) If neither `options.authStrategy` nor `options.auth` are set, the `octokit` instance
+    //     is unauthenticated. The `this.auth()` method is a no-op and no request hook is registred.
+    // (2) If only `options.auth` is set, use the default token authentication strategy.
+    // (3) If `options.authStrategy` is set then use it and pass in `options.auth`. Always pass own request as many strategies accept a custom request instance.
+    // TODO: type `options.auth` based on `options.authStrategy`.
+
+    if (!options.authStrategy) {
+      if (!options.auth) {
+        // (1)
+        this.auth = async () => ({
+          type: "unauthenticated"
+        });
+      } else {
+        // (2)
+        const auth = authToken.createTokenAuth(options.auth); // @ts-ignore  ¯\_(ツ)_/¯
+
+        hook.wrap("request", auth.hook);
+        this.auth = auth;
+      }
+    } else {
+      const auth = options.authStrategy(Object.assign({
+        request: this.request
+      }, options.auth)); // @ts-ignore  ¯\_(ツ)_/¯
+
+      hook.wrap("request", auth.hook);
+      this.auth = auth;
+    } // apply plugins
+    // https://stackoverflow.com/a/16345172
+
+
+    const classConstructor = this.constructor;
+    classConstructor.plugins.forEach(plugin => {
+      Object.assign(this, plugin(this, options));
+    });
+  }
+
+  static defaults(defaults) {
+    const OctokitWithDefaults = class extends this {
+      constructor(...args) {
+        const options = args[0] || {};
+
+        if (typeof defaults === "function") {
+          super(defaults(options));
+          return;
+        }
+
+        super(Object.assign({}, defaults, options, options.userAgent && defaults.userAgent ? {
+          userAgent: `${options.userAgent} ${defaults.userAgent}`
+        } : null));
+      }
+
+    };
+    return OctokitWithDefaults;
+  }
+  /**
+   * Attach a plugin (or many) to your Octokit instance.
+   *
+   * @example
+   * const API = Octokit.plugin(plugin1, plugin2, plugin3, ...)
+   */
+
+
+  static plugin(...newPlugins) {
+    var _a;
+
+    const currentPlugins = this.plugins;
+    const NewOctokit = (_a = class extends this {}, _a.plugins = currentPlugins.concat(newPlugins.filter(plugin => !currentPlugins.includes(plugin))), _a);
+    return NewOctokit;
+  }
+
+}
+Octokit.VERSION = VERSION;
+Octokit.plugins = [];
+
+exports.Octokit = Octokit;
+//# sourceMappingURL=index.js.map
+
+
+/***/ }),
+
+/***/ 452:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+// TODO: Update https://github.com/sindresorhus/get-stream
+const getBuffer = async (stream) => {
+    const chunks = [];
+    let length = 0;
+    for await (const chunk of stream) {
+        chunks.push(chunk);
+        length += Buffer.byteLength(chunk);
+    }
+    if (Buffer.isBuffer(chunks[0])) {
+        return Buffer.concat(chunks, length);
+    }
+    return Buffer.from(chunks.join(''));
+};
+exports.default = getBuffer;
+
+
+/***/ }),
+
+/***/ 453:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 var once = __webpack_require__(49)
@@ -9588,7 +7346,8 @@ module.exports = pump
 
 
 /***/ }),
-/* 454 */
+
+/***/ 454:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -11237,12 +8996,8 @@ exports.FetchError = FetchError;
 
 
 /***/ }),
-/* 455 */,
-/* 456 */,
-/* 457 */,
-/* 458 */,
-/* 459 */,
-/* 460 */
+
+/***/ 460:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -11253,8 +9008,8 @@ exports.default = (body) => is_1.default.nodeStream(body) && is_1.default.functi
 
 
 /***/ }),
-/* 461 */,
-/* 462 */
+
+/***/ 462:
 /***/ (function(module) {
 
 "use strict";
@@ -11306,7 +9061,8 @@ module.exports.argument = escapeArgument;
 
 
 /***/ }),
-/* 463 */
+
+/***/ 463:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -11368,11 +9124,8 @@ exports.RequestError = RequestError;
 
 
 /***/ }),
-/* 464 */,
-/* 465 */,
-/* 466 */,
-/* 467 */,
-/* 468 */
+
+/***/ 468:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -11386,14 +9139,14 @@ if (!core_1.knownHookEvents.includes('beforeRetry')) {
 }
 exports.knownBodyTypes = ['json', 'buffer', 'text'];
 // @ts-ignore The error is: Not all code paths return a value.
-exports.parseBody = (response, responseType, encoding) => {
+exports.parseBody = (response, responseType, parseJson, encoding) => {
     const { rawBody } = response;
     try {
         if (responseType === 'text') {
             return rawBody.toString(encoding);
         }
         if (responseType === 'json') {
-            return rawBody.length === 0 ? '' : JSON.parse(rawBody.toString());
+            return rawBody.length === 0 ? '' : parseJson(rawBody.toString());
         }
         if (responseType === 'buffer') {
             return Buffer.from(rawBody);
@@ -11488,6 +9241,9 @@ class PromisableRequest extends core_1.default {
         return mergedOptions;
     }
     async _beforeError(error) {
+        if (this.destroyed) {
+            return;
+        }
         if (!(error instanceof core_1.RequestError)) {
             error = new core_1.RequestError(error.message, error, this);
         }
@@ -11500,121 +9256,51 @@ exports.default = PromisableRequest;
 
 
 /***/ }),
-/* 469 */
+
+/***/ 469:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// Originally pulled from https://github.com/JasonEtco/actions-toolkit/blob/master/src/github.ts
-const graphql_1 = __webpack_require__(898);
-const rest_1 = __webpack_require__(0);
+exports.getOctokit = exports.context = void 0;
 const Context = __importStar(__webpack_require__(262));
-const httpClient = __importStar(__webpack_require__(539));
-// We need this in order to extend Octokit
-rest_1.Octokit.prototype = new rest_1.Octokit();
+const utils_1 = __webpack_require__(521);
 exports.context = new Context.Context();
-class GitHub extends rest_1.Octokit {
-    constructor(token, opts) {
-        super(GitHub.getOctokitOptions(GitHub.disambiguate(token, opts)));
-        this.graphql = GitHub.getGraphQL(GitHub.disambiguate(token, opts));
-    }
-    /**
-     * Disambiguates the constructor overload parameters
-     */
-    static disambiguate(token, opts) {
-        return [
-            typeof token === 'string' ? token : '',
-            typeof token === 'object' ? token : opts || {}
-        ];
-    }
-    static getOctokitOptions(args) {
-        const token = args[0];
-        const options = Object.assign({}, args[1]); // Shallow clone - don't mutate the object provided by the caller
-        // Base URL - GHES or Dotcom
-        options.baseUrl = options.baseUrl || this.getApiBaseUrl();
-        // Auth
-        const auth = GitHub.getAuthString(token, options);
-        if (auth) {
-            options.auth = auth;
-        }
-        // Proxy
-        const agent = GitHub.getProxyAgent(options.baseUrl, options);
-        if (agent) {
-            // Shallow clone - don't mutate the object provided by the caller
-            options.request = options.request ? Object.assign({}, options.request) : {};
-            // Set the agent
-            options.request.agent = agent;
-        }
-        return options;
-    }
-    static getGraphQL(args) {
-        const defaults = {};
-        defaults.baseUrl = this.getGraphQLBaseUrl();
-        const token = args[0];
-        const options = args[1];
-        // Authorization
-        const auth = this.getAuthString(token, options);
-        if (auth) {
-            defaults.headers = {
-                authorization: auth
-            };
-        }
-        // Proxy
-        const agent = GitHub.getProxyAgent(defaults.baseUrl, options);
-        if (agent) {
-            defaults.request = { agent };
-        }
-        return graphql_1.graphql.defaults(defaults);
-    }
-    static getAuthString(token, options) {
-        // Validate args
-        if (!token && !options.auth) {
-            throw new Error('Parameter token or opts.auth is required');
-        }
-        else if (token && options.auth) {
-            throw new Error('Parameters token and opts.auth may not both be specified');
-        }
-        return typeof options.auth === 'string' ? options.auth : `token ${token}`;
-    }
-    static getProxyAgent(destinationUrl, options) {
-        var _a;
-        if (!((_a = options.request) === null || _a === void 0 ? void 0 : _a.agent)) {
-            if (httpClient.getProxyUrl(destinationUrl)) {
-                const hc = new httpClient.HttpClient();
-                return hc.getAgent(destinationUrl);
-            }
-        }
-        return undefined;
-    }
-    static getApiBaseUrl() {
-        return process.env['GITHUB_API_URL'] || 'https://api.github.com';
-    }
-    static getGraphQLBaseUrl() {
-        let url = process.env['GITHUB_GRAPHQL_URL'] || 'https://api.github.com/graphql';
-        // Shouldn't be a trailing slash, but remove if so
-        if (url.endsWith('/')) {
-            url = url.substr(0, url.length - 1);
-        }
-        // Remove trailing "/graphql"
-        if (url.toUpperCase().endsWith('/GRAPHQL')) {
-            url = url.substr(0, url.length - '/graphql'.length);
-        }
-        return url;
-    }
+/**
+ * Returns a hydrated octokit ready to use for GitHub Actions
+ *
+ * @param     token    the repo PAT or GITHUB_TOKEN
+ * @param     options  other options to set
+ */
+function getOctokit(token, options) {
+    return new utils_1.GitHub(utils_1.getOctokitOptions(token, options));
 }
-exports.GitHub = GitHub;
+exports.getOctokit = getOctokit;
 //# sourceMappingURL=github.js.map
 
 /***/ }),
-/* 470 */
+
+/***/ 470:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -11842,57 +9528,8 @@ exports.getState = getState;
 //# sourceMappingURL=core.js.map
 
 /***/ }),
-/* 471 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = authenticationBeforeRequest;
-
-const btoa = __webpack_require__(397);
-const uniq = __webpack_require__(126);
-
-function authenticationBeforeRequest(state, options) {
-  if (!state.auth.type) {
-    return;
-  }
-
-  if (state.auth.type === "basic") {
-    const hash = btoa(`${state.auth.username}:${state.auth.password}`);
-    options.headers.authorization = `Basic ${hash}`;
-    return;
-  }
-
-  if (state.auth.type === "token") {
-    options.headers.authorization = `token ${state.auth.token}`;
-    return;
-  }
-
-  if (state.auth.type === "app") {
-    options.headers.authorization = `Bearer ${state.auth.token}`;
-    const acceptHeaders = options.headers.accept
-      .split(",")
-      .concat("application/vnd.github.machine-man-preview+json");
-    options.headers.accept = uniq(acceptHeaders)
-      .filter(Boolean)
-      .join(",");
-    return;
-  }
-
-  options.url += options.url.indexOf("?") === -1 ? "?" : "&";
-
-  if (state.auth.token) {
-    options.url += `access_token=${encodeURIComponent(state.auth.token)}`;
-    return;
-  }
-
-  const key = encodeURIComponent(state.auth.key);
-  const secret = encodeURIComponent(state.auth.secret);
-  options.url += `client_id=${key}&client_secret=${secret}`;
-}
-
-
-/***/ }),
-/* 472 */,
-/* 473 */
+/***/ 473:
 /***/ (function(module) {
 
 "use strict";
@@ -11901,7 +9538,8 @@ module.exports = /^#!(.*)/;
 
 
 /***/ }),
-/* 474 */
+
+/***/ 474:
 /***/ (function(module) {
 
 "use strict";
@@ -11918,10 +9556,8 @@ module.exports = object => {
 
 
 /***/ }),
-/* 475 */,
-/* 476 */,
-/* 477 */,
-/* 478 */
+
+/***/ 478:
 /***/ (function(module) {
 
 "use strict";
@@ -11987,17 +9623,8 @@ module.exports = {
 
 
 /***/ }),
-/* 479 */,
-/* 480 */,
-/* 481 */,
-/* 482 */,
-/* 483 */,
-/* 484 */,
-/* 485 */,
-/* 486 */,
-/* 487 */,
-/* 488 */,
-/* 489 */
+
+/***/ 489:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -12051,7 +9678,8 @@ module.exports = resolveCommand;
 
 
 /***/ }),
-/* 490 */
+
+/***/ 490:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -12175,10 +9803,8 @@ module.exports.default = timer;
 
 
 /***/ }),
-/* 491 */,
-/* 492 */,
-/* 493 */,
-/* 494 */
+
+/***/ 494:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -12218,9 +9844,9 @@ const windowsRelease = release => {
 	if ((!release || release === os.release()) && ['6.1', '6.2', '6.3', '10.0'].includes(ver)) {
 		let stdout;
 		try {
-			stdout = execa.sync('powershell', ['(Get-CimInstance -ClassName Win32_OperatingSystem).caption']).stdout || '';
-		} catch (_) {
 			stdout = execa.sync('wmic', ['os', 'get', 'Caption']).stdout || '';
+		} catch (_) {
+			stdout = execa.sync('powershell', ['(Get-CimInstance -ClassName Win32_OperatingSystem).caption']).stdout || '';
 		}
 
 		const year = (stdout.match(/2008|2012|2016|2019/) || [])[0];
@@ -12237,9 +9863,8 @@ module.exports = windowsRelease;
 
 
 /***/ }),
-/* 495 */,
-/* 496 */,
-/* 497 */
+
+/***/ 497:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 // Note: since nyc uses this module to output coverage, any lines
@@ -12408,401 +10033,8 @@ function processEmit (ev, arg) {
 
 
 /***/ }),
-/* 498 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var isPlainObject = _interopDefault(__webpack_require__(178));
-var universalUserAgent = __webpack_require__(796);
-
-function lowercaseKeys(object) {
-  if (!object) {
-    return {};
-  }
-
-  return Object.keys(object).reduce((newObj, key) => {
-    newObj[key.toLowerCase()] = object[key];
-    return newObj;
-  }, {});
-}
-
-function mergeDeep(defaults, options) {
-  const result = Object.assign({}, defaults);
-  Object.keys(options).forEach(key => {
-    if (isPlainObject(options[key])) {
-      if (!(key in defaults)) Object.assign(result, {
-        [key]: options[key]
-      });else result[key] = mergeDeep(defaults[key], options[key]);
-    } else {
-      Object.assign(result, {
-        [key]: options[key]
-      });
-    }
-  });
-  return result;
-}
-
-function merge(defaults, route, options) {
-  if (typeof route === "string") {
-    let [method, url] = route.split(" ");
-    options = Object.assign(url ? {
-      method,
-      url
-    } : {
-      url: method
-    }, options);
-  } else {
-    options = Object.assign({}, route);
-  } // lowercase header names before merging with defaults to avoid duplicates
-
-
-  options.headers = lowercaseKeys(options.headers);
-  const mergedOptions = mergeDeep(defaults || {}, options); // mediaType.previews arrays are merged, instead of overwritten
-
-  if (defaults && defaults.mediaType.previews.length) {
-    mergedOptions.mediaType.previews = defaults.mediaType.previews.filter(preview => !mergedOptions.mediaType.previews.includes(preview)).concat(mergedOptions.mediaType.previews);
-  }
-
-  mergedOptions.mediaType.previews = mergedOptions.mediaType.previews.map(preview => preview.replace(/-preview/, ""));
-  return mergedOptions;
-}
-
-function addQueryParameters(url, parameters) {
-  const separator = /\?/.test(url) ? "&" : "?";
-  const names = Object.keys(parameters);
-
-  if (names.length === 0) {
-    return url;
-  }
-
-  return url + separator + names.map(name => {
-    if (name === "q") {
-      return "q=" + parameters.q.split("+").map(encodeURIComponent).join("+");
-    }
-
-    return `${name}=${encodeURIComponent(parameters[name])}`;
-  }).join("&");
-}
-
-const urlVariableRegex = /\{[^}]+\}/g;
-
-function removeNonChars(variableName) {
-  return variableName.replace(/^\W+|\W+$/g, "").split(/,/);
-}
-
-function extractUrlVariableNames(url) {
-  const matches = url.match(urlVariableRegex);
-
-  if (!matches) {
-    return [];
-  }
-
-  return matches.map(removeNonChars).reduce((a, b) => a.concat(b), []);
-}
-
-function omit(object, keysToOmit) {
-  return Object.keys(object).filter(option => !keysToOmit.includes(option)).reduce((obj, key) => {
-    obj[key] = object[key];
-    return obj;
-  }, {});
-}
-
-// Based on https://github.com/bramstein/url-template, licensed under BSD
-// TODO: create separate package.
-//
-// Copyright (c) 2012-2014, Bram Stein
-// All rights reserved.
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-//  1. Redistributions of source code must retain the above copyright
-//     notice, this list of conditions and the following disclaimer.
-//  2. Redistributions in binary form must reproduce the above copyright
-//     notice, this list of conditions and the following disclaimer in the
-//     documentation and/or other materials provided with the distribution.
-//  3. The name of the author may not be used to endorse or promote products
-//     derived from this software without specific prior written permission.
-// THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR IMPLIED
-// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
-// EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-// INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
-// OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-// EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-/* istanbul ignore file */
-function encodeReserved(str) {
-  return str.split(/(%[0-9A-Fa-f]{2})/g).map(function (part) {
-    if (!/%[0-9A-Fa-f]/.test(part)) {
-      part = encodeURI(part).replace(/%5B/g, "[").replace(/%5D/g, "]");
-    }
-
-    return part;
-  }).join("");
-}
-
-function encodeUnreserved(str) {
-  return encodeURIComponent(str).replace(/[!'()*]/g, function (c) {
-    return "%" + c.charCodeAt(0).toString(16).toUpperCase();
-  });
-}
-
-function encodeValue(operator, value, key) {
-  value = operator === "+" || operator === "#" ? encodeReserved(value) : encodeUnreserved(value);
-
-  if (key) {
-    return encodeUnreserved(key) + "=" + value;
-  } else {
-    return value;
-  }
-}
-
-function isDefined(value) {
-  return value !== undefined && value !== null;
-}
-
-function isKeyOperator(operator) {
-  return operator === ";" || operator === "&" || operator === "?";
-}
-
-function getValues(context, operator, key, modifier) {
-  var value = context[key],
-      result = [];
-
-  if (isDefined(value) && value !== "") {
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-      value = value.toString();
-
-      if (modifier && modifier !== "*") {
-        value = value.substring(0, parseInt(modifier, 10));
-      }
-
-      result.push(encodeValue(operator, value, isKeyOperator(operator) ? key : ""));
-    } else {
-      if (modifier === "*") {
-        if (Array.isArray(value)) {
-          value.filter(isDefined).forEach(function (value) {
-            result.push(encodeValue(operator, value, isKeyOperator(operator) ? key : ""));
-          });
-        } else {
-          Object.keys(value).forEach(function (k) {
-            if (isDefined(value[k])) {
-              result.push(encodeValue(operator, value[k], k));
-            }
-          });
-        }
-      } else {
-        const tmp = [];
-
-        if (Array.isArray(value)) {
-          value.filter(isDefined).forEach(function (value) {
-            tmp.push(encodeValue(operator, value));
-          });
-        } else {
-          Object.keys(value).forEach(function (k) {
-            if (isDefined(value[k])) {
-              tmp.push(encodeUnreserved(k));
-              tmp.push(encodeValue(operator, value[k].toString()));
-            }
-          });
-        }
-
-        if (isKeyOperator(operator)) {
-          result.push(encodeUnreserved(key) + "=" + tmp.join(","));
-        } else if (tmp.length !== 0) {
-          result.push(tmp.join(","));
-        }
-      }
-    }
-  } else {
-    if (operator === ";") {
-      if (isDefined(value)) {
-        result.push(encodeUnreserved(key));
-      }
-    } else if (value === "" && (operator === "&" || operator === "?")) {
-      result.push(encodeUnreserved(key) + "=");
-    } else if (value === "") {
-      result.push("");
-    }
-  }
-
-  return result;
-}
-
-function parseUrl(template) {
-  return {
-    expand: expand.bind(null, template)
-  };
-}
-
-function expand(template, context) {
-  var operators = ["+", "#", ".", "/", ";", "?", "&"];
-  return template.replace(/\{([^\{\}]+)\}|([^\{\}]+)/g, function (_, expression, literal) {
-    if (expression) {
-      let operator = "";
-      const values = [];
-
-      if (operators.indexOf(expression.charAt(0)) !== -1) {
-        operator = expression.charAt(0);
-        expression = expression.substr(1);
-      }
-
-      expression.split(/,/g).forEach(function (variable) {
-        var tmp = /([^:\*]*)(?::(\d+)|(\*))?/.exec(variable);
-        values.push(getValues(context, operator, tmp[1], tmp[2] || tmp[3]));
-      });
-
-      if (operator && operator !== "+") {
-        var separator = ",";
-
-        if (operator === "?") {
-          separator = "&";
-        } else if (operator !== "#") {
-          separator = operator;
-        }
-
-        return (values.length !== 0 ? operator : "") + values.join(separator);
-      } else {
-        return values.join(",");
-      }
-    } else {
-      return encodeReserved(literal);
-    }
-  });
-}
-
-function parse(options) {
-  // https://fetch.spec.whatwg.org/#methods
-  let method = options.method.toUpperCase(); // replace :varname with {varname} to make it RFC 6570 compatible
-
-  let url = (options.url || "/").replace(/:([a-z]\w+)/g, "{+$1}");
-  let headers = Object.assign({}, options.headers);
-  let body;
-  let parameters = omit(options, ["method", "baseUrl", "url", "headers", "request", "mediaType"]); // extract variable names from URL to calculate remaining variables later
-
-  const urlVariableNames = extractUrlVariableNames(url);
-  url = parseUrl(url).expand(parameters);
-
-  if (!/^http/.test(url)) {
-    url = options.baseUrl + url;
-  }
-
-  const omittedParameters = Object.keys(options).filter(option => urlVariableNames.includes(option)).concat("baseUrl");
-  const remainingParameters = omit(parameters, omittedParameters);
-  const isBinaryRequset = /application\/octet-stream/i.test(headers.accept);
-
-  if (!isBinaryRequset) {
-    if (options.mediaType.format) {
-      // e.g. application/vnd.github.v3+json => application/vnd.github.v3.raw
-      headers.accept = headers.accept.split(/,/).map(preview => preview.replace(/application\/vnd(\.\w+)(\.v3)?(\.\w+)?(\+json)?$/, `application/vnd$1$2.${options.mediaType.format}`)).join(",");
-    }
-
-    if (options.mediaType.previews.length) {
-      const previewsFromAcceptHeader = headers.accept.match(/[\w-]+(?=-preview)/g) || [];
-      headers.accept = previewsFromAcceptHeader.concat(options.mediaType.previews).map(preview => {
-        const format = options.mediaType.format ? `.${options.mediaType.format}` : "+json";
-        return `application/vnd.github.${preview}-preview${format}`;
-      }).join(",");
-    }
-  } // for GET/HEAD requests, set URL query parameters from remaining parameters
-  // for PATCH/POST/PUT/DELETE requests, set request body from remaining parameters
-
-
-  if (["GET", "HEAD"].includes(method)) {
-    url = addQueryParameters(url, remainingParameters);
-  } else {
-    if ("data" in remainingParameters) {
-      body = remainingParameters.data;
-    } else {
-      if (Object.keys(remainingParameters).length) {
-        body = remainingParameters;
-      } else {
-        headers["content-length"] = 0;
-      }
-    }
-  } // default content-type for JSON if body is set
-
-
-  if (!headers["content-type"] && typeof body !== "undefined") {
-    headers["content-type"] = "application/json; charset=utf-8";
-  } // GitHub expects 'content-length: 0' header for PUT/PATCH requests without body.
-  // fetch does not allow to set `content-length` header, but we can set body to an empty string
-
-
-  if (["PATCH", "PUT"].includes(method) && typeof body === "undefined") {
-    body = "";
-  } // Only return body/request keys if present
-
-
-  return Object.assign({
-    method,
-    url,
-    headers
-  }, typeof body !== "undefined" ? {
-    body
-  } : null, options.request ? {
-    request: options.request
-  } : null);
-}
-
-function endpointWithDefaults(defaults, route, options) {
-  return parse(merge(defaults, route, options));
-}
-
-function withDefaults(oldDefaults, newDefaults) {
-  const DEFAULTS = merge(oldDefaults, newDefaults);
-  const endpoint = endpointWithDefaults.bind(null, DEFAULTS);
-  return Object.assign(endpoint, {
-    DEFAULTS,
-    defaults: withDefaults.bind(null, DEFAULTS),
-    merge: merge.bind(null, DEFAULTS),
-    parse
-  });
-}
-
-const VERSION = "6.0.3";
-
-const userAgent = `octokit-endpoint.js/${VERSION} ${universalUserAgent.getUserAgent()}`; // DEFAULTS has all properties set that EndpointOptions has, except url.
-// So we use RequestParameters and add method as additional required property.
-
-const DEFAULTS = {
-  method: "GET",
-  baseUrl: "https://api.github.com",
-  headers: {
-    accept: "application/vnd.github.v3+json",
-    "user-agent": userAgent
-  },
-  mediaType: {
-    format: "",
-    previews: []
-  }
-};
-
-const endpoint = withDefaults(null, DEFAULTS);
-
-exports.endpoint = endpoint;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-/* 499 */,
-/* 500 */,
-/* 501 */,
-/* 502 */,
-/* 503 */,
-/* 504 */,
-/* 505 */,
-/* 506 */,
-/* 507 */
+/***/ 507:
 /***/ (function(module) {
 
 "use strict";
@@ -12834,9 +10066,8 @@ module.exports = url => {
 
 
 /***/ }),
-/* 508 */,
-/* 509 */,
-/* 510 */
+
+/***/ 510:
 /***/ (function(module) {
 
 module.exports = addHook
@@ -12888,12 +10119,8 @@ function addHook (state, kind, name, hook) {
 
 
 /***/ }),
-/* 511 */,
-/* 512 */,
-/* 513 */,
-/* 514 */,
-/* 515 */,
-/* 516 */
+
+/***/ 516:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -12997,13 +10224,69 @@ module.exports = {
 
 
 /***/ }),
-/* 517 */,
-/* 518 */,
-/* 519 */,
-/* 520 */,
-/* 521 */,
-/* 522 */,
-/* 523 */
+
+/***/ 521:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getOctokitOptions = exports.GitHub = exports.context = void 0;
+const Context = __importStar(__webpack_require__(262));
+const Utils = __importStar(__webpack_require__(127));
+// octokit + plugins
+const core_1 = __webpack_require__(448);
+const plugin_rest_endpoint_methods_1 = __webpack_require__(842);
+const plugin_paginate_rest_1 = __webpack_require__(299);
+exports.context = new Context.Context();
+const baseUrl = Utils.getApiBaseUrl();
+const defaults = {
+    baseUrl,
+    request: {
+        agent: Utils.getProxyAgent(baseUrl)
+    }
+};
+exports.GitHub = core_1.Octokit.plugin(plugin_rest_endpoint_methods_1.restEndpointMethods, plugin_paginate_rest_1.paginateRest).defaults(defaults);
+/**
+ * Convience function to correctly format Octokit Options to pass into the constructor.
+ *
+ * @param     token    the repo PAT or GITHUB_TOKEN
+ * @param     options  other options to set
+ */
+function getOctokitOptions(token, options) {
+    const opts = Object.assign({}, options || {}); // Shallow clone - don't mutate the object provided by the caller
+    // Auth
+    const auth = Utils.getAuthString(token, opts);
+    if (auth) {
+        opts.auth = auth;
+    }
+    return opts;
+}
+exports.getOctokitOptions = getOctokitOptions;
+//# sourceMappingURL=utils.js.map
+
+/***/ }),
+
+/***/ 523:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 var register = __webpack_require__(363)
@@ -13066,7 +10349,8 @@ module.exports.Collection = Hook.Collection
 
 
 /***/ }),
-/* 524 */
+
+/***/ 524:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -13089,24 +10373,8 @@ module.exports = (options = {}) => new Promise((resolve, reject) => {
 
 
 /***/ }),
-/* 525 */,
-/* 526 */,
-/* 527 */,
-/* 528 */,
-/* 529 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-const factory = __webpack_require__(47);
-
-module.exports = factory();
-
-
-/***/ }),
-/* 530 */,
-/* 531 */,
-/* 532 */,
-/* 533 */,
-/* 534 */
+/***/ 534:
 /***/ (function(module, exports) {
 
 "use strict";
@@ -13472,7 +10740,8 @@ module.exports.assert = exports.assert;
 
 
 /***/ }),
-/* 535 */
+
+/***/ 535:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -13565,24 +10834,8 @@ module.exports = makeError;
 
 
 /***/ }),
-/* 536 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = hasFirstPage
-
-const deprecate = __webpack_require__(370)
-const getPageLinks = __webpack_require__(13)
-
-function hasFirstPage (link) {
-  deprecate(`octokit.hasFirstPage() – You can use octokit.paginate or async iterators instead: https://github.com/octokit/rest.js#pagination.`)
-  return getPageLinks(link).first
-}
-
-
-/***/ }),
-/* 537 */,
-/* 538 */,
-/* 539 */
+/***/ 539:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -14120,36 +11373,64 @@ exports.HttpClient = HttpClient;
 
 
 /***/ }),
-/* 540 */,
-/* 541 */,
-/* 542 */,
-/* 543 */,
-/* 544 */,
-/* 545 */,
-/* 546 */,
-/* 547 */,
-/* 548 */,
-/* 549 */,
-/* 550 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = getNextPage
+/***/ 548:
+/***/ (function(module) {
 
-const getPage = __webpack_require__(265)
+"use strict";
 
-function getNextPage (octokit, link, headers) {
-  return getPage(octokit, link, 'next', headers)
+
+/*!
+ * isobject <https://github.com/jonschlinkert/isobject>
+ *
+ * Copyright (c) 2014-2017, Jon Schlinkert.
+ * Released under the MIT License.
+ */
+
+function isObject(val) {
+  return val != null && typeof val === 'object' && Array.isArray(val) === false;
 }
+
+/*!
+ * is-plain-object <https://github.com/jonschlinkert/is-plain-object>
+ *
+ * Copyright (c) 2014-2017, Jon Schlinkert.
+ * Released under the MIT License.
+ */
+
+function isObjectObject(o) {
+  return isObject(o) === true
+    && Object.prototype.toString.call(o) === '[object Object]';
+}
+
+function isPlainObject(o) {
+  var ctor,prot;
+
+  if (isObjectObject(o) === false) return false;
+
+  // If has modified constructor
+  ctor = o.constructor;
+  if (typeof ctor !== 'function') return false;
+
+  // If has modified prototype
+  prot = ctor.prototype;
+  if (isObjectObject(prot) === false) return false;
+
+  // If constructor does not have an Object-specific method
+  if (prot.hasOwnProperty('isPrototypeOf') === false) {
+    return false;
+  }
+
+  // Most likely a plain Object
+  return true;
+}
+
+module.exports = isPlainObject;
 
 
 /***/ }),
-/* 551 */,
-/* 552 */,
-/* 553 */,
-/* 554 */,
-/* 555 */,
-/* 556 */,
-/* 557 */
+
+/***/ 557:
 /***/ (function(module) {
 
 "use strict";
@@ -14263,23 +11544,8 @@ module.exports.CancelError = CancelError;
 
 
 /***/ }),
-/* 558 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = hasPreviousPage
-
-const deprecate = __webpack_require__(370)
-const getPageLinks = __webpack_require__(13)
-
-function hasPreviousPage (link) {
-  deprecate(`octokit.hasPreviousPage() – You can use octokit.paginate or async iterators instead: https://github.com/octokit/rest.js#pagination.`)
-  return getPageLinks(link).prev
-}
-
-
-/***/ }),
-/* 559 */,
-/* 560 */
+/***/ 560:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -14558,23 +11824,8 @@ standard:"other"}];exports.SIGNALS=SIGNALS;
 //# sourceMappingURL=core.js.map
 
 /***/ }),
-/* 561 */,
-/* 562 */,
-/* 563 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = getPreviousPage
-
-const getPage = __webpack_require__(265)
-
-function getPreviousPage (octokit, link, headers) {
-  return getPage(octokit, link, 'prev', headers)
-}
-
-
-/***/ }),
-/* 564 */,
-/* 565 */
+/***/ 565:
 /***/ (function(module) {
 
 "use strict";
@@ -14597,8 +11848,8 @@ module.exports.default = pathKey;
 
 
 /***/ }),
-/* 566 */,
-/* 567 */
+
+/***/ 567:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -14648,7 +11899,7 @@ const getForceKillAfterTimeout = ({forceKillAfterTimeout = true}) => {
 		return DEFAULT_FORCE_KILL_TIMEOUT;
 	}
 
-	if (!Number.isInteger(forceKillAfterTimeout) || forceKillAfterTimeout < 0) {
+	if (!Number.isFinite(forceKillAfterTimeout) || forceKillAfterTimeout < 0) {
 		throw new TypeError(`Expected the \`forceKillAfterTimeout\` option to be a non-negative integer, got \`${forceKillAfterTimeout}\` (${typeof forceKillAfterTimeout})`);
 	}
 
@@ -14675,7 +11926,7 @@ const setupTimeout = (spawned, {timeout, killSignal = 'SIGTERM'}, spawnedPromise
 		return spawnedPromise;
 	}
 
-	if (!Number.isInteger(timeout) || timeout < 0) {
+	if (!Number.isFinite(timeout) || timeout < 0) {
 		throw new TypeError(`Expected the \`timeout\` option to be a non-negative integer, got \`${timeout}\` (${typeof timeout})`);
 	}
 
@@ -14717,7 +11968,8 @@ module.exports = {
 
 
 /***/ }),
-/* 568 */
+
+/***/ 568:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -14849,8 +12101,8 @@ module.exports = parse;
 
 
 /***/ }),
-/* 569 */,
-/* 570 */
+
+/***/ 570:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -15297,13 +12549,8 @@ module.exports.default = CacheableLookup;
 
 
 /***/ }),
-/* 571 */,
-/* 572 */,
-/* 573 */,
-/* 574 */,
-/* 575 */,
-/* 576 */,
-/* 577 */
+
+/***/ 577:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -15313,13 +12560,13 @@ function __export(m) {
 }
 Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = __webpack_require__(614);
-const getStream = __webpack_require__(145);
 const PCancelable = __webpack_require__(557);
 const calculate_retry_delay_1 = __webpack_require__(927);
 const types_1 = __webpack_require__(36);
 const core_1 = __webpack_require__(468);
 exports.PromisableRequest = core_1.default;
 const proxy_events_1 = __webpack_require__(628);
+const get_buffer_1 = __webpack_require__(452);
 const proxiedRequestEvents = [
     'request',
     'response',
@@ -15361,6 +12608,7 @@ function asPromise(options) {
             };
             globalRequest = request;
             const onResponse = async (response) => {
+                var _a;
                 response.retryCount = retryCount;
                 if (response.request.aborted) {
                     // Canceled while downloading - will throw a `CancelError` or `TimeoutError` error
@@ -15374,7 +12622,7 @@ function asPromise(options) {
                 // Download body
                 let rawBody;
                 try {
-                    rawBody = await getStream.buffer(request);
+                    rawBody = await get_buffer_1.default(request);
                     response.rawBody = rawBody;
                 }
                 catch (_) {
@@ -15383,16 +12631,23 @@ function asPromise(options) {
                     return;
                 }
                 // Parse body
-                try {
-                    response.body = core_1.parseBody(response, options.responseType, options.encoding);
+                const contentEncoding = ((_a = response.headers['content-encoding']) !== null && _a !== void 0 ? _a : '').toLowerCase();
+                const isCompressed = ['gzip', 'deflate', 'br'].includes(contentEncoding);
+                if (isCompressed && !options.decompress) {
+                    response.body = rawBody;
                 }
-                catch (error) {
-                    // Fallback to `utf8`
-                    response.body = rawBody.toString();
-                    if (isOk()) {
-                        // TODO: Call `request._beforeError`, see https://github.com/nodejs/node/issues/32995
-                        reject(error);
-                        return;
+                else {
+                    try {
+                        response.body = core_1.parseBody(response, options.responseType, options.parseJson, options.encoding);
+                    }
+                    catch (error) {
+                        // Fallback to `utf8`
+                        response.body = rawBody.toString();
+                        if (isOk()) {
+                            // TODO: Call `request._beforeError`, see https://github.com/nodejs/node/issues/32995
+                            reject(error);
+                            return;
+                        }
                     }
                 }
                 try {
@@ -15436,8 +12691,7 @@ function asPromise(options) {
                 globalResponse = response;
                 resolve(options.resolveBodyOnly ? response.body : response);
             };
-            request.once('response', onResponse);
-            request.once('error', async (error) => {
+            const onError = async (error) => {
                 if (promise.isCanceled) {
                     return;
                 }
@@ -15494,12 +12748,18 @@ function asPromise(options) {
                 if (error instanceof types_1.HTTPError) {
                     // The error will be handled by the `response` event
                     onResponse(request._response);
+                    // Reattach the error handler, because there may be a timeout later.
+                    process.nextTick(() => {
+                        request.once('error', onError);
+                    });
                     return;
                 }
                 // Don't emit the `response` event
                 request.destroy();
                 reject(error);
-            });
+            };
+            request.once('response', onResponse);
+            request.once('error', onError);
             proxy_events_1.default(request, emitter, proxiedRequestEvents);
         };
         makeRequest();
@@ -15512,7 +12772,7 @@ function asPromise(options) {
         const newPromise = (async () => {
             // Wait until downloading has ended
             await promise;
-            return core_1.parseBody(globalResponse, responseType, options.encoding);
+            return core_1.parseBody(globalResponse, responseType, options.parseJson, options.encoding);
         })();
         Object.defineProperties(newPromise, Object.getOwnPropertyDescriptors(promise));
         return newPromise;
@@ -15532,11 +12792,8 @@ __export(__webpack_require__(36));
 
 
 /***/ }),
-/* 578 */,
-/* 579 */,
-/* 580 */,
-/* 581 */,
-/* 582 */
+
+/***/ 582:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -15594,12 +12851,8 @@ module.exports = options => {
 
 
 /***/ }),
-/* 583 */,
-/* 584 */,
-/* 585 */,
-/* 586 */,
-/* 587 */,
-/* 588 */
+
+/***/ 588:
 /***/ (function(module) {
 
 "use strict";
@@ -15622,11 +12875,2011 @@ module.exports = input => {
 
 
 /***/ }),
-/* 589 */,
-/* 590 */,
-/* 591 */,
-/* 592 */,
-/* 593 */
+
+/***/ 605:
+/***/ (function(module) {
+
+module.exports = require("http");
+
+/***/ }),
+
+/***/ 614:
+/***/ (function(module) {
+
+module.exports = require("events");
+
+/***/ }),
+
+/***/ 621:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+const path = __webpack_require__(622);
+const pathKey = __webpack_require__(682);
+
+const npmRunPath = options => {
+	options = {
+		cwd: process.cwd(),
+		path: process.env[pathKey()],
+		execPath: process.execPath,
+		...options
+	};
+
+	let previous;
+	let cwdPath = path.resolve(options.cwd);
+	const result = [];
+
+	while (previous !== cwdPath) {
+		result.push(path.join(cwdPath, 'node_modules/.bin'));
+		previous = cwdPath;
+		cwdPath = path.resolve(cwdPath, '..');
+	}
+
+	// Ensure the running `node` binary is used
+	const execPathDir = path.resolve(options.cwd, options.execPath, '..');
+	result.push(execPathDir);
+
+	return result.concat(options.path).join(path.delimiter);
+};
+
+module.exports = npmRunPath;
+// TODO: Remove this for the next major release
+module.exports.default = npmRunPath;
+
+module.exports.env = options => {
+	options = {
+		env: process.env,
+		...options
+	};
+
+	const env = {...options.env};
+	const path = pathKey({env});
+
+	options.path = env[path];
+	env[path] = module.exports(options);
+
+	return env;
+};
+
+
+/***/ }),
+
+/***/ 622:
+/***/ (function(module) {
+
+module.exports = require("path");
+
+/***/ }),
+
+/***/ 626:
+/***/ (function(module) {
+
+"use strict";
+
+
+/*!
+ * isobject <https://github.com/jonschlinkert/isobject>
+ *
+ * Copyright (c) 2014-2017, Jon Schlinkert.
+ * Released under the MIT License.
+ */
+
+function isObject(val) {
+  return val != null && typeof val === 'object' && Array.isArray(val) === false;
+}
+
+/*!
+ * is-plain-object <https://github.com/jonschlinkert/is-plain-object>
+ *
+ * Copyright (c) 2014-2017, Jon Schlinkert.
+ * Released under the MIT License.
+ */
+
+function isObjectObject(o) {
+  return isObject(o) === true
+    && Object.prototype.toString.call(o) === '[object Object]';
+}
+
+function isPlainObject(o) {
+  var ctor,prot;
+
+  if (isObjectObject(o) === false) return false;
+
+  // If has modified constructor
+  ctor = o.constructor;
+  if (typeof ctor !== 'function') return false;
+
+  // If has modified prototype
+  prot = ctor.prototype;
+  if (isObjectObject(prot) === false) return false;
+
+  // If constructor does not have an Object-specific method
+  if (prot.hasOwnProperty('isPrototypeOf') === false) {
+    return false;
+  }
+
+  // Most likely a plain Object
+  return true;
+}
+
+module.exports = isPlainObject;
+
+
+/***/ }),
+
+/***/ 628:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+function default_1(from, to, events) {
+    const fns = {};
+    for (const event of events) {
+        fns[event] = (...args) => {
+            to.emit(event, ...args);
+        };
+        from.on(event, fns[event]);
+    }
+    return () => {
+        for (const event of events) {
+            from.off(event, fns[event]);
+        }
+    };
+}
+exports.default = default_1;
+
+
+/***/ }),
+
+/***/ 631:
+/***/ (function(module) {
+
+module.exports = require("net");
+
+/***/ }),
+
+/***/ 652:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(exports,"__esModule",{value:true});exports.getSignals=void 0;var _os=__webpack_require__(87);
+
+var _core=__webpack_require__(560);
+var _realtime=__webpack_require__(260);
+
+
+
+const getSignals=function(){
+const realtimeSignals=(0,_realtime.getRealtimeSignals)();
+const signals=[..._core.SIGNALS,...realtimeSignals].map(normalizeSignal);
+return signals;
+};exports.getSignals=getSignals;
+
+
+
+
+
+
+
+const normalizeSignal=function({
+name,
+number:defaultNumber,
+description,
+action,
+forced=false,
+standard})
+{
+const{
+signals:{[name]:constantSignal}}=
+_os.constants;
+const supported=constantSignal!==undefined;
+const number=supported?constantSignal:defaultNumber;
+return{name,number,description,supported,action,forced,standard};
+};
+//# sourceMappingURL=signals.js.map
+
+/***/ }),
+
+/***/ 654:
+/***/ (function(module) {
+
+// This is not the set of all possible signals.
+//
+// It IS, however, the set of all signals that trigger
+// an exit on either Linux or BSD systems.  Linux is a
+// superset of the signal names supported on BSD, and
+// the unknown signals just fail to register, so we can
+// catch that easily enough.
+//
+// Don't bother with SIGKILL.  It's uncatchable, which
+// means that we can't fire any callbacks anyway.
+//
+// If a user does happen to register a handler on a non-
+// fatal signal like SIGWINCH or something, and then
+// exit, it'll end up firing `process.emit('exit')`, so
+// the handler will be fired anyway.
+//
+// SIGBUS, SIGFPE, SIGSEGV and SIGILL, when not raised
+// artificially, inherently leave the process in a
+// state from which it is not safe to try and enter JS
+// listeners.
+module.exports = [
+  'SIGABRT',
+  'SIGALRM',
+  'SIGHUP',
+  'SIGINT',
+  'SIGTERM'
+]
+
+if (process.platform !== 'win32') {
+  module.exports.push(
+    'SIGVTALRM',
+    'SIGXCPU',
+    'SIGXFSZ',
+    'SIGUSR2',
+    'SIGTRAP',
+    'SIGSYS',
+    'SIGQUIT',
+    'SIGIOT'
+    // should detect profiler and enable/disable accordingly.
+    // see #21
+    // 'SIGPROF'
+  )
+}
+
+if (process.platform === 'linux') {
+  module.exports.push(
+    'SIGIO',
+    'SIGPOLL',
+    'SIGPWR',
+    'SIGSTKFLT',
+    'SIGUNUSED'
+  )
+}
+
+
+/***/ }),
+
+/***/ 669:
+/***/ (function(module) {
+
+module.exports = require("util");
+
+/***/ }),
+
+/***/ 675:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+const path = __webpack_require__(622);
+const childProcess = __webpack_require__(129);
+const crossSpawn = __webpack_require__(20);
+const stripEof = __webpack_require__(768);
+const npmRunPath = __webpack_require__(406);
+const isStream = __webpack_require__(292);
+const _getStream = __webpack_require__(760);
+const pFinally = __webpack_require__(697);
+const onExit = __webpack_require__(497);
+const errname = __webpack_require__(418);
+const stdio = __webpack_require__(151);
+
+const TEN_MEGABYTES = 1000 * 1000 * 10;
+
+function handleArgs(cmd, args, opts) {
+	let parsed;
+
+	opts = Object.assign({
+		extendEnv: true,
+		env: {}
+	}, opts);
+
+	if (opts.extendEnv) {
+		opts.env = Object.assign({}, process.env, opts.env);
+	}
+
+	if (opts.__winShell === true) {
+		delete opts.__winShell;
+		parsed = {
+			command: cmd,
+			args,
+			options: opts,
+			file: cmd,
+			original: {
+				cmd,
+				args
+			}
+		};
+	} else {
+		parsed = crossSpawn._parse(cmd, args, opts);
+	}
+
+	opts = Object.assign({
+		maxBuffer: TEN_MEGABYTES,
+		buffer: true,
+		stripEof: true,
+		preferLocal: true,
+		localDir: parsed.options.cwd || process.cwd(),
+		encoding: 'utf8',
+		reject: true,
+		cleanup: true
+	}, parsed.options);
+
+	opts.stdio = stdio(opts);
+
+	if (opts.preferLocal) {
+		opts.env = npmRunPath.env(Object.assign({}, opts, {cwd: opts.localDir}));
+	}
+
+	if (opts.detached) {
+		// #115
+		opts.cleanup = false;
+	}
+
+	if (process.platform === 'win32' && path.basename(parsed.command) === 'cmd.exe') {
+		// #116
+		parsed.args.unshift('/q');
+	}
+
+	return {
+		cmd: parsed.command,
+		args: parsed.args,
+		opts,
+		parsed
+	};
+}
+
+function handleInput(spawned, input) {
+	if (input === null || input === undefined) {
+		return;
+	}
+
+	if (isStream(input)) {
+		input.pipe(spawned.stdin);
+	} else {
+		spawned.stdin.end(input);
+	}
+}
+
+function handleOutput(opts, val) {
+	if (val && opts.stripEof) {
+		val = stripEof(val);
+	}
+
+	return val;
+}
+
+function handleShell(fn, cmd, opts) {
+	let file = '/bin/sh';
+	let args = ['-c', cmd];
+
+	opts = Object.assign({}, opts);
+
+	if (process.platform === 'win32') {
+		opts.__winShell = true;
+		file = process.env.comspec || 'cmd.exe';
+		args = ['/s', '/c', `"${cmd}"`];
+		opts.windowsVerbatimArguments = true;
+	}
+
+	if (opts.shell) {
+		file = opts.shell;
+		delete opts.shell;
+	}
+
+	return fn(file, args, opts);
+}
+
+function getStream(process, stream, {encoding, buffer, maxBuffer}) {
+	if (!process[stream]) {
+		return null;
+	}
+
+	let ret;
+
+	if (!buffer) {
+		// TODO: Use `ret = util.promisify(stream.finished)(process[stream]);` when targeting Node.js 10
+		ret = new Promise((resolve, reject) => {
+			process[stream]
+				.once('end', resolve)
+				.once('error', reject);
+		});
+	} else if (encoding) {
+		ret = _getStream(process[stream], {
+			encoding,
+			maxBuffer
+		});
+	} else {
+		ret = _getStream.buffer(process[stream], {maxBuffer});
+	}
+
+	return ret.catch(err => {
+		err.stream = stream;
+		err.message = `${stream} ${err.message}`;
+		throw err;
+	});
+}
+
+function makeError(result, options) {
+	const {stdout, stderr} = result;
+
+	let err = result.error;
+	const {code, signal} = result;
+
+	const {parsed, joinedCmd} = options;
+	const timedOut = options.timedOut || false;
+
+	if (!err) {
+		let output = '';
+
+		if (Array.isArray(parsed.opts.stdio)) {
+			if (parsed.opts.stdio[2] !== 'inherit') {
+				output += output.length > 0 ? stderr : `\n${stderr}`;
+			}
+
+			if (parsed.opts.stdio[1] !== 'inherit') {
+				output += `\n${stdout}`;
+			}
+		} else if (parsed.opts.stdio !== 'inherit') {
+			output = `\n${stderr}${stdout}`;
+		}
+
+		err = new Error(`Command failed: ${joinedCmd}${output}`);
+		err.code = code < 0 ? errname(code) : code;
+	}
+
+	err.stdout = stdout;
+	err.stderr = stderr;
+	err.failed = true;
+	err.signal = signal || null;
+	err.cmd = joinedCmd;
+	err.timedOut = timedOut;
+
+	return err;
+}
+
+function joinCmd(cmd, args) {
+	let joinedCmd = cmd;
+
+	if (Array.isArray(args) && args.length > 0) {
+		joinedCmd += ' ' + args.join(' ');
+	}
+
+	return joinedCmd;
+}
+
+module.exports = (cmd, args, opts) => {
+	const parsed = handleArgs(cmd, args, opts);
+	const {encoding, buffer, maxBuffer} = parsed.opts;
+	const joinedCmd = joinCmd(cmd, args);
+
+	let spawned;
+	try {
+		spawned = childProcess.spawn(parsed.cmd, parsed.args, parsed.opts);
+	} catch (err) {
+		return Promise.reject(err);
+	}
+
+	let removeExitHandler;
+	if (parsed.opts.cleanup) {
+		removeExitHandler = onExit(() => {
+			spawned.kill();
+		});
+	}
+
+	let timeoutId = null;
+	let timedOut = false;
+
+	const cleanup = () => {
+		if (timeoutId) {
+			clearTimeout(timeoutId);
+			timeoutId = null;
+		}
+
+		if (removeExitHandler) {
+			removeExitHandler();
+		}
+	};
+
+	if (parsed.opts.timeout > 0) {
+		timeoutId = setTimeout(() => {
+			timeoutId = null;
+			timedOut = true;
+			spawned.kill(parsed.opts.killSignal);
+		}, parsed.opts.timeout);
+	}
+
+	const processDone = new Promise(resolve => {
+		spawned.on('exit', (code, signal) => {
+			cleanup();
+			resolve({code, signal});
+		});
+
+		spawned.on('error', err => {
+			cleanup();
+			resolve({error: err});
+		});
+
+		if (spawned.stdin) {
+			spawned.stdin.on('error', err => {
+				cleanup();
+				resolve({error: err});
+			});
+		}
+	});
+
+	function destroy() {
+		if (spawned.stdout) {
+			spawned.stdout.destroy();
+		}
+
+		if (spawned.stderr) {
+			spawned.stderr.destroy();
+		}
+	}
+
+	const handlePromise = () => pFinally(Promise.all([
+		processDone,
+		getStream(spawned, 'stdout', {encoding, buffer, maxBuffer}),
+		getStream(spawned, 'stderr', {encoding, buffer, maxBuffer})
+	]).then(arr => {
+		const result = arr[0];
+		result.stdout = arr[1];
+		result.stderr = arr[2];
+
+		if (result.error || result.code !== 0 || result.signal !== null) {
+			const err = makeError(result, {
+				joinedCmd,
+				parsed,
+				timedOut
+			});
+
+			// TODO: missing some timeout logic for killed
+			// https://github.com/nodejs/node/blob/master/lib/child_process.js#L203
+			// err.killed = spawned.killed || killed;
+			err.killed = err.killed || spawned.killed;
+
+			if (!parsed.opts.reject) {
+				return err;
+			}
+
+			throw err;
+		}
+
+		return {
+			stdout: handleOutput(parsed.opts, result.stdout),
+			stderr: handleOutput(parsed.opts, result.stderr),
+			code: 0,
+			failed: false,
+			killed: false,
+			signal: null,
+			cmd: joinedCmd,
+			timedOut: false
+		};
+	}), destroy);
+
+	crossSpawn._enoent.hookChildProcess(spawned, parsed.parsed);
+
+	handleInput(spawned, parsed.opts.input);
+
+	spawned.then = (onfulfilled, onrejected) => handlePromise().then(onfulfilled, onrejected);
+	spawned.catch = onrejected => handlePromise().catch(onrejected);
+
+	return spawned;
+};
+
+// TODO: set `stderr: 'ignore'` when that option is implemented
+module.exports.stdout = (...args) => module.exports(...args).then(x => x.stdout);
+
+// TODO: set `stdout: 'ignore'` when that option is implemented
+module.exports.stderr = (...args) => module.exports(...args).then(x => x.stderr);
+
+module.exports.shell = (cmd, opts) => handleShell(module.exports, cmd, opts);
+
+module.exports.sync = (cmd, args, opts) => {
+	const parsed = handleArgs(cmd, args, opts);
+	const joinedCmd = joinCmd(cmd, args);
+
+	if (isStream(parsed.opts.input)) {
+		throw new TypeError('The `input` option cannot be a stream in sync mode');
+	}
+
+	const result = childProcess.spawnSync(parsed.cmd, parsed.args, parsed.opts);
+	result.code = result.status;
+
+	if (result.error || result.status !== 0 || result.signal !== null) {
+		const err = makeError(result, {
+			joinedCmd,
+			parsed
+		});
+
+		if (!parsed.opts.reject) {
+			return err;
+		}
+
+		throw err;
+	}
+
+	return {
+		stdout: handleOutput(parsed.opts, result.stdout),
+		stderr: handleOutput(parsed.opts, result.stderr),
+		code: 0,
+		failed: false,
+		signal: null,
+		cmd: joinedCmd,
+		timedOut: false
+	};
+};
+
+module.exports.shellSync = (cmd, opts) => handleShell(module.exports.sync, cmd, opts);
+
+
+/***/ }),
+
+/***/ 682:
+/***/ (function(module) {
+
+"use strict";
+
+
+const pathKey = (options = {}) => {
+	const environment = options.env || process.env;
+	const platform = options.platform || process.platform;
+
+	if (platform !== 'win32') {
+		return 'PATH';
+	}
+
+	return Object.keys(environment).reverse().find(key => key.toUpperCase() === 'PATH') || 'Path';
+};
+
+module.exports = pathKey;
+// TODO: Remove this for the next major release
+module.exports.default = pathKey;
+
+
+/***/ }),
+
+/***/ 692:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+class Deprecation extends Error {
+  constructor(message) {
+    super(message); // Maintains proper stack trace (only available on V8)
+
+    /* istanbul ignore next */
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
+
+    this.name = 'Deprecation';
+  }
+
+}
+
+exports.Deprecation = Deprecation;
+
+
+/***/ }),
+
+/***/ 697:
+/***/ (function(module) {
+
+"use strict";
+
+module.exports = (promise, onFinally) => {
+	onFinally = onFinally || (() => {});
+
+	return promise.then(
+		val => new Promise(resolve => {
+			resolve(onFinally());
+		}).then(() => val),
+		err => new Promise(resolve => {
+			resolve(onFinally());
+		}).then(() => {
+			throw err;
+		})
+	);
+};
+
+
+/***/ }),
+
+/***/ 699:
+/***/ (function(module) {
+
+"use strict";
+
+/* istanbul ignore file: https://github.com/nodejs/node/blob/master/lib/internal/errors.js */
+
+const makeError = (Base, key, getMessage) => {
+	module.exports[key] = class NodeError extends Base {
+		constructor(...args) {
+			super(typeof getMessage === 'string' ? getMessage : getMessage(args));
+			this.name = `${super.name} [${key}]`;
+			this.code = key;
+		}
+	};
+};
+
+makeError(TypeError, 'ERR_INVALID_ARG_TYPE', args => {
+	const type = args[0].includes('.') ? 'property' : 'argument';
+
+	let valid = args[1];
+	const isManyTypes = Array.isArray(valid);
+
+	if (isManyTypes) {
+		valid = `${valid.slice(0, -1).join(', ')} or ${valid.slice(-1)}`;
+	}
+
+	return `The "${args[0]}" ${type} must be ${isManyTypes ? 'one of' : 'of'} type ${valid}. Received ${typeof args[2]}`;
+});
+
+makeError(TypeError, 'ERR_INVALID_PROTOCOL', args => {
+	return `Protocol "${args[0]}" not supported. Expected "${args[1]}"`;
+});
+
+makeError(Error, 'ERR_HTTP_HEADERS_SENT', args => {
+	return `Cannot ${args[0]} headers after they are sent to the client`;
+});
+
+makeError(TypeError, 'ERR_INVALID_HTTP_TOKEN', args => {
+	return `${args[0]} must be a valid HTTP token [${args[1]}]`;
+});
+
+makeError(TypeError, 'ERR_HTTP_INVALID_HEADER_VALUE', args => {
+	return `Invalid value "${args[0]} for header "${args[1]}"`;
+});
+
+makeError(TypeError, 'ERR_INVALID_CHAR', args => {
+	return `Invalid character in ${args[0]} [${args[1]}]`;
+});
+
+
+/***/ }),
+
+/***/ 723:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+const mimicFn = __webpack_require__(750);
+
+const calledFunctions = new WeakMap();
+
+const oneTime = (fn, options = {}) => {
+	if (typeof fn !== 'function') {
+		throw new TypeError('Expected a function');
+	}
+
+	let ret;
+	let isCalled = false;
+	let callCount = 0;
+	const functionName = fn.displayName || fn.name || '<anonymous>';
+
+	const onetime = function (...args) {
+		calledFunctions.set(onetime, ++callCount);
+
+		if (isCalled) {
+			if (options.throw === true) {
+				throw new Error(`Function \`${functionName}\` can only be called once`);
+			}
+
+			return ret;
+		}
+
+		isCalled = true;
+		ret = fn.apply(this, args);
+		fn = null;
+
+		return ret;
+	};
+
+	mimicFn(onetime, fn);
+	calledFunctions.set(onetime, callCount);
+
+	return onetime;
+};
+
+module.exports = oneTime;
+// TODO: Remove this for the next major release
+module.exports.default = oneTime;
+
+module.exports.callCount = fn => {
+	if (!calledFunctions.has(fn)) {
+		throw new Error(`The given function \`${fn.name}\` is not wrapped by the \`onetime\` package`);
+	}
+
+	return calledFunctions.get(fn);
+};
+
+
+/***/ }),
+
+/***/ 734:
+/***/ (function(module) {
+
+"use strict";
+
+
+module.exports = header => {
+	switch (header) {
+		case ':method':
+		case ':scheme':
+		case ':authority':
+		case ':path':
+			return true;
+		default:
+			return false;
+	}
+};
+
+
+/***/ }),
+
+/***/ 738:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const conversionTable = {
+    auto: 0,
+    ipv4: 4,
+    ipv6: 6
+};
+exports.isDnsLookupIpVersion = (value) => {
+    return value in conversionTable;
+};
+exports.dnsLookupIpVersionToFamily = (dnsLookupIpVersion) => {
+    if (exports.isDnsLookupIpVersion(dnsLookupIpVersion)) {
+        return conversionTable[dnsLookupIpVersion];
+    }
+    throw new Error('Invalid DNS lookup IP version');
+};
+
+
+/***/ }),
+
+/***/ 742:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+var fs = __webpack_require__(747)
+var core
+if (process.platform === 'win32' || global.TESTING_WINDOWS) {
+  core = __webpack_require__(818)
+} else {
+  core = __webpack_require__(197)
+}
+
+module.exports = isexe
+isexe.sync = sync
+
+function isexe (path, options, cb) {
+  if (typeof options === 'function') {
+    cb = options
+    options = {}
+  }
+
+  if (!cb) {
+    if (typeof Promise !== 'function') {
+      throw new TypeError('callback not provided')
+    }
+
+    return new Promise(function (resolve, reject) {
+      isexe(path, options || {}, function (er, is) {
+        if (er) {
+          reject(er)
+        } else {
+          resolve(is)
+        }
+      })
+    })
+  }
+
+  core(path, options || {}, function (er, is) {
+    // ignore EACCES because that just means we aren't allowed to run it
+    if (er) {
+      if (er.code === 'EACCES' || options && options.ignoreErrors) {
+        er = null
+        is = false
+      }
+    }
+    cb(er, is)
+  })
+}
+
+function sync (path, options) {
+  // my kingdom for a filtered catch
+  try {
+    return core.sync(path, options || {})
+  } catch (er) {
+    if (options && options.ignoreErrors || er.code === 'EACCES') {
+      return false
+    } else {
+      throw er
+    }
+  }
+}
+
+
+/***/ }),
+
+/***/ 747:
+/***/ (function(module) {
+
+module.exports = require("fs");
+
+/***/ }),
+
+/***/ 749:
+/***/ (function(module) {
+
+"use strict";
+
+const SPACES_REGEXP = / +/g;
+
+const joinCommand = (file, args = []) => {
+	if (!Array.isArray(args)) {
+		return file;
+	}
+
+	return [file, ...args].join(' ');
+};
+
+// Allow spaces to be escaped by a backslash if not meant as a delimiter
+const handleEscaping = (tokens, token, index) => {
+	if (index === 0) {
+		return [token];
+	}
+
+	const previousToken = tokens[tokens.length - 1];
+
+	if (previousToken.endsWith('\\')) {
+		return [...tokens.slice(0, -1), `${previousToken.slice(0, -1)} ${token}`];
+	}
+
+	return [...tokens, token];
+};
+
+// Handle `execa.command()`
+const parseCommand = command => {
+	return command
+		.trim()
+		.split(SPACES_REGEXP)
+		.reduce(handleEscaping, []);
+};
+
+module.exports = {
+	joinCommand,
+	parseCommand
+};
+
+
+/***/ }),
+
+/***/ 750:
+/***/ (function(module) {
+
+"use strict";
+
+
+const mimicFn = (to, from) => {
+	for (const prop of Reflect.ownKeys(from)) {
+		Object.defineProperty(to, prop, Object.getOwnPropertyDescriptor(from, prop));
+	}
+
+	return to;
+};
+
+module.exports = mimicFn;
+// TODO: Remove this for the next major release
+module.exports.default = mimicFn;
+
+
+/***/ }),
+
+/***/ 751:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+const net = __webpack_require__(631);
+/* istanbul ignore file: https://github.com/nodejs/node/blob/v13.0.1/lib/_http_agent.js */
+
+module.exports = options => {
+	let servername = options.host;
+	const hostHeader = options.headers && options.headers.host;
+
+	if (hostHeader) {
+		if (hostHeader.startsWith('[')) {
+			const index = hostHeader.indexOf(']');
+			if (index === -1) {
+				servername = hostHeader;
+			} else {
+				servername = hostHeader.slice(1, -1);
+			}
+		} else {
+			servername = hostHeader.split(':', 1)[0];
+		}
+	}
+
+	if (net.isIP(servername)) {
+		return '';
+	}
+
+	return servername;
+};
+
+
+/***/ }),
+
+/***/ 753:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+
+var endpoint = __webpack_require__(385);
+var universalUserAgent = __webpack_require__(796);
+var isPlainObject = _interopDefault(__webpack_require__(548));
+var nodeFetch = _interopDefault(__webpack_require__(454));
+var requestError = __webpack_require__(463);
+
+const VERSION = "5.4.5";
+
+function getBufferResponse(response) {
+  return response.arrayBuffer();
+}
+
+function fetchWrapper(requestOptions) {
+  if (isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body)) {
+    requestOptions.body = JSON.stringify(requestOptions.body);
+  }
+
+  let headers = {};
+  let status;
+  let url;
+  const fetch = requestOptions.request && requestOptions.request.fetch || nodeFetch;
+  return fetch(requestOptions.url, Object.assign({
+    method: requestOptions.method,
+    body: requestOptions.body,
+    headers: requestOptions.headers,
+    redirect: requestOptions.redirect
+  }, requestOptions.request)).then(response => {
+    url = response.url;
+    status = response.status;
+
+    for (const keyAndValue of response.headers) {
+      headers[keyAndValue[0]] = keyAndValue[1];
+    }
+
+    if (status === 204 || status === 205) {
+      return;
+    } // GitHub API returns 200 for HEAD requests
+
+
+    if (requestOptions.method === "HEAD") {
+      if (status < 400) {
+        return;
+      }
+
+      throw new requestError.RequestError(response.statusText, status, {
+        headers,
+        request: requestOptions
+      });
+    }
+
+    if (status === 304) {
+      throw new requestError.RequestError("Not modified", status, {
+        headers,
+        request: requestOptions
+      });
+    }
+
+    if (status >= 400) {
+      return response.text().then(message => {
+        const error = new requestError.RequestError(message, status, {
+          headers,
+          request: requestOptions
+        });
+
+        try {
+          let responseBody = JSON.parse(error.message);
+          Object.assign(error, responseBody);
+          let errors = responseBody.errors; // Assumption `errors` would always be in Array format
+
+          error.message = error.message + ": " + errors.map(JSON.stringify).join(", ");
+        } catch (e) {// ignore, see octokit/rest.js#684
+        }
+
+        throw error;
+      });
+    }
+
+    const contentType = response.headers.get("content-type");
+
+    if (/application\/json/.test(contentType)) {
+      return response.json();
+    }
+
+    if (!contentType || /^text\/|charset=utf-8$/.test(contentType)) {
+      return response.text();
+    }
+
+    return getBufferResponse(response);
+  }).then(data => {
+    return {
+      status,
+      url,
+      headers,
+      data
+    };
+  }).catch(error => {
+    if (error instanceof requestError.RequestError) {
+      throw error;
+    }
+
+    throw new requestError.RequestError(error.message, 500, {
+      headers,
+      request: requestOptions
+    });
+  });
+}
+
+function withDefaults(oldEndpoint, newDefaults) {
+  const endpoint = oldEndpoint.defaults(newDefaults);
+
+  const newApi = function (route, parameters) {
+    const endpointOptions = endpoint.merge(route, parameters);
+
+    if (!endpointOptions.request || !endpointOptions.request.hook) {
+      return fetchWrapper(endpoint.parse(endpointOptions));
+    }
+
+    const request = (route, parameters) => {
+      return fetchWrapper(endpoint.parse(endpoint.merge(route, parameters)));
+    };
+
+    Object.assign(request, {
+      endpoint,
+      defaults: withDefaults.bind(null, endpoint)
+    });
+    return endpointOptions.request.hook(request, endpointOptions);
+  };
+
+  return Object.assign(newApi, {
+    endpoint,
+    defaults: withDefaults.bind(null, endpoint)
+  });
+}
+
+const request = withDefaults(endpoint.endpoint, {
+  headers: {
+    "user-agent": `octokit-request.js/${VERSION} ${universalUserAgent.getUserAgent()}`
+  }
+});
+
+exports.request = request;
+//# sourceMappingURL=index.js.map
+
+
+/***/ }),
+
+/***/ 759:
+/***/ (function(module) {
+
+"use strict";
+
+
+// See http://www.robvanderwoude.com/escapechars.php
+const metaCharsRegExp = /([()\][%!^"`<>&|;, *?])/g;
+
+function escapeCommand(arg) {
+    // Escape meta chars
+    arg = arg.replace(metaCharsRegExp, '^$1');
+
+    return arg;
+}
+
+function escapeArgument(arg, doubleEscapeMetaChars) {
+    // Convert to string
+    arg = `${arg}`;
+
+    // Algorithm below is based on https://qntm.org/cmd
+
+    // Sequence of backslashes followed by a double quote:
+    // double up all the backslashes and escape the double quote
+    arg = arg.replace(/(\\*)"/g, '$1$1\\"');
+
+    // Sequence of backslashes followed by the end of the string
+    // (which will become a double quote later):
+    // double up all the backslashes
+    arg = arg.replace(/(\\*)$/, '$1$1');
+
+    // All other backslashes occur literally
+
+    // Quote the whole thing:
+    arg = `"${arg}"`;
+
+    // Escape meta chars
+    arg = arg.replace(metaCharsRegExp, '^$1');
+
+    // Double escape meta chars if necessary
+    if (doubleEscapeMetaChars) {
+        arg = arg.replace(metaCharsRegExp, '^$1');
+    }
+
+    return arg;
+}
+
+module.exports.command = escapeCommand;
+module.exports.argument = escapeArgument;
+
+
+/***/ }),
+
+/***/ 760:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+const pump = __webpack_require__(453);
+const bufferStream = __webpack_require__(582);
+
+class MaxBufferError extends Error {
+	constructor() {
+		super('maxBuffer exceeded');
+		this.name = 'MaxBufferError';
+	}
+}
+
+function getStream(inputStream, options) {
+	if (!inputStream) {
+		return Promise.reject(new Error('Expected a stream'));
+	}
+
+	options = Object.assign({maxBuffer: Infinity}, options);
+
+	const {maxBuffer} = options;
+
+	let stream;
+	return new Promise((resolve, reject) => {
+		const rejectPromise = error => {
+			if (error) { // A null check
+				error.bufferedData = stream.getBufferedValue();
+			}
+			reject(error);
+		};
+
+		stream = pump(inputStream, bufferStream(options), error => {
+			if (error) {
+				rejectPromise(error);
+				return;
+			}
+
+			resolve();
+		});
+
+		stream.on('data', () => {
+			if (stream.getBufferedLength() > maxBuffer) {
+				rejectPromise(new MaxBufferError());
+			}
+		});
+	}).then(() => stream.getBufferedValue());
+}
+
+module.exports = getStream;
+module.exports.buffer = (stream, options) => getStream(stream, Object.assign({}, options, {encoding: 'buffer'}));
+module.exports.array = (stream, options) => getStream(stream, Object.assign({}, options, {array: true}));
+module.exports.MaxBufferError = MaxBufferError;
+
+
+/***/ }),
+
+/***/ 761:
+/***/ (function(module) {
+
+module.exports = require("zlib");
+
+/***/ }),
+
+/***/ 763:
+/***/ (function(module) {
+
+module.exports = removeHook
+
+function removeHook (state, name, method) {
+  if (!state.registry[name]) {
+    return
+  }
+
+  var index = state.registry[name]
+    .map(function (registered) { return registered.orig })
+    .indexOf(method)
+
+  if (index === -1) {
+    return
+  }
+
+  state.registry[name].splice(index, 1)
+}
+
+
+/***/ }),
+
+/***/ 768:
+/***/ (function(module) {
+
+"use strict";
+
+module.exports = function (x) {
+	var lf = typeof x === 'string' ? '\n' : '\n'.charCodeAt();
+	var cr = typeof x === 'string' ? '\r' : '\r'.charCodeAt();
+
+	if (x[x.length - 1] === lf) {
+		x = x.slice(0, x.length - 1);
+	}
+
+	if (x[x.length - 1] === cr) {
+		x = x.slice(0, x.length - 1);
+	}
+
+	return x;
+};
+
+
+/***/ }),
+
+/***/ 774:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+const cp = __webpack_require__(129);
+const parse = __webpack_require__(884);
+const enoent = __webpack_require__(15);
+
+function spawn(command, args, options) {
+    // Parse the arguments
+    const parsed = parse(command, args, options);
+
+    // Spawn the child process
+    const spawned = cp.spawn(parsed.command, parsed.args, parsed.options);
+
+    // Hook into child process "exit" event to emit an error if the command
+    // does not exists, see: https://github.com/IndigoUnited/node-cross-spawn/issues/16
+    enoent.hookChildProcess(spawned, parsed);
+
+    return spawned;
+}
+
+function spawnSync(command, args, options) {
+    // Parse the arguments
+    const parsed = parse(command, args, options);
+
+    // Spawn the child process
+    const result = cp.spawnSync(parsed.command, parsed.args, parsed.options);
+
+    // Analyze if the command does not exist, see: https://github.com/IndigoUnited/node-cross-spawn/issues/16
+    result.error = result.error || enoent.verifyENOENTSync(result.status, parsed);
+
+    return result;
+}
+
+module.exports = spawn;
+module.exports.spawn = spawn;
+module.exports.sync = spawnSync;
+
+module.exports._parse = parse;
+module.exports._enoent = enoent;
+
+
+/***/ }),
+
+/***/ 778:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+const { PassThrough } = __webpack_require__(413);
+
+module.exports = function (/*streams...*/) {
+  var sources = []
+  var output  = new PassThrough({objectMode: true})
+
+  output.setMaxListeners(0)
+
+  output.add = add
+  output.isEmpty = isEmpty
+
+  output.on('unpipe', remove)
+
+  Array.prototype.slice.call(arguments).forEach(add)
+
+  return output
+
+  function add (source) {
+    if (Array.isArray(source)) {
+      source.forEach(add)
+      return this
+    }
+
+    sources.push(source);
+    source.once('end', remove.bind(null, source))
+    source.once('error', output.emit.bind(output, 'error'))
+    source.pipe(output, {end: false})
+    return this
+  }
+
+  function isEmpty () {
+    return sources.length == 0;
+  }
+
+  function remove (source) {
+    sources = sources.filter(function (it) { return it !== source })
+    if (!sources.length && output.readable) { output.end() }
+  }
+}
+
+
+/***/ }),
+
+/***/ 781:
+/***/ (function(module) {
+
+"use strict";
+
+
+const nativePromisePrototype = (async () => {})().constructor.prototype;
+const descriptors = ['then', 'catch', 'finally'].map(property => [
+	property,
+	Reflect.getOwnPropertyDescriptor(nativePromisePrototype, property)
+]);
+
+// The return value is a mixin of `childProcess` and `Promise`
+const mergePromise = (spawned, promise) => {
+	for (const [property, descriptor] of descriptors) {
+		// Starting the main `promise` is deferred to avoid consuming streams
+		const value = typeof promise === 'function' ?
+			(...args) => Reflect.apply(descriptor.value, promise(), args) :
+			descriptor.value.bind(promise);
+
+		Reflect.defineProperty(spawned, property, {...descriptor, value});
+	}
+
+	return spawned;
+};
+
+// Use promises instead of `child_process` events
+const getSpawnedPromise = spawned => {
+	return new Promise((resolve, reject) => {
+		spawned.on('exit', (exitCode, signal) => {
+			resolve({exitCode, signal});
+		});
+
+		spawned.on('error', error => {
+			reject(error);
+		});
+
+		if (spawned.stdin) {
+			spawned.stdin.on('error', error => {
+				reject(error);
+			});
+		}
+	});
+};
+
+module.exports = {
+	mergePromise,
+	getSpawnedPromise
+};
+
+
+
+/***/ }),
+
+/***/ 784:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+// When attaching listeners, it's very easy to forget about them.
+// Especially if you do error handling and set timeouts.
+// So instead of checking if it's proper to throw an error on every timeout ever,
+// use this simple tool which will remove all listeners you have attached.
+exports.default = () => {
+    const handlers = [];
+    return {
+        once(origin, event, fn) {
+            origin.once(event, fn);
+            handlers.push({ origin, event, fn });
+        },
+        unhandleAll() {
+            for (const handler of handlers) {
+                const { origin, event, fn } = handler;
+                origin.removeListener(event, fn);
+            }
+            handlers.length = 0;
+        }
+    };
+};
+
+
+/***/ }),
+
+/***/ 786:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const fs_1 = __webpack_require__(747);
+const util_1 = __webpack_require__(669);
+const is_1 = __webpack_require__(534);
+const is_form_data_1 = __webpack_require__(460);
+const statAsync = util_1.promisify(fs_1.stat);
+exports.default = async (body, headers) => {
+    if (headers && 'content-length' in headers) {
+        return Number(headers['content-length']);
+    }
+    if (!body) {
+        return 0;
+    }
+    if (is_1.default.string(body)) {
+        return Buffer.byteLength(body);
+    }
+    if (is_1.default.buffer(body)) {
+        return body.length;
+    }
+    if (is_form_data_1.default(body)) {
+        return util_1.promisify(body.getLength.bind(body))();
+    }
+    if (body instanceof fs_1.ReadStream) {
+        const { size } = await statAsync(body.path);
+        return size;
+    }
+    return undefined;
+};
+
+
+/***/ }),
+
+/***/ 790:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tls_1 = __webpack_require__(16);
+const deferToConnect = (socket, fn) => {
+    let listeners;
+    if (typeof fn === 'function') {
+        const connect = fn;
+        listeners = { connect };
+    }
+    else {
+        listeners = fn;
+    }
+    const hasConnectListener = typeof listeners.connect === 'function';
+    const hasSecureConnectListener = typeof listeners.secureConnect === 'function';
+    const hasCloseListener = typeof listeners.close === 'function';
+    const onConnect = () => {
+        if (hasConnectListener) {
+            listeners.connect();
+        }
+        if (socket instanceof tls_1.TLSSocket && hasSecureConnectListener) {
+            if (socket.authorized) {
+                listeners.secureConnect();
+            }
+            else if (!socket.authorizationError) {
+                socket.once('secureConnect', listeners.secureConnect);
+            }
+        }
+        if (hasCloseListener) {
+            socket.once('close', listeners.close);
+        }
+    };
+    if (socket.writable && !socket.connecting) {
+        onConnect();
+    }
+    else if (socket.connecting) {
+        socket.once('connect', onConnect);
+    }
+    else if (socket.destroyed && hasCloseListener) {
+        listeners.close(socket._hadError);
+    }
+};
+exports.default = deferToConnect;
+// For CommonJS default export support
+module.exports = deferToConnect;
+module.exports.default = deferToConnect;
+
+
+/***/ }),
+
+/***/ 796:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+
+var osName = _interopDefault(__webpack_require__(282));
+
+function getUserAgent() {
+  try {
+    return `Node.js/${process.version.substr(1)} (${osName()}; ${process.arch})`;
+  } catch (error) {
+    if (/wmic os get Caption/.test(error.message)) {
+      return "Windows <version undetectable>";
+    }
+
+    return "<environment undetectable>";
+  }
+}
+
+exports.getUserAgent = getUserAgent;
+//# sourceMappingURL=index.js.map
+
+
+/***/ }),
+
+/***/ 811:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const net = __webpack_require__(631);
+const unhandle_1 = __webpack_require__(784);
+const reentry = Symbol('reentry');
+const noop = () => { };
+class TimeoutError extends Error {
+    constructor(threshold, event) {
+        super(`Timeout awaiting '${event}' for ${threshold}ms`);
+        this.event = event;
+        this.name = 'TimeoutError';
+        this.code = 'ETIMEDOUT';
+    }
+}
+exports.TimeoutError = TimeoutError;
+exports.default = (request, delays, options) => {
+    if (reentry in request) {
+        return noop;
+    }
+    request[reentry] = true;
+    const cancelers = [];
+    const { once, unhandleAll } = unhandle_1.default();
+    const addTimeout = (delay, callback, event) => {
+        var _a;
+        const timeout = setTimeout(callback, delay, delay, event);
+        (_a = timeout.unref) === null || _a === void 0 ? void 0 : _a.call(timeout);
+        const cancel = () => {
+            clearTimeout(timeout);
+        };
+        cancelers.push(cancel);
+        return cancel;
+    };
+    const { host, hostname } = options;
+    const timeoutHandler = (delay, event) => {
+        request.destroy(new TimeoutError(delay, event));
+    };
+    const cancelTimeouts = () => {
+        for (const cancel of cancelers) {
+            cancel();
+        }
+        unhandleAll();
+    };
+    request.once('error', error => {
+        cancelTimeouts();
+        // Save original behavior
+        /* istanbul ignore next */
+        if (request.listenerCount('error') === 0) {
+            throw error;
+        }
+    });
+    request.once('close', cancelTimeouts);
+    once(request, 'response', (response) => {
+        once(response, 'end', cancelTimeouts);
+    });
+    if (typeof delays.request !== 'undefined') {
+        addTimeout(delays.request, timeoutHandler, 'request');
+    }
+    if (typeof delays.socket !== 'undefined') {
+        const socketTimeoutHandler = () => {
+            timeoutHandler(delays.socket, 'socket');
+        };
+        request.setTimeout(delays.socket, socketTimeoutHandler);
+        // `request.setTimeout(0)` causes a memory leak.
+        // We can just remove the listener and forget about the timer - it's unreffed.
+        // See https://github.com/sindresorhus/got/issues/690
+        cancelers.push(() => {
+            request.removeListener('timeout', socketTimeoutHandler);
+        });
+    }
+    once(request, 'socket', (socket) => {
+        var _a;
+        const { socketPath } = request;
+        /* istanbul ignore next: hard to test */
+        if (socket.connecting) {
+            const hasPath = Boolean(socketPath !== null && socketPath !== void 0 ? socketPath : net.isIP((_a = hostname !== null && hostname !== void 0 ? hostname : host) !== null && _a !== void 0 ? _a : '') !== 0);
+            if (typeof delays.lookup !== 'undefined' && !hasPath && typeof socket.address().address === 'undefined') {
+                const cancelTimeout = addTimeout(delays.lookup, timeoutHandler, 'lookup');
+                once(socket, 'lookup', cancelTimeout);
+            }
+            if (typeof delays.connect !== 'undefined') {
+                const timeConnect = () => addTimeout(delays.connect, timeoutHandler, 'connect');
+                if (hasPath) {
+                    once(socket, 'connect', timeConnect());
+                }
+                else {
+                    once(socket, 'lookup', (error) => {
+                        if (error === null) {
+                            once(socket, 'connect', timeConnect());
+                        }
+                    });
+                }
+            }
+            if (typeof delays.secureConnect !== 'undefined' && options.protocol === 'https:') {
+                once(socket, 'connect', () => {
+                    const cancelTimeout = addTimeout(delays.secureConnect, timeoutHandler, 'secureConnect');
+                    once(socket, 'secureConnect', cancelTimeout);
+                });
+            }
+        }
+        if (typeof delays.send !== 'undefined') {
+            const timeRequest = () => addTimeout(delays.send, timeoutHandler, 'send');
+            /* istanbul ignore next: hard to test */
+            if (socket.connecting) {
+                once(socket, 'connect', () => {
+                    once(request, 'upload-complete', timeRequest());
+                });
+            }
+            else {
+                once(request, 'upload-complete', timeRequest());
+            }
+        }
+    });
+    if (typeof delays.response !== 'undefined') {
+        once(request, 'upload-complete', () => {
+            const cancelTimeout = addTimeout(delays.response, timeoutHandler, 'response');
+            once(request, 'response', cancelTimeout);
+        });
+    }
+    return cancelTimeouts;
+};
+
+
+/***/ }),
+
+/***/ 813:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+async function auth(token) {
+  const tokenType = token.split(/\./).length === 3 ? "app" : /^v\d+\./.test(token) ? "installation" : "oauth";
+  return {
+    type: "token",
+    token: token,
+    tokenType
+  };
+}
+
+/**
+ * Prefix token for usage in the Authorization header
+ *
+ * @param token OAuth token or JSON Web Token
+ */
+function withAuthorizationPrefix(token) {
+  if (token.split(/\./).length === 3) {
+    return `bearer ${token}`;
+  }
+
+  return `token ${token}`;
+}
+
+async function hook(token, request, route, parameters) {
+  const endpoint = request.endpoint.merge(route, parameters);
+  endpoint.headers.authorization = withAuthorizationPrefix(token);
+  return request(endpoint);
+}
+
+const createTokenAuth = function createTokenAuth(token) {
+  if (!token) {
+    throw new Error("[@octokit/auth-token] No token passed to createTokenAuth");
+  }
+
+  if (typeof token !== "string") {
+    throw new Error("[@octokit/auth-token] Token passed to createTokenAuth is not a string");
+  }
+
+  token = token.replace(/^(token|bearer) +/i, "");
+  return Object.assign(auth.bind(null, token), {
+    hook: hook.bind(null, token)
+  });
+};
+
+exports.createTokenAuth = createTokenAuth;
+//# sourceMappingURL=index.js.map
+
+
+/***/ }),
+
+/***/ 814:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.detectNewGems = exports.mergeGemInfo = exports.getGems = void 0;
+const fs_1 = __importDefault(__webpack_require__(747));
+const path_1 = __importDefault(__webpack_require__(622));
+const execa_1 = __importStar(__webpack_require__(955));
+const got_1 = __importDefault(__webpack_require__(77));
+const getGems = (gemfile) => __awaiter(void 0, void 0, void 0, function* () {
+    const parseScript = path_1.default.resolve(__dirname, '../parse_gemfile.rb');
+    const { stdout } = yield execa_1.command(`ruby ${parseScript} ${gemfile}`);
+    return JSON.parse(stdout);
+});
+exports.getGems = getGems;
+const gemInfo = (gem) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { body } = yield got_1.default.get(`https://rubygems.org/api/v1/gems/${gem.name}.json`, {
+            responseType: 'json'
+        });
+        return body;
+    }
+    catch (error) {
+        return null;
+    }
+});
+const mergeGemInfo = (gem) => __awaiter(void 0, void 0, void 0, function* () {
+    return Object.assign(Object.assign({}, gem), (yield gemInfo(gem)));
+});
+exports.mergeGemInfo = mergeGemInfo;
+const detectNewGems = () => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    if (!process.env.GITHUB_BASE_REF) {
+        throw new Error('GITHUB_BASE_REF is undefined.');
+    }
+    yield execa_1.default('git', ['fetch', 'origin', process.env.GITHUB_BASE_REF]);
+    const subProcess = execa_1.default('git', [
+        'show',
+        `remotes/origin/${process.env.GITHUB_BASE_REF}:Gemfile`
+    ]);
+    (_a = subProcess.stdout) === null || _a === void 0 ? void 0 : _a.pipe(fs_1.default.createWriteStream('.Gemfile.base'));
+    yield subProcess;
+    const gems = yield getGems('Gemfile');
+    const baseGemNames = (yield getGems('.Gemfile.base')).map(({ name }) => name);
+    const newGems = gems.filter(({ name }) => !baseGemNames.includes(name));
+    return yield Promise.all(newGems.map(mergeGemInfo));
+});
+exports.detectNewGems = detectNewGems;
+
+
+/***/ }),
+
+/***/ 816:
+/***/ (function(module) {
+
+"use strict";
+
+module.exports = /^#!.*/;
+
+
+/***/ }),
+
+/***/ 818:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+module.exports = isexe
+isexe.sync = sync
+
+var fs = __webpack_require__(747)
+
+function checkPathExt (path, options) {
+  var pathext = options.pathExt !== undefined ?
+    options.pathExt : process.env.PATHEXT
+
+  if (!pathext) {
+    return true
+  }
+
+  pathext = pathext.split(';')
+  if (pathext.indexOf('') !== -1) {
+    return true
+  }
+  for (var i = 0; i < pathext.length; i++) {
+    var p = pathext[i].toLowerCase()
+    if (p && path.substr(-p.length).toLowerCase() === p) {
+      return true
+    }
+  }
+  return false
+}
+
+function checkStat (stat, path, options) {
+  if (!stat.isSymbolicLink() && !stat.isFile()) {
+    return false
+  }
+  return checkPathExt(path, options)
+}
+
+function isexe (path, options, cb) {
+  fs.stat(path, function (er, stat) {
+    cb(er, er ? false : checkStat(stat, path, options))
+  })
+}
+
+function sync (path, options) {
+  return checkStat(fs.statSync(path), path, options)
+}
+
+
+/***/ }),
+
+/***/ 835:
+/***/ (function(module) {
+
+module.exports = require("url");
+
+/***/ }),
+
+/***/ 842:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -16815,16574 +16068,16 @@ exports.restEndpointMethods = restEndpointMethods;
 
 
 /***/ }),
-/* 594 */,
-/* 595 */,
-/* 596 */,
-/* 597 */,
-/* 598 */,
-/* 599 */,
-/* 600 */,
-/* 601 */,
-/* 602 */,
-/* 603 */,
-/* 604 */,
-/* 605 */
-/***/ (function(module) {
 
-module.exports = require("http");
-
-/***/ }),
-/* 606 */,
-/* 607 */,
-/* 608 */,
-/* 609 */,
-/* 610 */,
-/* 611 */,
-/* 612 */,
-/* 613 */,
-/* 614 */
-/***/ (function(module) {
-
-module.exports = require("events");
-
-/***/ }),
-/* 615 */,
-/* 616 */,
-/* 617 */,
-/* 618 */,
-/* 619 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var osName = _interopDefault(__webpack_require__(282));
-
-function getUserAgent() {
-  try {
-    return `Node.js/${process.version.substr(1)} (${osName()}; ${process.arch})`;
-  } catch (error) {
-    if (/wmic os get Caption/.test(error.message)) {
-      return "Windows <version undetectable>";
-    }
-
-    throw error;
-  }
-}
-
-exports.getUserAgent = getUserAgent;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-/* 620 */,
-/* 621 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-const path = __webpack_require__(622);
-const pathKey = __webpack_require__(682);
-
-const npmRunPath = options => {
-	options = {
-		cwd: process.cwd(),
-		path: process.env[pathKey()],
-		execPath: process.execPath,
-		...options
-	};
-
-	let previous;
-	let cwdPath = path.resolve(options.cwd);
-	const result = [];
-
-	while (previous !== cwdPath) {
-		result.push(path.join(cwdPath, 'node_modules/.bin'));
-		previous = cwdPath;
-		cwdPath = path.resolve(cwdPath, '..');
-	}
-
-	// Ensure the running `node` binary is used
-	const execPathDir = path.resolve(options.cwd, options.execPath, '..');
-	result.push(execPathDir);
-
-	return result.concat(options.path).join(path.delimiter);
-};
-
-module.exports = npmRunPath;
-// TODO: Remove this for the next major release
-module.exports.default = npmRunPath;
-
-module.exports.env = options => {
-	options = {
-		env: process.env,
-		...options
-	};
-
-	const env = {...options.env};
-	const path = pathKey({env});
-
-	options.path = env[path];
-	env[path] = module.exports(options);
-
-	return env;
-};
-
-
-/***/ }),
-/* 622 */
-/***/ (function(module) {
-
-module.exports = require("path");
-
-/***/ }),
-/* 623 */,
-/* 624 */,
-/* 625 */,
-/* 626 */,
-/* 627 */,
-/* 628 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-function default_1(from, to, events) {
-    const fns = {};
-    for (const event of events) {
-        fns[event] = (...args) => {
-            to.emit(event, ...args);
-        };
-        from.on(event, fns[event]);
-    }
-    return () => {
-        for (const event of events) {
-            from.off(event, fns[event]);
-        }
-    };
-}
-exports.default = default_1;
-
-
-/***/ }),
-/* 629 */,
-/* 630 */,
-/* 631 */
-/***/ (function(module) {
-
-module.exports = require("net");
-
-/***/ }),
-/* 632 */,
-/* 633 */,
-/* 634 */,
-/* 635 */,
-/* 636 */,
-/* 637 */,
-/* 638 */,
-/* 639 */,
-/* 640 */,
-/* 641 */,
-/* 642 */,
-/* 643 */,
-/* 644 */,
-/* 645 */,
-/* 646 */,
-/* 647 */,
-/* 648 */,
-/* 649 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-module.exports = getLastPage
-
-const getPage = __webpack_require__(265)
-
-function getLastPage (octokit, link, headers) {
-  return getPage(octokit, link, 'last', headers)
-}
-
-
-/***/ }),
-/* 650 */,
-/* 651 */,
-/* 652 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-Object.defineProperty(exports,"__esModule",{value:true});exports.getSignals=void 0;var _os=__webpack_require__(87);
-
-var _core=__webpack_require__(560);
-var _realtime=__webpack_require__(260);
-
-
-
-const getSignals=function(){
-const realtimeSignals=(0,_realtime.getRealtimeSignals)();
-const signals=[..._core.SIGNALS,...realtimeSignals].map(normalizeSignal);
-return signals;
-};exports.getSignals=getSignals;
-
-
-
-
-
-
-
-const normalizeSignal=function({
-name,
-number:defaultNumber,
-description,
-action,
-forced=false,
-standard})
-{
-const{
-signals:{[name]:constantSignal}}=
-_os.constants;
-const supported=constantSignal!==undefined;
-const number=supported?constantSignal:defaultNumber;
-return{name,number,description,supported,action,forced,standard};
-};
-//# sourceMappingURL=signals.js.map
-
-/***/ }),
-/* 653 */,
-/* 654 */
-/***/ (function(module) {
-
-// This is not the set of all possible signals.
-//
-// It IS, however, the set of all signals that trigger
-// an exit on either Linux or BSD systems.  Linux is a
-// superset of the signal names supported on BSD, and
-// the unknown signals just fail to register, so we can
-// catch that easily enough.
-//
-// Don't bother with SIGKILL.  It's uncatchable, which
-// means that we can't fire any callbacks anyway.
-//
-// If a user does happen to register a handler on a non-
-// fatal signal like SIGWINCH or something, and then
-// exit, it'll end up firing `process.emit('exit')`, so
-// the handler will be fired anyway.
-//
-// SIGBUS, SIGFPE, SIGSEGV and SIGILL, when not raised
-// artificially, inherently leave the process in a
-// state from which it is not safe to try and enter JS
-// listeners.
-module.exports = [
-  'SIGABRT',
-  'SIGALRM',
-  'SIGHUP',
-  'SIGINT',
-  'SIGTERM'
-]
-
-if (process.platform !== 'win32') {
-  module.exports.push(
-    'SIGVTALRM',
-    'SIGXCPU',
-    'SIGXFSZ',
-    'SIGUSR2',
-    'SIGTRAP',
-    'SIGSYS',
-    'SIGQUIT',
-    'SIGIOT'
-    // should detect profiler and enable/disable accordingly.
-    // see #21
-    // 'SIGPROF'
-  )
-}
-
-if (process.platform === 'linux') {
-  module.exports.push(
-    'SIGIO',
-    'SIGPOLL',
-    'SIGPWR',
-    'SIGSTKFLT',
-    'SIGUNUSED'
-  )
-}
-
-
-/***/ }),
-/* 655 */,
-/* 656 */,
-/* 657 */,
-/* 658 */,
-/* 659 */,
-/* 660 */,
-/* 661 */,
-/* 662 */,
-/* 663 */,
-/* 664 */,
-/* 665 */,
-/* 666 */,
-/* 667 */,
-/* 668 */,
-/* 669 */
-/***/ (function(module) {
-
-module.exports = require("util");
-
-/***/ }),
-/* 670 */,
-/* 671 */,
-/* 672 */,
-/* 673 */,
-/* 674 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-module.exports = authenticate;
-
-const { Deprecation } = __webpack_require__(692);
-const once = __webpack_require__(49);
-
-const deprecateAuthenticate = once((log, deprecation) => log.warn(deprecation));
-
-function authenticate(state, options) {
-  deprecateAuthenticate(
-    state.octokit.log,
-    new Deprecation(
-      '[@octokit/rest] octokit.authenticate() is deprecated. Use "auth" constructor option instead.'
-    )
-  );
-
-  if (!options) {
-    state.auth = false;
-    return;
-  }
-
-  switch (options.type) {
-    case "basic":
-      if (!options.username || !options.password) {
-        throw new Error(
-          "Basic authentication requires both a username and password to be set"
-        );
-      }
-      break;
-
-    case "oauth":
-      if (!options.token && !(options.key && options.secret)) {
-        throw new Error(
-          "OAuth2 authentication requires a token or key & secret to be set"
-        );
-      }
-      break;
-
-    case "token":
-    case "app":
-      if (!options.token) {
-        throw new Error("Token authentication requires a token to be set");
-      }
-      break;
-
-    default:
-      throw new Error(
-        "Invalid authentication type, must be 'basic', 'oauth', 'token' or 'app'"
-      );
-  }
-
-  state.auth = options;
-}
-
-
-/***/ }),
-/* 675 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-const path = __webpack_require__(622);
-const childProcess = __webpack_require__(129);
-const crossSpawn = __webpack_require__(20);
-const stripEof = __webpack_require__(768);
-const npmRunPath = __webpack_require__(406);
-const isStream = __webpack_require__(292);
-const _getStream = __webpack_require__(760);
-const pFinally = __webpack_require__(697);
-const onExit = __webpack_require__(497);
-const errname = __webpack_require__(418);
-const stdio = __webpack_require__(151);
-
-const TEN_MEGABYTES = 1000 * 1000 * 10;
-
-function handleArgs(cmd, args, opts) {
-	let parsed;
-
-	opts = Object.assign({
-		extendEnv: true,
-		env: {}
-	}, opts);
-
-	if (opts.extendEnv) {
-		opts.env = Object.assign({}, process.env, opts.env);
-	}
-
-	if (opts.__winShell === true) {
-		delete opts.__winShell;
-		parsed = {
-			command: cmd,
-			args,
-			options: opts,
-			file: cmd,
-			original: {
-				cmd,
-				args
-			}
-		};
-	} else {
-		parsed = crossSpawn._parse(cmd, args, opts);
-	}
-
-	opts = Object.assign({
-		maxBuffer: TEN_MEGABYTES,
-		buffer: true,
-		stripEof: true,
-		preferLocal: true,
-		localDir: parsed.options.cwd || process.cwd(),
-		encoding: 'utf8',
-		reject: true,
-		cleanup: true
-	}, parsed.options);
-
-	opts.stdio = stdio(opts);
-
-	if (opts.preferLocal) {
-		opts.env = npmRunPath.env(Object.assign({}, opts, {cwd: opts.localDir}));
-	}
-
-	if (opts.detached) {
-		// #115
-		opts.cleanup = false;
-	}
-
-	if (process.platform === 'win32' && path.basename(parsed.command) === 'cmd.exe') {
-		// #116
-		parsed.args.unshift('/q');
-	}
-
-	return {
-		cmd: parsed.command,
-		args: parsed.args,
-		opts,
-		parsed
-	};
-}
-
-function handleInput(spawned, input) {
-	if (input === null || input === undefined) {
-		return;
-	}
-
-	if (isStream(input)) {
-		input.pipe(spawned.stdin);
-	} else {
-		spawned.stdin.end(input);
-	}
-}
-
-function handleOutput(opts, val) {
-	if (val && opts.stripEof) {
-		val = stripEof(val);
-	}
-
-	return val;
-}
-
-function handleShell(fn, cmd, opts) {
-	let file = '/bin/sh';
-	let args = ['-c', cmd];
-
-	opts = Object.assign({}, opts);
-
-	if (process.platform === 'win32') {
-		opts.__winShell = true;
-		file = process.env.comspec || 'cmd.exe';
-		args = ['/s', '/c', `"${cmd}"`];
-		opts.windowsVerbatimArguments = true;
-	}
-
-	if (opts.shell) {
-		file = opts.shell;
-		delete opts.shell;
-	}
-
-	return fn(file, args, opts);
-}
-
-function getStream(process, stream, {encoding, buffer, maxBuffer}) {
-	if (!process[stream]) {
-		return null;
-	}
-
-	let ret;
-
-	if (!buffer) {
-		// TODO: Use `ret = util.promisify(stream.finished)(process[stream]);` when targeting Node.js 10
-		ret = new Promise((resolve, reject) => {
-			process[stream]
-				.once('end', resolve)
-				.once('error', reject);
-		});
-	} else if (encoding) {
-		ret = _getStream(process[stream], {
-			encoding,
-			maxBuffer
-		});
-	} else {
-		ret = _getStream.buffer(process[stream], {maxBuffer});
-	}
-
-	return ret.catch(err => {
-		err.stream = stream;
-		err.message = `${stream} ${err.message}`;
-		throw err;
-	});
-}
-
-function makeError(result, options) {
-	const {stdout, stderr} = result;
-
-	let err = result.error;
-	const {code, signal} = result;
-
-	const {parsed, joinedCmd} = options;
-	const timedOut = options.timedOut || false;
-
-	if (!err) {
-		let output = '';
-
-		if (Array.isArray(parsed.opts.stdio)) {
-			if (parsed.opts.stdio[2] !== 'inherit') {
-				output += output.length > 0 ? stderr : `\n${stderr}`;
-			}
-
-			if (parsed.opts.stdio[1] !== 'inherit') {
-				output += `\n${stdout}`;
-			}
-		} else if (parsed.opts.stdio !== 'inherit') {
-			output = `\n${stderr}${stdout}`;
-		}
-
-		err = new Error(`Command failed: ${joinedCmd}${output}`);
-		err.code = code < 0 ? errname(code) : code;
-	}
-
-	err.stdout = stdout;
-	err.stderr = stderr;
-	err.failed = true;
-	err.signal = signal || null;
-	err.cmd = joinedCmd;
-	err.timedOut = timedOut;
-
-	return err;
-}
-
-function joinCmd(cmd, args) {
-	let joinedCmd = cmd;
-
-	if (Array.isArray(args) && args.length > 0) {
-		joinedCmd += ' ' + args.join(' ');
-	}
-
-	return joinedCmd;
-}
-
-module.exports = (cmd, args, opts) => {
-	const parsed = handleArgs(cmd, args, opts);
-	const {encoding, buffer, maxBuffer} = parsed.opts;
-	const joinedCmd = joinCmd(cmd, args);
-
-	let spawned;
-	try {
-		spawned = childProcess.spawn(parsed.cmd, parsed.args, parsed.opts);
-	} catch (err) {
-		return Promise.reject(err);
-	}
-
-	let removeExitHandler;
-	if (parsed.opts.cleanup) {
-		removeExitHandler = onExit(() => {
-			spawned.kill();
-		});
-	}
-
-	let timeoutId = null;
-	let timedOut = false;
-
-	const cleanup = () => {
-		if (timeoutId) {
-			clearTimeout(timeoutId);
-			timeoutId = null;
-		}
-
-		if (removeExitHandler) {
-			removeExitHandler();
-		}
-	};
-
-	if (parsed.opts.timeout > 0) {
-		timeoutId = setTimeout(() => {
-			timeoutId = null;
-			timedOut = true;
-			spawned.kill(parsed.opts.killSignal);
-		}, parsed.opts.timeout);
-	}
-
-	const processDone = new Promise(resolve => {
-		spawned.on('exit', (code, signal) => {
-			cleanup();
-			resolve({code, signal});
-		});
-
-		spawned.on('error', err => {
-			cleanup();
-			resolve({error: err});
-		});
-
-		if (spawned.stdin) {
-			spawned.stdin.on('error', err => {
-				cleanup();
-				resolve({error: err});
-			});
-		}
-	});
-
-	function destroy() {
-		if (spawned.stdout) {
-			spawned.stdout.destroy();
-		}
-
-		if (spawned.stderr) {
-			spawned.stderr.destroy();
-		}
-	}
-
-	const handlePromise = () => pFinally(Promise.all([
-		processDone,
-		getStream(spawned, 'stdout', {encoding, buffer, maxBuffer}),
-		getStream(spawned, 'stderr', {encoding, buffer, maxBuffer})
-	]).then(arr => {
-		const result = arr[0];
-		result.stdout = arr[1];
-		result.stderr = arr[2];
-
-		if (result.error || result.code !== 0 || result.signal !== null) {
-			const err = makeError(result, {
-				joinedCmd,
-				parsed,
-				timedOut
-			});
-
-			// TODO: missing some timeout logic for killed
-			// https://github.com/nodejs/node/blob/master/lib/child_process.js#L203
-			// err.killed = spawned.killed || killed;
-			err.killed = err.killed || spawned.killed;
-
-			if (!parsed.opts.reject) {
-				return err;
-			}
-
-			throw err;
-		}
-
-		return {
-			stdout: handleOutput(parsed.opts, result.stdout),
-			stderr: handleOutput(parsed.opts, result.stderr),
-			code: 0,
-			failed: false,
-			killed: false,
-			signal: null,
-			cmd: joinedCmd,
-			timedOut: false
-		};
-	}), destroy);
-
-	crossSpawn._enoent.hookChildProcess(spawned, parsed.parsed);
-
-	handleInput(spawned, parsed.opts.input);
-
-	spawned.then = (onfulfilled, onrejected) => handlePromise().then(onfulfilled, onrejected);
-	spawned.catch = onrejected => handlePromise().catch(onrejected);
-
-	return spawned;
-};
-
-// TODO: set `stderr: 'ignore'` when that option is implemented
-module.exports.stdout = (...args) => module.exports(...args).then(x => x.stdout);
-
-// TODO: set `stdout: 'ignore'` when that option is implemented
-module.exports.stderr = (...args) => module.exports(...args).then(x => x.stderr);
-
-module.exports.shell = (cmd, opts) => handleShell(module.exports, cmd, opts);
-
-module.exports.sync = (cmd, args, opts) => {
-	const parsed = handleArgs(cmd, args, opts);
-	const joinedCmd = joinCmd(cmd, args);
-
-	if (isStream(parsed.opts.input)) {
-		throw new TypeError('The `input` option cannot be a stream in sync mode');
-	}
-
-	const result = childProcess.spawnSync(parsed.cmd, parsed.args, parsed.opts);
-	result.code = result.status;
-
-	if (result.error || result.status !== 0 || result.signal !== null) {
-		const err = makeError(result, {
-			joinedCmd,
-			parsed
-		});
-
-		if (!parsed.opts.reject) {
-			return err;
-		}
-
-		throw err;
-	}
-
-	return {
-		stdout: handleOutput(parsed.opts, result.stdout),
-		stderr: handleOutput(parsed.opts, result.stderr),
-		code: 0,
-		failed: false,
-		signal: null,
-		cmd: joinedCmd,
-		timedOut: false
-	};
-};
-
-module.exports.shellSync = (cmd, opts) => handleShell(module.exports.sync, cmd, opts);
-
-
-/***/ }),
-/* 676 */,
-/* 677 */,
-/* 678 */,
-/* 679 */,
-/* 680 */,
-/* 681 */,
-/* 682 */
-/***/ (function(module) {
-
-"use strict";
-
-
-const pathKey = (options = {}) => {
-	const environment = options.env || process.env;
-	const platform = options.platform || process.platform;
-
-	if (platform !== 'win32') {
-		return 'PATH';
-	}
-
-	return Object.keys(environment).reverse().find(key => key.toUpperCase() === 'PATH') || 'Path';
-};
-
-module.exports = pathKey;
-// TODO: Remove this for the next major release
-module.exports.default = pathKey;
-
-
-/***/ }),
-/* 683 */,
-/* 684 */,
-/* 685 */,
-/* 686 */,
-/* 687 */,
-/* 688 */,
-/* 689 */,
-/* 690 */,
-/* 691 */,
-/* 692 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-class Deprecation extends Error {
-  constructor(message) {
-    super(message); // Maintains proper stack trace (only available on V8)
-
-    /* istanbul ignore next */
-
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    }
-
-    this.name = 'Deprecation';
-  }
-
-}
-
-exports.Deprecation = Deprecation;
-
-
-/***/ }),
-/* 693 */,
-/* 694 */,
-/* 695 */,
-/* 696 */
-/***/ (function(module) {
-
-"use strict";
-
-
-/*!
- * isobject <https://github.com/jonschlinkert/isobject>
- *
- * Copyright (c) 2014-2017, Jon Schlinkert.
- * Released under the MIT License.
- */
-
-function isObject(val) {
-  return val != null && typeof val === 'object' && Array.isArray(val) === false;
-}
-
-/*!
- * is-plain-object <https://github.com/jonschlinkert/is-plain-object>
- *
- * Copyright (c) 2014-2017, Jon Schlinkert.
- * Released under the MIT License.
- */
-
-function isObjectObject(o) {
-  return isObject(o) === true
-    && Object.prototype.toString.call(o) === '[object Object]';
-}
-
-function isPlainObject(o) {
-  var ctor,prot;
-
-  if (isObjectObject(o) === false) return false;
-
-  // If has modified constructor
-  ctor = o.constructor;
-  if (typeof ctor !== 'function') return false;
-
-  // If has modified prototype
-  prot = ctor.prototype;
-  if (isObjectObject(prot) === false) return false;
-
-  // If constructor does not have an Object-specific method
-  if (prot.hasOwnProperty('isPrototypeOf') === false) {
-    return false;
-  }
-
-  // Most likely a plain Object
-  return true;
-}
-
-module.exports = isPlainObject;
-
-
-/***/ }),
-/* 697 */
-/***/ (function(module) {
-
-"use strict";
-
-module.exports = (promise, onFinally) => {
-	onFinally = onFinally || (() => {});
-
-	return promise.then(
-		val => new Promise(resolve => {
-			resolve(onFinally());
-		}).then(() => val),
-		err => new Promise(resolve => {
-			resolve(onFinally());
-		}).then(() => {
-			throw err;
-		})
-	);
-};
-
-
-/***/ }),
-/* 698 */,
-/* 699 */
-/***/ (function(module) {
-
-"use strict";
-
-/* istanbul ignore file: https://github.com/nodejs/node/blob/master/lib/internal/errors.js */
-
-const makeError = (Base, key, getMessage) => {
-	module.exports[key] = class NodeError extends Base {
-		constructor(...args) {
-			super(typeof getMessage === 'string' ? getMessage : getMessage(args));
-			this.name = `${super.name} [${key}]`;
-			this.code = key;
-		}
-	};
-};
-
-makeError(TypeError, 'ERR_INVALID_ARG_TYPE', args => {
-	const type = args[0].includes('.') ? 'property' : 'argument';
-
-	let valid = args[1];
-	const isManyTypes = Array.isArray(valid);
-
-	if (isManyTypes) {
-		valid = `${valid.slice(0, -1).join(', ')} or ${valid.slice(-1)}`;
-	}
-
-	return `The "${args[0]}" ${type} must be ${isManyTypes ? 'one of' : 'of'} type ${valid}. Received ${typeof args[2]}`;
-});
-
-makeError(TypeError, 'ERR_INVALID_PROTOCOL', args => {
-	return `Protocol "${args[0]}" not supported. Expected "${args[1]}"`;
-});
-
-makeError(Error, 'ERR_HTTP_HEADERS_SENT', args => {
-	return `Cannot ${args[0]} headers after they are sent to the client`;
-});
-
-makeError(TypeError, 'ERR_INVALID_HTTP_TOKEN', args => {
-	return `${args[0]} must be a valid HTTP token [${args[1]}]`;
-});
-
-makeError(TypeError, 'ERR_HTTP_INVALID_HEADER_VALUE', args => {
-	return `Invalid value "${args[0]} for header "${args[1]}"`;
-});
-
-makeError(TypeError, 'ERR_INVALID_CHAR', args => {
-	return `Invalid character in ${args[0]} [${args[1]}]`;
-});
-
-
-/***/ }),
-/* 700 */,
-/* 701 */,
-/* 702 */,
-/* 703 */,
-/* 704 */,
-/* 705 */,
-/* 706 */,
-/* 707 */,
-/* 708 */,
-/* 709 */,
-/* 710 */,
-/* 711 */,
-/* 712 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var deprecation = __webpack_require__(692);
-var once = _interopDefault(__webpack_require__(49));
-
-const logOnce = once(deprecation => console.warn(deprecation));
-/**
- * Error with extra properties to help with debugging
- */
-
-class RequestError extends Error {
-  constructor(message, statusCode, options) {
-    super(message); // Maintains proper stack trace (only available on V8)
-
-    /* istanbul ignore next */
-
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    }
-
-    this.name = "HttpError";
-    this.status = statusCode;
-    Object.defineProperty(this, "code", {
-      get() {
-        logOnce(new deprecation.Deprecation("[@octokit/request-error] `error.code` is deprecated, use `error.status`."));
-        return statusCode;
-      }
-
-    });
-    this.headers = options.headers || {}; // redact request credentials without mutating original request options
-
-    const requestCopy = Object.assign({}, options.request);
-
-    if (options.request.headers.authorization) {
-      requestCopy.headers = Object.assign({}, options.request.headers, {
-        authorization: options.request.headers.authorization.replace(/ .*$/, " [REDACTED]")
-      });
-    }
-
-    requestCopy.url = requestCopy.url // client_id & client_secret can be passed as URL query parameters to increase rate limit
-    // see https://developer.github.com/v3/#increasing-the-unauthenticated-rate-limit-for-oauth-applications
-    .replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]") // OAuth tokens can be passed as URL query parameters, although it is not recommended
-    // see https://developer.github.com/v3/#oauth2-token-sent-in-a-header
-    .replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
-    this.request = requestCopy;
-  }
-
-}
-
-exports.RequestError = RequestError;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-/* 713 */,
-/* 714 */,
-/* 715 */,
-/* 716 */,
-/* 717 */,
-/* 718 */,
-/* 719 */,
-/* 720 */,
-/* 721 */,
-/* 722 */,
-/* 723 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-const mimicFn = __webpack_require__(750);
-
-const calledFunctions = new WeakMap();
-
-const oneTime = (fn, options = {}) => {
-	if (typeof fn !== 'function') {
-		throw new TypeError('Expected a function');
-	}
-
-	let ret;
-	let isCalled = false;
-	let callCount = 0;
-	const functionName = fn.displayName || fn.name || '<anonymous>';
-
-	const onetime = function (...args) {
-		calledFunctions.set(onetime, ++callCount);
-
-		if (isCalled) {
-			if (options.throw === true) {
-				throw new Error(`Function \`${functionName}\` can only be called once`);
-			}
-
-			return ret;
-		}
-
-		isCalled = true;
-		ret = fn.apply(this, args);
-		fn = null;
-
-		return ret;
-	};
-
-	mimicFn(onetime, fn);
-	calledFunctions.set(onetime, callCount);
-
-	return onetime;
-};
-
-module.exports = oneTime;
-// TODO: Remove this for the next major release
-module.exports.default = oneTime;
-
-module.exports.callCount = fn => {
-	if (!calledFunctions.has(fn)) {
-		throw new Error(`The given function \`${fn.name}\` is not wrapped by the \`onetime\` package`);
-	}
-
-	return calledFunctions.get(fn);
-};
-
-
-/***/ }),
-/* 724 */,
-/* 725 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-const VERSION = "1.0.0";
-
-/**
- * @param octokit Octokit instance
- * @param options Options passed to Octokit constructor
- */
-
-function requestLog(octokit) {
-  octokit.hook.wrap("request", (request, options) => {
-    octokit.log.debug("request", options);
-    const start = Date.now();
-    const requestOptions = octokit.request.endpoint.parse(options);
-    const path = requestOptions.url.replace(options.baseUrl, "");
-    return request(options).then(response => {
-      octokit.log.info(`${requestOptions.method} ${path} - ${response.status} in ${Date.now() - start}ms`);
-      return response;
-    }).catch(error => {
-      octokit.log.info(`${requestOptions.method} ${path} - ${error.status} in ${Date.now() - start}ms`);
-      throw error;
-    });
-  });
-}
-requestLog.VERSION = VERSION;
-
-exports.requestLog = requestLog;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-/* 726 */,
-/* 727 */,
-/* 728 */,
-/* 729 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-var core = __webpack_require__(978);
-var pluginRequestLog = __webpack_require__(725);
-var pluginPaginateRest = __webpack_require__(72);
-var pluginRestEndpointMethods = __webpack_require__(593);
-
-const VERSION = "18.0.0";
-
-const Octokit = core.Octokit.plugin(pluginRequestLog.requestLog, pluginRestEndpointMethods.restEndpointMethods, pluginPaginateRest.paginateRest).defaults({
-  userAgent: `octokit-rest.js/${VERSION}`
-});
-
-exports.Octokit = Octokit;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-/* 730 */,
-/* 731 */,
-/* 732 */,
-/* 733 */,
-/* 734 */
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = header => {
-	switch (header) {
-		case ':method':
-		case ':scheme':
-		case ':authority':
-		case ':path':
-			return true;
-		default:
-			return false;
-	}
-};
-
-
-/***/ }),
-/* 735 */,
-/* 736 */,
-/* 737 */,
-/* 738 */,
-/* 739 */,
-/* 740 */,
-/* 741 */,
-/* 742 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-var fs = __webpack_require__(747)
-var core
-if (process.platform === 'win32' || global.TESTING_WINDOWS) {
-  core = __webpack_require__(818)
-} else {
-  core = __webpack_require__(197)
-}
-
-module.exports = isexe
-isexe.sync = sync
-
-function isexe (path, options, cb) {
-  if (typeof options === 'function') {
-    cb = options
-    options = {}
-  }
-
-  if (!cb) {
-    if (typeof Promise !== 'function') {
-      throw new TypeError('callback not provided')
-    }
-
-    return new Promise(function (resolve, reject) {
-      isexe(path, options || {}, function (er, is) {
-        if (er) {
-          reject(er)
-        } else {
-          resolve(is)
-        }
-      })
-    })
-  }
-
-  core(path, options || {}, function (er, is) {
-    // ignore EACCES because that just means we aren't allowed to run it
-    if (er) {
-      if (er.code === 'EACCES' || options && options.ignoreErrors) {
-        er = null
-        is = false
-      }
-    }
-    cb(er, is)
-  })
-}
-
-function sync (path, options) {
-  // my kingdom for a filtered catch
-  try {
-    return core.sync(path, options || {})
-  } catch (er) {
-    if (options && options.ignoreErrors || er.code === 'EACCES') {
-      return false
-    } else {
-      throw er
-    }
-  }
-}
-
-
-/***/ }),
-/* 743 */,
-/* 744 */,
-/* 745 */,
-/* 746 */,
-/* 747 */
-/***/ (function(module) {
-
-module.exports = require("fs");
-
-/***/ }),
-/* 748 */,
-/* 749 */
-/***/ (function(module) {
-
-"use strict";
-
-const SPACES_REGEXP = / +/g;
-
-const joinCommand = (file, args = []) => {
-	if (!Array.isArray(args)) {
-		return file;
-	}
-
-	return [file, ...args].join(' ');
-};
-
-// Allow spaces to be escaped by a backslash if not meant as a delimiter
-const handleEscaping = (tokens, token, index) => {
-	if (index === 0) {
-		return [token];
-	}
-
-	const previousToken = tokens[tokens.length - 1];
-
-	if (previousToken.endsWith('\\')) {
-		return [...tokens.slice(0, -1), `${previousToken.slice(0, -1)} ${token}`];
-	}
-
-	return [...tokens, token];
-};
-
-// Handle `execa.command()`
-const parseCommand = command => {
-	return command
-		.trim()
-		.split(SPACES_REGEXP)
-		.reduce(handleEscaping, []);
-};
-
-module.exports = {
-	joinCommand,
-	parseCommand
-};
-
-
-/***/ }),
-/* 750 */
-/***/ (function(module) {
-
-"use strict";
-
-
-const mimicFn = (to, from) => {
-	for (const prop of Reflect.ownKeys(from)) {
-		Object.defineProperty(to, prop, Object.getOwnPropertyDescriptor(from, prop));
-	}
-
-	return to;
-};
-
-module.exports = mimicFn;
-// TODO: Remove this for the next major release
-module.exports.default = mimicFn;
-
-
-/***/ }),
-/* 751 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-const net = __webpack_require__(631);
-/* istanbul ignore file: https://github.com/nodejs/node/blob/v13.0.1/lib/_http_agent.js */
-
-module.exports = options => {
-	let servername = options.host;
-	const hostHeader = options.headers && options.headers.host;
-
-	if (hostHeader) {
-		if (hostHeader.startsWith('[')) {
-			const index = hostHeader.indexOf(']');
-			if (index === -1) {
-				servername = hostHeader;
-			} else {
-				servername = hostHeader.slice(1, -1);
-			}
-		} else {
-			servername = hostHeader.split(':', 1)[0];
-		}
-	}
-
-	if (net.isIP(servername)) {
-		return '';
-	}
-
-	return servername;
-};
-
-
-/***/ }),
-/* 752 */,
-/* 753 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var endpoint = __webpack_require__(385);
-var universalUserAgent = __webpack_require__(796);
-var isPlainObject = _interopDefault(__webpack_require__(696));
-var nodeFetch = _interopDefault(__webpack_require__(454));
-var requestError = __webpack_require__(463);
-
-const VERSION = "5.4.2";
-
-function getBufferResponse(response) {
-  return response.arrayBuffer();
-}
-
-function fetchWrapper(requestOptions) {
-  if (isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body)) {
-    requestOptions.body = JSON.stringify(requestOptions.body);
-  }
-
-  let headers = {};
-  let status;
-  let url;
-  const fetch = requestOptions.request && requestOptions.request.fetch || nodeFetch;
-  return fetch(requestOptions.url, Object.assign({
-    method: requestOptions.method,
-    body: requestOptions.body,
-    headers: requestOptions.headers,
-    redirect: requestOptions.redirect
-  }, requestOptions.request)).then(response => {
-    url = response.url;
-    status = response.status;
-
-    for (const keyAndValue of response.headers) {
-      headers[keyAndValue[0]] = keyAndValue[1];
-    }
-
-    if (status === 204 || status === 205) {
-      return;
-    } // GitHub API returns 200 for HEAD requests
-
-
-    if (requestOptions.method === "HEAD") {
-      if (status < 400) {
-        return;
-      }
-
-      throw new requestError.RequestError(response.statusText, status, {
-        headers,
-        request: requestOptions
-      });
-    }
-
-    if (status === 304) {
-      throw new requestError.RequestError("Not modified", status, {
-        headers,
-        request: requestOptions
-      });
-    }
-
-    if (status >= 400) {
-      return response.text().then(message => {
-        const error = new requestError.RequestError(message, status, {
-          headers,
-          request: requestOptions
-        });
-
-        try {
-          let responseBody = JSON.parse(error.message);
-          Object.assign(error, responseBody);
-          let errors = responseBody.errors; // Assumption `errors` would always be in Array format
-
-          error.message = error.message + ": " + errors.map(JSON.stringify).join(", ");
-        } catch (e) {// ignore, see octokit/rest.js#684
-        }
-
-        throw error;
-      });
-    }
-
-    const contentType = response.headers.get("content-type");
-
-    if (/application\/json/.test(contentType)) {
-      return response.json();
-    }
-
-    if (!contentType || /^text\/|charset=utf-8$/.test(contentType)) {
-      return response.text();
-    }
-
-    return getBufferResponse(response);
-  }).then(data => {
-    return {
-      status,
-      url,
-      headers,
-      data
-    };
-  }).catch(error => {
-    if (error instanceof requestError.RequestError) {
-      throw error;
-    }
-
-    throw new requestError.RequestError(error.message, 500, {
-      headers,
-      request: requestOptions
-    });
-  });
-}
-
-function withDefaults(oldEndpoint, newDefaults) {
-  const endpoint = oldEndpoint.defaults(newDefaults);
-
-  const newApi = function (route, parameters) {
-    const endpointOptions = endpoint.merge(route, parameters);
-
-    if (!endpointOptions.request || !endpointOptions.request.hook) {
-      return fetchWrapper(endpoint.parse(endpointOptions));
-    }
-
-    const request = (route, parameters) => {
-      return fetchWrapper(endpoint.parse(endpoint.merge(route, parameters)));
-    };
-
-    Object.assign(request, {
-      endpoint,
-      defaults: withDefaults.bind(null, endpoint)
-    });
-    return endpointOptions.request.hook(request, endpointOptions);
-  };
-
-  return Object.assign(newApi, {
-    endpoint,
-    defaults: withDefaults.bind(null, endpoint)
-  });
-}
-
-const request = withDefaults(endpoint.endpoint, {
-  headers: {
-    "user-agent": `octokit-request.js/${VERSION} ${universalUserAgent.getUserAgent()}`
-  }
-});
-
-exports.request = request;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-/* 754 */,
-/* 755 */,
-/* 756 */,
-/* 757 */,
-/* 758 */,
-/* 759 */
-/***/ (function(module) {
-
-"use strict";
-
-
-// See http://www.robvanderwoude.com/escapechars.php
-const metaCharsRegExp = /([()\][%!^"`<>&|;, *?])/g;
-
-function escapeCommand(arg) {
-    // Escape meta chars
-    arg = arg.replace(metaCharsRegExp, '^$1');
-
-    return arg;
-}
-
-function escapeArgument(arg, doubleEscapeMetaChars) {
-    // Convert to string
-    arg = `${arg}`;
-
-    // Algorithm below is based on https://qntm.org/cmd
-
-    // Sequence of backslashes followed by a double quote:
-    // double up all the backslashes and escape the double quote
-    arg = arg.replace(/(\\*)"/g, '$1$1\\"');
-
-    // Sequence of backslashes followed by the end of the string
-    // (which will become a double quote later):
-    // double up all the backslashes
-    arg = arg.replace(/(\\*)$/, '$1$1');
-
-    // All other backslashes occur literally
-
-    // Quote the whole thing:
-    arg = `"${arg}"`;
-
-    // Escape meta chars
-    arg = arg.replace(metaCharsRegExp, '^$1');
-
-    // Double escape meta chars if necessary
-    if (doubleEscapeMetaChars) {
-        arg = arg.replace(metaCharsRegExp, '^$1');
-    }
-
-    return arg;
-}
-
-module.exports.command = escapeCommand;
-module.exports.argument = escapeArgument;
-
-
-/***/ }),
-/* 760 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-const pump = __webpack_require__(453);
-const bufferStream = __webpack_require__(582);
-
-class MaxBufferError extends Error {
-	constructor() {
-		super('maxBuffer exceeded');
-		this.name = 'MaxBufferError';
-	}
-}
-
-function getStream(inputStream, options) {
-	if (!inputStream) {
-		return Promise.reject(new Error('Expected a stream'));
-	}
-
-	options = Object.assign({maxBuffer: Infinity}, options);
-
-	const {maxBuffer} = options;
-
-	let stream;
-	return new Promise((resolve, reject) => {
-		const rejectPromise = error => {
-			if (error) { // A null check
-				error.bufferedData = stream.getBufferedValue();
-			}
-			reject(error);
-		};
-
-		stream = pump(inputStream, bufferStream(options), error => {
-			if (error) {
-				rejectPromise(error);
-				return;
-			}
-
-			resolve();
-		});
-
-		stream.on('data', () => {
-			if (stream.getBufferedLength() > maxBuffer) {
-				rejectPromise(new MaxBufferError());
-			}
-		});
-	}).then(() => stream.getBufferedValue());
-}
-
-module.exports = getStream;
-module.exports.buffer = (stream, options) => getStream(stream, Object.assign({}, options, {encoding: 'buffer'}));
-module.exports.array = (stream, options) => getStream(stream, Object.assign({}, options, {array: true}));
-module.exports.MaxBufferError = MaxBufferError;
-
-
-/***/ }),
-/* 761 */
-/***/ (function(module) {
-
-module.exports = require("zlib");
-
-/***/ }),
-/* 762 */,
-/* 763 */
-/***/ (function(module) {
-
-module.exports = removeHook
-
-function removeHook (state, name, method) {
-  if (!state.registry[name]) {
-    return
-  }
-
-  var index = state.registry[name]
-    .map(function (registered) { return registered.orig })
-    .indexOf(method)
-
-  if (index === -1) {
-    return
-  }
-
-  state.registry[name].splice(index, 1)
-}
-
-
-/***/ }),
-/* 764 */,
-/* 765 */,
-/* 766 */,
-/* 767 */,
-/* 768 */
-/***/ (function(module) {
-
-"use strict";
-
-module.exports = function (x) {
-	var lf = typeof x === 'string' ? '\n' : '\n'.charCodeAt();
-	var cr = typeof x === 'string' ? '\r' : '\r'.charCodeAt();
-
-	if (x[x.length - 1] === lf) {
-		x = x.slice(0, x.length - 1);
-	}
-
-	if (x[x.length - 1] === cr) {
-		x = x.slice(0, x.length - 1);
-	}
-
-	return x;
-};
-
-
-/***/ }),
-/* 769 */,
-/* 770 */,
-/* 771 */,
-/* 772 */,
-/* 773 */,
-/* 774 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-const cp = __webpack_require__(129);
-const parse = __webpack_require__(884);
-const enoent = __webpack_require__(15);
-
-function spawn(command, args, options) {
-    // Parse the arguments
-    const parsed = parse(command, args, options);
-
-    // Spawn the child process
-    const spawned = cp.spawn(parsed.command, parsed.args, parsed.options);
-
-    // Hook into child process "exit" event to emit an error if the command
-    // does not exists, see: https://github.com/IndigoUnited/node-cross-spawn/issues/16
-    enoent.hookChildProcess(spawned, parsed);
-
-    return spawned;
-}
-
-function spawnSync(command, args, options) {
-    // Parse the arguments
-    const parsed = parse(command, args, options);
-
-    // Spawn the child process
-    const result = cp.spawnSync(parsed.command, parsed.args, parsed.options);
-
-    // Analyze if the command does not exist, see: https://github.com/IndigoUnited/node-cross-spawn/issues/16
-    result.error = result.error || enoent.verifyENOENTSync(result.status, parsed);
-
-    return result;
-}
-
-module.exports = spawn;
-module.exports.spawn = spawn;
-module.exports.sync = spawnSync;
-
-module.exports._parse = parse;
-module.exports._enoent = enoent;
-
-
-/***/ }),
-/* 775 */,
-/* 776 */,
-/* 777 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-module.exports = getFirstPage
-
-const getPage = __webpack_require__(265)
-
-function getFirstPage (octokit, link, headers) {
-  return getPage(octokit, link, 'first', headers)
-}
-
-
-/***/ }),
-/* 778 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-"use strict";
-
-
-const { PassThrough } = __webpack_require__(413);
-
-module.exports = function (/*streams...*/) {
-  var sources = []
-  var output  = new PassThrough({objectMode: true})
-
-  output.setMaxListeners(0)
-
-  output.add = add
-  output.isEmpty = isEmpty
-
-  output.on('unpipe', remove)
-
-  Array.prototype.slice.call(arguments).forEach(add)
-
-  return output
-
-  function add (source) {
-    if (Array.isArray(source)) {
-      source.forEach(add)
-      return this
-    }
-
-    sources.push(source);
-    source.once('end', remove.bind(null, source))
-    source.once('error', output.emit.bind(output, 'error'))
-    source.pipe(output, {end: false})
-    return this
-  }
-
-  function isEmpty () {
-    return sources.length == 0;
-  }
-
-  function remove (source) {
-    sources = sources.filter(function (it) { return it !== source })
-    if (!sources.length && output.readable) { output.end() }
-  }
-}
-
-
-/***/ }),
-/* 779 */,
-/* 780 */,
-/* 781 */
-/***/ (function(module) {
-
-"use strict";
-
-
-const descriptors = ['then', 'catch', 'finally'].map(property => [
-	property,
-	Reflect.getOwnPropertyDescriptor(Promise.prototype, property)
-]);
-
-// The return value is a mixin of `childProcess` and `Promise`
-const mergePromise = (spawned, promise) => {
-	for (const [property, descriptor] of descriptors) {
-		// Starting the main `promise` is deferred to avoid consuming streams
-		const value = typeof promise === 'function' ?
-			(...args) => Reflect.apply(descriptor.value, promise(), args) :
-			descriptor.value.bind(promise);
-
-		Reflect.defineProperty(spawned, property, {...descriptor, value});
-	}
-
-	return spawned;
-};
-
-// Use promises instead of `child_process` events
-const getSpawnedPromise = spawned => {
-	return new Promise((resolve, reject) => {
-		spawned.on('exit', (exitCode, signal) => {
-			resolve({exitCode, signal});
-		});
-
-		spawned.on('error', error => {
-			reject(error);
-		});
-
-		if (spawned.stdin) {
-			spawned.stdin.on('error', error => {
-				reject(error);
-			});
-		}
-	});
-};
-
-module.exports = {
-	mergePromise,
-	getSpawnedPromise
-};
-
-
-
-/***/ }),
-/* 782 */,
-/* 783 */,
-/* 784 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-// When attaching listeners, it's very easy to forget about them.
-// Especially if you do error handling and set timeouts.
-// So instead of checking if it's proper to throw an error on every timeout ever,
-// use this simple tool which will remove all listeners you have attached.
-exports.default = () => {
-    const handlers = [];
-    return {
-        once(origin, event, fn) {
-            origin.once(event, fn);
-            handlers.push({ origin, event, fn });
-        },
-        unhandleAll() {
-            for (const handler of handlers) {
-                const { origin, event, fn } = handler;
-                origin.removeListener(event, fn);
-            }
-            handlers.length = 0;
-        }
-    };
-};
-
-
-/***/ }),
-/* 785 */,
-/* 786 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const fs_1 = __webpack_require__(747);
-const util_1 = __webpack_require__(669);
-const is_1 = __webpack_require__(534);
-const is_form_data_1 = __webpack_require__(460);
-const statAsync = util_1.promisify(fs_1.stat);
-exports.default = async (body, headers) => {
-    if (headers && 'content-length' in headers) {
-        return Number(headers['content-length']);
-    }
-    if (!body) {
-        return 0;
-    }
-    if (is_1.default.string(body)) {
-        return Buffer.byteLength(body);
-    }
-    if (is_1.default.buffer(body)) {
-        return body.length;
-    }
-    if (is_form_data_1.default(body)) {
-        return util_1.promisify(body.getLength.bind(body))();
-    }
-    if (body instanceof fs_1.ReadStream) {
-        const { size } = await statAsync(body.path);
-        return size;
-    }
-    return undefined;
-};
-
-
-/***/ }),
-/* 787 */,
-/* 788 */,
-/* 789 */,
-/* 790 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tls_1 = __webpack_require__(16);
-const deferToConnect = (socket, fn) => {
-    let listeners;
-    if (typeof fn === 'function') {
-        const connect = fn;
-        listeners = { connect };
-    }
-    else {
-        listeners = fn;
-    }
-    const hasConnectListener = typeof listeners.connect === 'function';
-    const hasSecureConnectListener = typeof listeners.secureConnect === 'function';
-    const hasCloseListener = typeof listeners.close === 'function';
-    const onConnect = () => {
-        if (hasConnectListener) {
-            listeners.connect();
-        }
-        if (socket instanceof tls_1.TLSSocket && hasSecureConnectListener) {
-            if (socket.authorized) {
-                listeners.secureConnect();
-            }
-            else if (!socket.authorizationError) {
-                socket.once('secureConnect', listeners.secureConnect);
-            }
-        }
-        if (hasCloseListener) {
-            socket.once('close', listeners.close);
-        }
-    };
-    if (socket.writable && !socket.connecting) {
-        onConnect();
-    }
-    else if (socket.connecting) {
-        socket.once('connect', onConnect);
-    }
-    else if (socket.destroyed && hasCloseListener) {
-        listeners.close(socket._hadError);
-    }
-};
-exports.default = deferToConnect;
-// For CommonJS default export support
-module.exports = deferToConnect;
-module.exports.default = deferToConnect;
-
-
-/***/ }),
-/* 791 */,
-/* 792 */,
-/* 793 */,
-/* 794 */,
-/* 795 */,
-/* 796 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var osName = _interopDefault(__webpack_require__(282));
-
-function getUserAgent() {
-  try {
-    return `Node.js/${process.version.substr(1)} (${osName()}; ${process.arch})`;
-  } catch (error) {
-    if (/wmic os get Caption/.test(error.message)) {
-      return "Windows <version undetectable>";
-    }
-
-    return "<environment undetectable>";
-  }
-}
-
-exports.getUserAgent = getUserAgent;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-/* 797 */,
-/* 798 */,
-/* 799 */,
-/* 800 */,
-/* 801 */,
-/* 802 */,
-/* 803 */,
-/* 804 */,
-/* 805 */,
-/* 806 */,
-/* 807 */,
-/* 808 */,
-/* 809 */,
-/* 810 */,
-/* 811 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const net = __webpack_require__(631);
-const unhandle_1 = __webpack_require__(784);
-const reentry = Symbol('reentry');
-const noop = () => { };
-class TimeoutError extends Error {
-    constructor(threshold, event) {
-        super(`Timeout awaiting '${event}' for ${threshold}ms`);
-        this.event = event;
-        this.name = 'TimeoutError';
-        this.code = 'ETIMEDOUT';
-    }
-}
-exports.TimeoutError = TimeoutError;
-exports.default = (request, delays, options) => {
-    if (reentry in request) {
-        return noop;
-    }
-    request[reentry] = true;
-    const cancelers = [];
-    const { once, unhandleAll } = unhandle_1.default();
-    const addTimeout = (delay, callback, event) => {
-        var _a;
-        const timeout = setTimeout(callback, delay, delay, event);
-        (_a = timeout.unref) === null || _a === void 0 ? void 0 : _a.call(timeout);
-        const cancel = () => {
-            clearTimeout(timeout);
-        };
-        cancelers.push(cancel);
-        return cancel;
-    };
-    const { host, hostname } = options;
-    const timeoutHandler = (delay, event) => {
-        request.destroy(new TimeoutError(delay, event));
-    };
-    const cancelTimeouts = () => {
-        for (const cancel of cancelers) {
-            cancel();
-        }
-        unhandleAll();
-    };
-    request.once('error', error => {
-        cancelTimeouts();
-        // Save original behavior
-        /* istanbul ignore next */
-        if (request.listenerCount('error') === 0) {
-            throw error;
-        }
-    });
-    request.once('close', cancelTimeouts);
-    once(request, 'response', (response) => {
-        once(response, 'end', cancelTimeouts);
-    });
-    if (typeof delays.request !== 'undefined') {
-        addTimeout(delays.request, timeoutHandler, 'request');
-    }
-    if (typeof delays.socket !== 'undefined') {
-        const socketTimeoutHandler = () => {
-            timeoutHandler(delays.socket, 'socket');
-        };
-        request.setTimeout(delays.socket, socketTimeoutHandler);
-        // `request.setTimeout(0)` causes a memory leak.
-        // We can just remove the listener and forget about the timer - it's unreffed.
-        // See https://github.com/sindresorhus/got/issues/690
-        cancelers.push(() => {
-            request.removeListener('timeout', socketTimeoutHandler);
-        });
-    }
-    once(request, 'socket', (socket) => {
-        var _a;
-        const { socketPath } = request;
-        /* istanbul ignore next: hard to test */
-        if (socket.connecting) {
-            const hasPath = Boolean(socketPath !== null && socketPath !== void 0 ? socketPath : net.isIP((_a = hostname !== null && hostname !== void 0 ? hostname : host) !== null && _a !== void 0 ? _a : '') !== 0);
-            if (typeof delays.lookup !== 'undefined' && !hasPath && typeof socket.address().address === 'undefined') {
-                const cancelTimeout = addTimeout(delays.lookup, timeoutHandler, 'lookup');
-                once(socket, 'lookup', cancelTimeout);
-            }
-            if (typeof delays.connect !== 'undefined') {
-                const timeConnect = () => addTimeout(delays.connect, timeoutHandler, 'connect');
-                if (hasPath) {
-                    once(socket, 'connect', timeConnect());
-                }
-                else {
-                    once(socket, 'lookup', (error) => {
-                        if (error === null) {
-                            once(socket, 'connect', timeConnect());
-                        }
-                    });
-                }
-            }
-            if (typeof delays.secureConnect !== 'undefined' && options.protocol === 'https:') {
-                once(socket, 'connect', () => {
-                    const cancelTimeout = addTimeout(delays.secureConnect, timeoutHandler, 'secureConnect');
-                    once(socket, 'secureConnect', cancelTimeout);
-                });
-            }
-        }
-        if (typeof delays.send !== 'undefined') {
-            const timeRequest = () => addTimeout(delays.send, timeoutHandler, 'send');
-            /* istanbul ignore next: hard to test */
-            if (socket.connecting) {
-                once(socket, 'connect', () => {
-                    once(request, 'upload-complete', timeRequest());
-                });
-            }
-            else {
-                once(request, 'upload-complete', timeRequest());
-            }
-        }
-    });
-    if (typeof delays.response !== 'undefined') {
-        once(request, 'upload-complete', () => {
-            const cancelTimeout = addTimeout(delays.response, timeoutHandler, 'response');
-            once(request, 'response', cancelTimeout);
-        });
-    }
-    return cancelTimeouts;
-};
-
-
-/***/ }),
-/* 812 */,
-/* 813 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-async function auth(token) {
-  const tokenType = token.split(/\./).length === 3 ? "app" : /^v\d+\./.test(token) ? "installation" : "oauth";
-  return {
-    type: "token",
-    token: token,
-    tokenType
-  };
-}
-
-/**
- * Prefix token for usage in the Authorization header
- *
- * @param token OAuth token or JSON Web Token
- */
-function withAuthorizationPrefix(token) {
-  if (token.split(/\./).length === 3) {
-    return `bearer ${token}`;
-  }
-
-  return `token ${token}`;
-}
-
-async function hook(token, request, route, parameters) {
-  const endpoint = request.endpoint.merge(route, parameters);
-  endpoint.headers.authorization = withAuthorizationPrefix(token);
-  return request(endpoint);
-}
-
-const createTokenAuth = function createTokenAuth(token) {
-  if (!token) {
-    throw new Error("[@octokit/auth-token] No token passed to createTokenAuth");
-  }
-
-  if (typeof token !== "string") {
-    throw new Error("[@octokit/auth-token] Token passed to createTokenAuth is not a string");
-  }
-
-  token = token.replace(/^(token|bearer) +/i, "");
-  return Object.assign(auth.bind(null, token), {
-    hook: hook.bind(null, token)
-  });
-};
-
-exports.createTokenAuth = createTokenAuth;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-/* 814 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.detectNewGems = exports.mergeGemInfo = exports.getGems = void 0;
-const fs_1 = __importDefault(__webpack_require__(747));
-const path_1 = __importDefault(__webpack_require__(622));
-const execa_1 = __importStar(__webpack_require__(955));
-const got_1 = __importDefault(__webpack_require__(77));
-const getGems = (gemfile) => __awaiter(void 0, void 0, void 0, function* () {
-    const parseScript = path_1.default.resolve(__dirname, '../parse_gemfile.rb');
-    const { stdout } = yield execa_1.command(`ruby ${parseScript} ${gemfile}`);
-    return JSON.parse(stdout);
-});
-exports.getGems = getGems;
-const gemInfo = (gem) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { body } = yield got_1.default.get(`https://rubygems.org/api/v1/gems/${gem.name}.json`, {
-            responseType: 'json'
-        });
-        return body;
-    }
-    catch (error) {
-        return null;
-    }
-});
-const mergeGemInfo = (gem) => __awaiter(void 0, void 0, void 0, function* () {
-    return Object.assign(Object.assign({}, gem), (yield gemInfo(gem)));
-});
-exports.mergeGemInfo = mergeGemInfo;
-const detectNewGems = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    if (!process.env.GITHUB_BASE_REF) {
-        throw new Error('GITHUB_BASE_REF is undefined.');
-    }
-    yield execa_1.default('git', ['fetch', 'origin', process.env.GITHUB_BASE_REF]);
-    const subProcess = execa_1.default('git', [
-        'show',
-        `remotes/origin/${process.env.GITHUB_BASE_REF}:Gemfile`
-    ]);
-    (_a = subProcess.stdout) === null || _a === void 0 ? void 0 : _a.pipe(fs_1.default.createWriteStream('.Gemfile.base'));
-    yield subProcess;
-    const gems = yield getGems('Gemfile');
-    const baseGemNames = (yield getGems('.Gemfile.base')).map(({ name }) => name);
-    const newGems = gems.filter(({ name }) => !baseGemNames.includes(name));
-    return yield Promise.all(newGems.map(mergeGemInfo));
-});
-exports.detectNewGems = detectNewGems;
-
-
-/***/ }),
-/* 815 */,
-/* 816 */
-/***/ (function(module) {
-
-"use strict";
-
-module.exports = /^#!.*/;
-
-
-/***/ }),
-/* 817 */,
-/* 818 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-module.exports = isexe
-isexe.sync = sync
-
-var fs = __webpack_require__(747)
-
-function checkPathExt (path, options) {
-  var pathext = options.pathExt !== undefined ?
-    options.pathExt : process.env.PATHEXT
-
-  if (!pathext) {
-    return true
-  }
-
-  pathext = pathext.split(';')
-  if (pathext.indexOf('') !== -1) {
-    return true
-  }
-  for (var i = 0; i < pathext.length; i++) {
-    var p = pathext[i].toLowerCase()
-    if (p && path.substr(-p.length).toLowerCase() === p) {
-      return true
-    }
-  }
-  return false
-}
-
-function checkStat (stat, path, options) {
-  if (!stat.isSymbolicLink() && !stat.isFile()) {
-    return false
-  }
-  return checkPathExt(path, options)
-}
-
-function isexe (path, options, cb) {
-  fs.stat(path, function (er, stat) {
-    cb(er, er ? false : checkStat(stat, path, options))
-  })
-}
-
-function sync (path, options) {
-  return checkStat(fs.statSync(path), path, options)
-}
-
-
-/***/ }),
-/* 819 */,
-/* 820 */,
-/* 821 */,
-/* 822 */,
-/* 823 */,
-/* 824 */,
-/* 825 */,
-/* 826 */,
-/* 827 */,
-/* 828 */,
-/* 829 */,
-/* 830 */,
-/* 831 */,
-/* 832 */,
-/* 833 */,
-/* 834 */,
-/* 835 */
-/***/ (function(module) {
-
-module.exports = require("url");
-
-/***/ }),
-/* 836 */,
-/* 837 */,
-/* 838 */,
-/* 839 */,
-/* 840 */,
-/* 841 */,
-/* 842 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-var deprecation = __webpack_require__(692);
-
-var endpointsByScope = {
-  actions: {
-    cancelWorkflowRun: {
-      method: "POST",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        run_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/runs/:run_id/cancel"
-    },
-    createOrUpdateSecretForRepo: {
-      method: "PUT",
-      params: {
-        encrypted_value: {
-          type: "string"
-        },
-        key_id: {
-          type: "string"
-        },
-        name: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/secrets/:name"
-    },
-    createRegistrationToken: {
-      method: "POST",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/runners/registration-token"
-    },
-    createRemoveToken: {
-      method: "POST",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/runners/remove-token"
-    },
-    deleteArtifact: {
-      method: "DELETE",
-      params: {
-        artifact_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/artifacts/:artifact_id"
-    },
-    deleteSecretFromRepo: {
-      method: "DELETE",
-      params: {
-        name: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/secrets/:name"
-    },
-    downloadArtifact: {
-      method: "GET",
-      params: {
-        archive_format: {
-          required: true,
-          type: "string"
-        },
-        artifact_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/artifacts/:artifact_id/:archive_format"
-    },
-    getArtifact: {
-      method: "GET",
-      params: {
-        artifact_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/artifacts/:artifact_id"
-    },
-    getPublicKey: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/secrets/public-key"
-    },
-    getSecret: {
-      method: "GET",
-      params: {
-        name: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/secrets/:name"
-    },
-    getSelfHostedRunner: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        runner_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/runners/:runner_id"
-    },
-    getWorkflow: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        workflow_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/workflows/:workflow_id"
-    },
-    getWorkflowJob: {
-      method: "GET",
-      params: {
-        job_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/jobs/:job_id"
-    },
-    getWorkflowRun: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        run_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/runs/:run_id"
-    },
-    listDownloadsForSelfHostedRunnerApplication: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/runners/downloads"
-    },
-    listJobsForWorkflowRun: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        run_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/runs/:run_id/jobs"
-    },
-    listRepoWorkflowRuns: {
-      method: "GET",
-      params: {
-        actor: {
-          type: "string"
-        },
-        branch: {
-          type: "string"
-        },
-        event: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        status: {
-          enum: ["completed", "status", "conclusion"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/runs"
-    },
-    listRepoWorkflows: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/workflows"
-    },
-    listSecretsForRepo: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/secrets"
-    },
-    listSelfHostedRunnersForRepo: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/runners"
-    },
-    listWorkflowJobLogs: {
-      method: "GET",
-      params: {
-        job_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/jobs/:job_id/logs"
-    },
-    listWorkflowRunArtifacts: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        run_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/runs/:run_id/artifacts"
-    },
-    listWorkflowRunLogs: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        run_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/runs/:run_id/logs"
-    },
-    listWorkflowRuns: {
-      method: "GET",
-      params: {
-        actor: {
-          type: "string"
-        },
-        branch: {
-          type: "string"
-        },
-        event: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        status: {
-          enum: ["completed", "status", "conclusion"],
-          type: "string"
-        },
-        workflow_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/workflows/:workflow_id/runs"
-    },
-    reRunWorkflow: {
-      method: "POST",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        run_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/runs/:run_id/rerun"
-    },
-    removeSelfHostedRunner: {
-      method: "DELETE",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        runner_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/actions/runners/:runner_id"
-    }
-  },
-  activity: {
-    checkStarringRepo: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/user/starred/:owner/:repo"
-    },
-    deleteRepoSubscription: {
-      method: "DELETE",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/subscription"
-    },
-    deleteThreadSubscription: {
-      method: "DELETE",
-      params: {
-        thread_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/notifications/threads/:thread_id/subscription"
-    },
-    getRepoSubscription: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/subscription"
-    },
-    getThread: {
-      method: "GET",
-      params: {
-        thread_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/notifications/threads/:thread_id"
-    },
-    getThreadSubscription: {
-      method: "GET",
-      params: {
-        thread_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/notifications/threads/:thread_id/subscription"
-    },
-    listEventsForOrg: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/events/orgs/:org"
-    },
-    listEventsForUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/events"
-    },
-    listFeeds: {
-      method: "GET",
-      params: {},
-      url: "/feeds"
-    },
-    listNotifications: {
-      method: "GET",
-      params: {
-        all: {
-          type: "boolean"
-        },
-        before: {
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        participating: {
-          type: "boolean"
-        },
-        per_page: {
-          type: "integer"
-        },
-        since: {
-          type: "string"
-        }
-      },
-      url: "/notifications"
-    },
-    listNotificationsForRepo: {
-      method: "GET",
-      params: {
-        all: {
-          type: "boolean"
-        },
-        before: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        participating: {
-          type: "boolean"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        since: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/notifications"
-    },
-    listPublicEvents: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/events"
-    },
-    listPublicEventsForOrg: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/orgs/:org/events"
-    },
-    listPublicEventsForRepoNetwork: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/networks/:owner/:repo/events"
-    },
-    listPublicEventsForUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/events/public"
-    },
-    listReceivedEventsForUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/received_events"
-    },
-    listReceivedPublicEventsForUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/received_events/public"
-    },
-    listRepoEvents: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/events"
-    },
-    listReposStarredByAuthenticatedUser: {
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        sort: {
-          enum: ["created", "updated"],
-          type: "string"
-        }
-      },
-      url: "/user/starred"
-    },
-    listReposStarredByUser: {
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        sort: {
-          enum: ["created", "updated"],
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/starred"
-    },
-    listReposWatchedByUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/subscriptions"
-    },
-    listStargazersForRepo: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/stargazers"
-    },
-    listWatchedReposForAuthenticatedUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/subscriptions"
-    },
-    listWatchersForRepo: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/subscribers"
-    },
-    markAsRead: {
-      method: "PUT",
-      params: {
-        last_read_at: {
-          type: "string"
-        }
-      },
-      url: "/notifications"
-    },
-    markNotificationsAsReadForRepo: {
-      method: "PUT",
-      params: {
-        last_read_at: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/notifications"
-    },
-    markThreadAsRead: {
-      method: "PATCH",
-      params: {
-        thread_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/notifications/threads/:thread_id"
-    },
-    setRepoSubscription: {
-      method: "PUT",
-      params: {
-        ignored: {
-          type: "boolean"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        subscribed: {
-          type: "boolean"
-        }
-      },
-      url: "/repos/:owner/:repo/subscription"
-    },
-    setThreadSubscription: {
-      method: "PUT",
-      params: {
-        ignored: {
-          type: "boolean"
-        },
-        thread_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/notifications/threads/:thread_id/subscription"
-    },
-    starRepo: {
-      method: "PUT",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/user/starred/:owner/:repo"
-    },
-    unstarRepo: {
-      method: "DELETE",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/user/starred/:owner/:repo"
-    }
-  },
-  apps: {
-    addRepoToInstallation: {
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "PUT",
-      params: {
-        installation_id: {
-          required: true,
-          type: "integer"
-        },
-        repository_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/user/installations/:installation_id/repositories/:repository_id"
-    },
-    checkAccountIsAssociatedWithAny: {
-      method: "GET",
-      params: {
-        account_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/marketplace_listing/accounts/:account_id"
-    },
-    checkAccountIsAssociatedWithAnyStubbed: {
-      method: "GET",
-      params: {
-        account_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/marketplace_listing/stubbed/accounts/:account_id"
-    },
-    checkAuthorization: {
-      deprecated: "octokit.apps.checkAuthorization() is deprecated, see https://developer.github.com/v3/apps/oauth_applications/#check-an-authorization",
-      method: "GET",
-      params: {
-        access_token: {
-          required: true,
-          type: "string"
-        },
-        client_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/applications/:client_id/tokens/:access_token"
-    },
-    checkToken: {
-      headers: {
-        accept: "application/vnd.github.doctor-strange-preview+json"
-      },
-      method: "POST",
-      params: {
-        access_token: {
-          type: "string"
-        },
-        client_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/applications/:client_id/token"
-    },
-    createContentAttachment: {
-      headers: {
-        accept: "application/vnd.github.corsair-preview+json"
-      },
-      method: "POST",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        content_reference_id: {
-          required: true,
-          type: "integer"
-        },
-        title: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/content_references/:content_reference_id/attachments"
-    },
-    createFromManifest: {
-      headers: {
-        accept: "application/vnd.github.fury-preview+json"
-      },
-      method: "POST",
-      params: {
-        code: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/app-manifests/:code/conversions"
-    },
-    createInstallationToken: {
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "POST",
-      params: {
-        installation_id: {
-          required: true,
-          type: "integer"
-        },
-        permissions: {
-          type: "object"
-        },
-        repository_ids: {
-          type: "integer[]"
-        }
-      },
-      url: "/app/installations/:installation_id/access_tokens"
-    },
-    deleteAuthorization: {
-      headers: {
-        accept: "application/vnd.github.doctor-strange-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        access_token: {
-          type: "string"
-        },
-        client_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/applications/:client_id/grant"
-    },
-    deleteInstallation: {
-      headers: {
-        accept: "application/vnd.github.gambit-preview+json,application/vnd.github.machine-man-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        installation_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/app/installations/:installation_id"
-    },
-    deleteToken: {
-      headers: {
-        accept: "application/vnd.github.doctor-strange-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        access_token: {
-          type: "string"
-        },
-        client_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/applications/:client_id/token"
-    },
-    findOrgInstallation: {
-      deprecated: "octokit.apps.findOrgInstallation() has been renamed to octokit.apps.getOrgInstallation() (2019-04-10)",
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/installation"
-    },
-    findRepoInstallation: {
-      deprecated: "octokit.apps.findRepoInstallation() has been renamed to octokit.apps.getRepoInstallation() (2019-04-10)",
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/installation"
-    },
-    findUserInstallation: {
-      deprecated: "octokit.apps.findUserInstallation() has been renamed to octokit.apps.getUserInstallation() (2019-04-10)",
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "GET",
-      params: {
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/installation"
-    },
-    getAuthenticated: {
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "GET",
-      params: {},
-      url: "/app"
-    },
-    getBySlug: {
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "GET",
-      params: {
-        app_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/apps/:app_slug"
-    },
-    getInstallation: {
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "GET",
-      params: {
-        installation_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/app/installations/:installation_id"
-    },
-    getOrgInstallation: {
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/installation"
-    },
-    getRepoInstallation: {
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/installation"
-    },
-    getUserInstallation: {
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "GET",
-      params: {
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/installation"
-    },
-    listAccountsUserOrOrgOnPlan: {
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        plan_id: {
-          required: true,
-          type: "integer"
-        },
-        sort: {
-          enum: ["created", "updated"],
-          type: "string"
-        }
-      },
-      url: "/marketplace_listing/plans/:plan_id/accounts"
-    },
-    listAccountsUserOrOrgOnPlanStubbed: {
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        plan_id: {
-          required: true,
-          type: "integer"
-        },
-        sort: {
-          enum: ["created", "updated"],
-          type: "string"
-        }
-      },
-      url: "/marketplace_listing/stubbed/plans/:plan_id/accounts"
-    },
-    listInstallationReposForAuthenticatedUser: {
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "GET",
-      params: {
-        installation_id: {
-          required: true,
-          type: "integer"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/installations/:installation_id/repositories"
-    },
-    listInstallations: {
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/app/installations"
-    },
-    listInstallationsForAuthenticatedUser: {
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/installations"
-    },
-    listMarketplacePurchasesForAuthenticatedUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/marketplace_purchases"
-    },
-    listMarketplacePurchasesForAuthenticatedUserStubbed: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/marketplace_purchases/stubbed"
-    },
-    listPlans: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/marketplace_listing/plans"
-    },
-    listPlansStubbed: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/marketplace_listing/stubbed/plans"
-    },
-    listRepos: {
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/installation/repositories"
-    },
-    removeRepoFromInstallation: {
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        installation_id: {
-          required: true,
-          type: "integer"
-        },
-        repository_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/user/installations/:installation_id/repositories/:repository_id"
-    },
-    resetAuthorization: {
-      deprecated: "octokit.apps.resetAuthorization() is deprecated, see https://developer.github.com/v3/apps/oauth_applications/#reset-an-authorization",
-      method: "POST",
-      params: {
-        access_token: {
-          required: true,
-          type: "string"
-        },
-        client_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/applications/:client_id/tokens/:access_token"
-    },
-    resetToken: {
-      headers: {
-        accept: "application/vnd.github.doctor-strange-preview+json"
-      },
-      method: "PATCH",
-      params: {
-        access_token: {
-          type: "string"
-        },
-        client_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/applications/:client_id/token"
-    },
-    revokeAuthorizationForApplication: {
-      deprecated: "octokit.apps.revokeAuthorizationForApplication() is deprecated, see https://developer.github.com/v3/apps/oauth_applications/#revoke-an-authorization-for-an-application",
-      method: "DELETE",
-      params: {
-        access_token: {
-          required: true,
-          type: "string"
-        },
-        client_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/applications/:client_id/tokens/:access_token"
-    },
-    revokeGrantForApplication: {
-      deprecated: "octokit.apps.revokeGrantForApplication() is deprecated, see https://developer.github.com/v3/apps/oauth_applications/#revoke-a-grant-for-an-application",
-      method: "DELETE",
-      params: {
-        access_token: {
-          required: true,
-          type: "string"
-        },
-        client_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/applications/:client_id/grants/:access_token"
-    },
-    revokeInstallationToken: {
-      headers: {
-        accept: "application/vnd.github.gambit-preview+json"
-      },
-      method: "DELETE",
-      params: {},
-      url: "/installation/token"
-    }
-  },
-  checks: {
-    create: {
-      headers: {
-        accept: "application/vnd.github.antiope-preview+json"
-      },
-      method: "POST",
-      params: {
-        actions: {
-          type: "object[]"
-        },
-        "actions[].description": {
-          required: true,
-          type: "string"
-        },
-        "actions[].identifier": {
-          required: true,
-          type: "string"
-        },
-        "actions[].label": {
-          required: true,
-          type: "string"
-        },
-        completed_at: {
-          type: "string"
-        },
-        conclusion: {
-          enum: ["success", "failure", "neutral", "cancelled", "timed_out", "action_required"],
-          type: "string"
-        },
-        details_url: {
-          type: "string"
-        },
-        external_id: {
-          type: "string"
-        },
-        head_sha: {
-          required: true,
-          type: "string"
-        },
-        name: {
-          required: true,
-          type: "string"
-        },
-        output: {
-          type: "object"
-        },
-        "output.annotations": {
-          type: "object[]"
-        },
-        "output.annotations[].annotation_level": {
-          enum: ["notice", "warning", "failure"],
-          required: true,
-          type: "string"
-        },
-        "output.annotations[].end_column": {
-          type: "integer"
-        },
-        "output.annotations[].end_line": {
-          required: true,
-          type: "integer"
-        },
-        "output.annotations[].message": {
-          required: true,
-          type: "string"
-        },
-        "output.annotations[].path": {
-          required: true,
-          type: "string"
-        },
-        "output.annotations[].raw_details": {
-          type: "string"
-        },
-        "output.annotations[].start_column": {
-          type: "integer"
-        },
-        "output.annotations[].start_line": {
-          required: true,
-          type: "integer"
-        },
-        "output.annotations[].title": {
-          type: "string"
-        },
-        "output.images": {
-          type: "object[]"
-        },
-        "output.images[].alt": {
-          required: true,
-          type: "string"
-        },
-        "output.images[].caption": {
-          type: "string"
-        },
-        "output.images[].image_url": {
-          required: true,
-          type: "string"
-        },
-        "output.summary": {
-          required: true,
-          type: "string"
-        },
-        "output.text": {
-          type: "string"
-        },
-        "output.title": {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        started_at: {
-          type: "string"
-        },
-        status: {
-          enum: ["queued", "in_progress", "completed"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/check-runs"
-    },
-    createSuite: {
-      headers: {
-        accept: "application/vnd.github.antiope-preview+json"
-      },
-      method: "POST",
-      params: {
-        head_sha: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/check-suites"
-    },
-    get: {
-      headers: {
-        accept: "application/vnd.github.antiope-preview+json"
-      },
-      method: "GET",
-      params: {
-        check_run_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/check-runs/:check_run_id"
-    },
-    getSuite: {
-      headers: {
-        accept: "application/vnd.github.antiope-preview+json"
-      },
-      method: "GET",
-      params: {
-        check_suite_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/check-suites/:check_suite_id"
-    },
-    listAnnotations: {
-      headers: {
-        accept: "application/vnd.github.antiope-preview+json"
-      },
-      method: "GET",
-      params: {
-        check_run_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/check-runs/:check_run_id/annotations"
-    },
-    listForRef: {
-      headers: {
-        accept: "application/vnd.github.antiope-preview+json"
-      },
-      method: "GET",
-      params: {
-        check_name: {
-          type: "string"
-        },
-        filter: {
-          enum: ["latest", "all"],
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        ref: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        status: {
-          enum: ["queued", "in_progress", "completed"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/commits/:ref/check-runs"
-    },
-    listForSuite: {
-      headers: {
-        accept: "application/vnd.github.antiope-preview+json"
-      },
-      method: "GET",
-      params: {
-        check_name: {
-          type: "string"
-        },
-        check_suite_id: {
-          required: true,
-          type: "integer"
-        },
-        filter: {
-          enum: ["latest", "all"],
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        status: {
-          enum: ["queued", "in_progress", "completed"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/check-suites/:check_suite_id/check-runs"
-    },
-    listSuitesForRef: {
-      headers: {
-        accept: "application/vnd.github.antiope-preview+json"
-      },
-      method: "GET",
-      params: {
-        app_id: {
-          type: "integer"
-        },
-        check_name: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        ref: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/commits/:ref/check-suites"
-    },
-    rerequestSuite: {
-      headers: {
-        accept: "application/vnd.github.antiope-preview+json"
-      },
-      method: "POST",
-      params: {
-        check_suite_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/check-suites/:check_suite_id/rerequest"
-    },
-    setSuitesPreferences: {
-      headers: {
-        accept: "application/vnd.github.antiope-preview+json"
-      },
-      method: "PATCH",
-      params: {
-        auto_trigger_checks: {
-          type: "object[]"
-        },
-        "auto_trigger_checks[].app_id": {
-          required: true,
-          type: "integer"
-        },
-        "auto_trigger_checks[].setting": {
-          required: true,
-          type: "boolean"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/check-suites/preferences"
-    },
-    update: {
-      headers: {
-        accept: "application/vnd.github.antiope-preview+json"
-      },
-      method: "PATCH",
-      params: {
-        actions: {
-          type: "object[]"
-        },
-        "actions[].description": {
-          required: true,
-          type: "string"
-        },
-        "actions[].identifier": {
-          required: true,
-          type: "string"
-        },
-        "actions[].label": {
-          required: true,
-          type: "string"
-        },
-        check_run_id: {
-          required: true,
-          type: "integer"
-        },
-        completed_at: {
-          type: "string"
-        },
-        conclusion: {
-          enum: ["success", "failure", "neutral", "cancelled", "timed_out", "action_required"],
-          type: "string"
-        },
-        details_url: {
-          type: "string"
-        },
-        external_id: {
-          type: "string"
-        },
-        name: {
-          type: "string"
-        },
-        output: {
-          type: "object"
-        },
-        "output.annotations": {
-          type: "object[]"
-        },
-        "output.annotations[].annotation_level": {
-          enum: ["notice", "warning", "failure"],
-          required: true,
-          type: "string"
-        },
-        "output.annotations[].end_column": {
-          type: "integer"
-        },
-        "output.annotations[].end_line": {
-          required: true,
-          type: "integer"
-        },
-        "output.annotations[].message": {
-          required: true,
-          type: "string"
-        },
-        "output.annotations[].path": {
-          required: true,
-          type: "string"
-        },
-        "output.annotations[].raw_details": {
-          type: "string"
-        },
-        "output.annotations[].start_column": {
-          type: "integer"
-        },
-        "output.annotations[].start_line": {
-          required: true,
-          type: "integer"
-        },
-        "output.annotations[].title": {
-          type: "string"
-        },
-        "output.images": {
-          type: "object[]"
-        },
-        "output.images[].alt": {
-          required: true,
-          type: "string"
-        },
-        "output.images[].caption": {
-          type: "string"
-        },
-        "output.images[].image_url": {
-          required: true,
-          type: "string"
-        },
-        "output.summary": {
-          required: true,
-          type: "string"
-        },
-        "output.text": {
-          type: "string"
-        },
-        "output.title": {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        started_at: {
-          type: "string"
-        },
-        status: {
-          enum: ["queued", "in_progress", "completed"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/check-runs/:check_run_id"
-    }
-  },
-  codesOfConduct: {
-    getConductCode: {
-      headers: {
-        accept: "application/vnd.github.scarlet-witch-preview+json"
-      },
-      method: "GET",
-      params: {
-        key: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/codes_of_conduct/:key"
-    },
-    getForRepo: {
-      headers: {
-        accept: "application/vnd.github.scarlet-witch-preview+json"
-      },
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/community/code_of_conduct"
-    },
-    listConductCodes: {
-      headers: {
-        accept: "application/vnd.github.scarlet-witch-preview+json"
-      },
-      method: "GET",
-      params: {},
-      url: "/codes_of_conduct"
-    }
-  },
-  emojis: {
-    get: {
-      method: "GET",
-      params: {},
-      url: "/emojis"
-    }
-  },
-  gists: {
-    checkIsStarred: {
-      method: "GET",
-      params: {
-        gist_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/gists/:gist_id/star"
-    },
-    create: {
-      method: "POST",
-      params: {
-        description: {
-          type: "string"
-        },
-        files: {
-          required: true,
-          type: "object"
-        },
-        "files.content": {
-          type: "string"
-        },
-        public: {
-          type: "boolean"
-        }
-      },
-      url: "/gists"
-    },
-    createComment: {
-      method: "POST",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        gist_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/gists/:gist_id/comments"
-    },
-    delete: {
-      method: "DELETE",
-      params: {
-        gist_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/gists/:gist_id"
-    },
-    deleteComment: {
-      method: "DELETE",
-      params: {
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        gist_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/gists/:gist_id/comments/:comment_id"
-    },
-    fork: {
-      method: "POST",
-      params: {
-        gist_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/gists/:gist_id/forks"
-    },
-    get: {
-      method: "GET",
-      params: {
-        gist_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/gists/:gist_id"
-    },
-    getComment: {
-      method: "GET",
-      params: {
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        gist_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/gists/:gist_id/comments/:comment_id"
-    },
-    getRevision: {
-      method: "GET",
-      params: {
-        gist_id: {
-          required: true,
-          type: "string"
-        },
-        sha: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/gists/:gist_id/:sha"
-    },
-    list: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        since: {
-          type: "string"
-        }
-      },
-      url: "/gists"
-    },
-    listComments: {
-      method: "GET",
-      params: {
-        gist_id: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/gists/:gist_id/comments"
-    },
-    listCommits: {
-      method: "GET",
-      params: {
-        gist_id: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/gists/:gist_id/commits"
-    },
-    listForks: {
-      method: "GET",
-      params: {
-        gist_id: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/gists/:gist_id/forks"
-    },
-    listPublic: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        since: {
-          type: "string"
-        }
-      },
-      url: "/gists/public"
-    },
-    listPublicForUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        since: {
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/gists"
-    },
-    listStarred: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        since: {
-          type: "string"
-        }
-      },
-      url: "/gists/starred"
-    },
-    star: {
-      method: "PUT",
-      params: {
-        gist_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/gists/:gist_id/star"
-    },
-    unstar: {
-      method: "DELETE",
-      params: {
-        gist_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/gists/:gist_id/star"
-    },
-    update: {
-      method: "PATCH",
-      params: {
-        description: {
-          type: "string"
-        },
-        files: {
-          type: "object"
-        },
-        "files.content": {
-          type: "string"
-        },
-        "files.filename": {
-          type: "string"
-        },
-        gist_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/gists/:gist_id"
-    },
-    updateComment: {
-      method: "PATCH",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        gist_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/gists/:gist_id/comments/:comment_id"
-    }
-  },
-  git: {
-    createBlob: {
-      method: "POST",
-      params: {
-        content: {
-          required: true,
-          type: "string"
-        },
-        encoding: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/git/blobs"
-    },
-    createCommit: {
-      method: "POST",
-      params: {
-        author: {
-          type: "object"
-        },
-        "author.date": {
-          type: "string"
-        },
-        "author.email": {
-          type: "string"
-        },
-        "author.name": {
-          type: "string"
-        },
-        committer: {
-          type: "object"
-        },
-        "committer.date": {
-          type: "string"
-        },
-        "committer.email": {
-          type: "string"
-        },
-        "committer.name": {
-          type: "string"
-        },
-        message: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        parents: {
-          required: true,
-          type: "string[]"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        signature: {
-          type: "string"
-        },
-        tree: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/git/commits"
-    },
-    createRef: {
-      method: "POST",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        ref: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        sha: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/git/refs"
-    },
-    createTag: {
-      method: "POST",
-      params: {
-        message: {
-          required: true,
-          type: "string"
-        },
-        object: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        tag: {
-          required: true,
-          type: "string"
-        },
-        tagger: {
-          type: "object"
-        },
-        "tagger.date": {
-          type: "string"
-        },
-        "tagger.email": {
-          type: "string"
-        },
-        "tagger.name": {
-          type: "string"
-        },
-        type: {
-          enum: ["commit", "tree", "blob"],
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/git/tags"
-    },
-    createTree: {
-      method: "POST",
-      params: {
-        base_tree: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        tree: {
-          required: true,
-          type: "object[]"
-        },
-        "tree[].content": {
-          type: "string"
-        },
-        "tree[].mode": {
-          enum: ["100644", "100755", "040000", "160000", "120000"],
-          type: "string"
-        },
-        "tree[].path": {
-          type: "string"
-        },
-        "tree[].sha": {
-          allowNull: true,
-          type: "string"
-        },
-        "tree[].type": {
-          enum: ["blob", "tree", "commit"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/git/trees"
-    },
-    deleteRef: {
-      method: "DELETE",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        ref: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/git/refs/:ref"
-    },
-    getBlob: {
-      method: "GET",
-      params: {
-        file_sha: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/git/blobs/:file_sha"
-    },
-    getCommit: {
-      method: "GET",
-      params: {
-        commit_sha: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/git/commits/:commit_sha"
-    },
-    getRef: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        ref: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/git/ref/:ref"
-    },
-    getTag: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        tag_sha: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/git/tags/:tag_sha"
-    },
-    getTree: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        recursive: {
-          enum: ["1"],
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        tree_sha: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/git/trees/:tree_sha"
-    },
-    listMatchingRefs: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        ref: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/git/matching-refs/:ref"
-    },
-    listRefs: {
-      method: "GET",
-      params: {
-        namespace: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/git/refs/:namespace"
-    },
-    updateRef: {
-      method: "PATCH",
-      params: {
-        force: {
-          type: "boolean"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        ref: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        sha: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/git/refs/:ref"
-    }
-  },
-  gitignore: {
-    getTemplate: {
-      method: "GET",
-      params: {
-        name: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/gitignore/templates/:name"
-    },
-    listTemplates: {
-      method: "GET",
-      params: {},
-      url: "/gitignore/templates"
-    }
-  },
-  interactions: {
-    addOrUpdateRestrictionsForOrg: {
-      headers: {
-        accept: "application/vnd.github.sombra-preview+json"
-      },
-      method: "PUT",
-      params: {
-        limit: {
-          enum: ["existing_users", "contributors_only", "collaborators_only"],
-          required: true,
-          type: "string"
-        },
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/interaction-limits"
-    },
-    addOrUpdateRestrictionsForRepo: {
-      headers: {
-        accept: "application/vnd.github.sombra-preview+json"
-      },
-      method: "PUT",
-      params: {
-        limit: {
-          enum: ["existing_users", "contributors_only", "collaborators_only"],
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/interaction-limits"
-    },
-    getRestrictionsForOrg: {
-      headers: {
-        accept: "application/vnd.github.sombra-preview+json"
-      },
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/interaction-limits"
-    },
-    getRestrictionsForRepo: {
-      headers: {
-        accept: "application/vnd.github.sombra-preview+json"
-      },
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/interaction-limits"
-    },
-    removeRestrictionsForOrg: {
-      headers: {
-        accept: "application/vnd.github.sombra-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/interaction-limits"
-    },
-    removeRestrictionsForRepo: {
-      headers: {
-        accept: "application/vnd.github.sombra-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/interaction-limits"
-    }
-  },
-  issues: {
-    addAssignees: {
-      method: "POST",
-      params: {
-        assignees: {
-          type: "string[]"
-        },
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number/assignees"
-    },
-    addLabels: {
-      method: "POST",
-      params: {
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        labels: {
-          required: true,
-          type: "string[]"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number/labels"
-    },
-    checkAssignee: {
-      method: "GET",
-      params: {
-        assignee: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/assignees/:assignee"
-    },
-    create: {
-      method: "POST",
-      params: {
-        assignee: {
-          type: "string"
-        },
-        assignees: {
-          type: "string[]"
-        },
-        body: {
-          type: "string"
-        },
-        labels: {
-          type: "string[]"
-        },
-        milestone: {
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        title: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues"
-    },
-    createComment: {
-      method: "POST",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number/comments"
-    },
-    createLabel: {
-      method: "POST",
-      params: {
-        color: {
-          required: true,
-          type: "string"
-        },
-        description: {
-          type: "string"
-        },
-        name: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/labels"
-    },
-    createMilestone: {
-      method: "POST",
-      params: {
-        description: {
-          type: "string"
-        },
-        due_on: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        state: {
-          enum: ["open", "closed"],
-          type: "string"
-        },
-        title: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/milestones"
-    },
-    deleteComment: {
-      method: "DELETE",
-      params: {
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/comments/:comment_id"
-    },
-    deleteLabel: {
-      method: "DELETE",
-      params: {
-        name: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/labels/:name"
-    },
-    deleteMilestone: {
-      method: "DELETE",
-      params: {
-        milestone_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "milestone_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/milestones/:milestone_number"
-    },
-    get: {
-      method: "GET",
-      params: {
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number"
-    },
-    getComment: {
-      method: "GET",
-      params: {
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/comments/:comment_id"
-    },
-    getEvent: {
-      method: "GET",
-      params: {
-        event_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/events/:event_id"
-    },
-    getLabel: {
-      method: "GET",
-      params: {
-        name: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/labels/:name"
-    },
-    getMilestone: {
-      method: "GET",
-      params: {
-        milestone_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "milestone_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/milestones/:milestone_number"
-    },
-    list: {
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        filter: {
-          enum: ["assigned", "created", "mentioned", "subscribed", "all"],
-          type: "string"
-        },
-        labels: {
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        since: {
-          type: "string"
-        },
-        sort: {
-          enum: ["created", "updated", "comments"],
-          type: "string"
-        },
-        state: {
-          enum: ["open", "closed", "all"],
-          type: "string"
-        }
-      },
-      url: "/issues"
-    },
-    listAssignees: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/assignees"
-    },
-    listComments: {
-      method: "GET",
-      params: {
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        since: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number/comments"
-    },
-    listCommentsForRepo: {
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        since: {
-          type: "string"
-        },
-        sort: {
-          enum: ["created", "updated"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/comments"
-    },
-    listEvents: {
-      method: "GET",
-      params: {
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number/events"
-    },
-    listEventsForRepo: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/events"
-    },
-    listEventsForTimeline: {
-      headers: {
-        accept: "application/vnd.github.mockingbird-preview+json"
-      },
-      method: "GET",
-      params: {
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number/timeline"
-    },
-    listForAuthenticatedUser: {
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        filter: {
-          enum: ["assigned", "created", "mentioned", "subscribed", "all"],
-          type: "string"
-        },
-        labels: {
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        since: {
-          type: "string"
-        },
-        sort: {
-          enum: ["created", "updated", "comments"],
-          type: "string"
-        },
-        state: {
-          enum: ["open", "closed", "all"],
-          type: "string"
-        }
-      },
-      url: "/user/issues"
-    },
-    listForOrg: {
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        filter: {
-          enum: ["assigned", "created", "mentioned", "subscribed", "all"],
-          type: "string"
-        },
-        labels: {
-          type: "string"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        since: {
-          type: "string"
-        },
-        sort: {
-          enum: ["created", "updated", "comments"],
-          type: "string"
-        },
-        state: {
-          enum: ["open", "closed", "all"],
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/issues"
-    },
-    listForRepo: {
-      method: "GET",
-      params: {
-        assignee: {
-          type: "string"
-        },
-        creator: {
-          type: "string"
-        },
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        labels: {
-          type: "string"
-        },
-        mentioned: {
-          type: "string"
-        },
-        milestone: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        since: {
-          type: "string"
-        },
-        sort: {
-          enum: ["created", "updated", "comments"],
-          type: "string"
-        },
-        state: {
-          enum: ["open", "closed", "all"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues"
-    },
-    listLabelsForMilestone: {
-      method: "GET",
-      params: {
-        milestone_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "milestone_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/milestones/:milestone_number/labels"
-    },
-    listLabelsForRepo: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/labels"
-    },
-    listLabelsOnIssue: {
-      method: "GET",
-      params: {
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number/labels"
-    },
-    listMilestonesForRepo: {
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        sort: {
-          enum: ["due_on", "completeness"],
-          type: "string"
-        },
-        state: {
-          enum: ["open", "closed", "all"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/milestones"
-    },
-    lock: {
-      method: "PUT",
-      params: {
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        lock_reason: {
-          enum: ["off-topic", "too heated", "resolved", "spam"],
-          type: "string"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number/lock"
-    },
-    removeAssignees: {
-      method: "DELETE",
-      params: {
-        assignees: {
-          type: "string[]"
-        },
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number/assignees"
-    },
-    removeLabel: {
-      method: "DELETE",
-      params: {
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        name: {
-          required: true,
-          type: "string"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number/labels/:name"
-    },
-    removeLabels: {
-      method: "DELETE",
-      params: {
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number/labels"
-    },
-    replaceLabels: {
-      method: "PUT",
-      params: {
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        labels: {
-          type: "string[]"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number/labels"
-    },
-    unlock: {
-      method: "DELETE",
-      params: {
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number/lock"
-    },
-    update: {
-      method: "PATCH",
-      params: {
-        assignee: {
-          type: "string"
-        },
-        assignees: {
-          type: "string[]"
-        },
-        body: {
-          type: "string"
-        },
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        labels: {
-          type: "string[]"
-        },
-        milestone: {
-          allowNull: true,
-          type: "integer"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        state: {
-          enum: ["open", "closed"],
-          type: "string"
-        },
-        title: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number"
-    },
-    updateComment: {
-      method: "PATCH",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/comments/:comment_id"
-    },
-    updateLabel: {
-      method: "PATCH",
-      params: {
-        color: {
-          type: "string"
-        },
-        current_name: {
-          required: true,
-          type: "string"
-        },
-        description: {
-          type: "string"
-        },
-        name: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/labels/:current_name"
-    },
-    updateMilestone: {
-      method: "PATCH",
-      params: {
-        description: {
-          type: "string"
-        },
-        due_on: {
-          type: "string"
-        },
-        milestone_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "milestone_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        state: {
-          enum: ["open", "closed"],
-          type: "string"
-        },
-        title: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/milestones/:milestone_number"
-    }
-  },
-  licenses: {
-    get: {
-      method: "GET",
-      params: {
-        license: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/licenses/:license"
-    },
-    getForRepo: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/license"
-    },
-    list: {
-      deprecated: "octokit.licenses.list() has been renamed to octokit.licenses.listCommonlyUsed() (2019-03-05)",
-      method: "GET",
-      params: {},
-      url: "/licenses"
-    },
-    listCommonlyUsed: {
-      method: "GET",
-      params: {},
-      url: "/licenses"
-    }
-  },
-  markdown: {
-    render: {
-      method: "POST",
-      params: {
-        context: {
-          type: "string"
-        },
-        mode: {
-          enum: ["markdown", "gfm"],
-          type: "string"
-        },
-        text: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/markdown"
-    },
-    renderRaw: {
-      headers: {
-        "content-type": "text/plain; charset=utf-8"
-      },
-      method: "POST",
-      params: {
-        data: {
-          mapTo: "data",
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/markdown/raw"
-    }
-  },
-  meta: {
-    get: {
-      method: "GET",
-      params: {},
-      url: "/meta"
-    }
-  },
-  migrations: {
-    cancelImport: {
-      method: "DELETE",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/import"
-    },
-    deleteArchiveForAuthenticatedUser: {
-      headers: {
-        accept: "application/vnd.github.wyandotte-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        migration_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/user/migrations/:migration_id/archive"
-    },
-    deleteArchiveForOrg: {
-      headers: {
-        accept: "application/vnd.github.wyandotte-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        migration_id: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/migrations/:migration_id/archive"
-    },
-    downloadArchiveForOrg: {
-      headers: {
-        accept: "application/vnd.github.wyandotte-preview+json"
-      },
-      method: "GET",
-      params: {
-        migration_id: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/migrations/:migration_id/archive"
-    },
-    getArchiveForAuthenticatedUser: {
-      headers: {
-        accept: "application/vnd.github.wyandotte-preview+json"
-      },
-      method: "GET",
-      params: {
-        migration_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/user/migrations/:migration_id/archive"
-    },
-    getArchiveForOrg: {
-      deprecated: "octokit.migrations.getArchiveForOrg() has been renamed to octokit.migrations.downloadArchiveForOrg() (2020-01-27)",
-      headers: {
-        accept: "application/vnd.github.wyandotte-preview+json"
-      },
-      method: "GET",
-      params: {
-        migration_id: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/migrations/:migration_id/archive"
-    },
-    getCommitAuthors: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        since: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/import/authors"
-    },
-    getImportProgress: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/import"
-    },
-    getLargeFiles: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/import/large_files"
-    },
-    getStatusForAuthenticatedUser: {
-      headers: {
-        accept: "application/vnd.github.wyandotte-preview+json"
-      },
-      method: "GET",
-      params: {
-        migration_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/user/migrations/:migration_id"
-    },
-    getStatusForOrg: {
-      headers: {
-        accept: "application/vnd.github.wyandotte-preview+json"
-      },
-      method: "GET",
-      params: {
-        migration_id: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/migrations/:migration_id"
-    },
-    listForAuthenticatedUser: {
-      headers: {
-        accept: "application/vnd.github.wyandotte-preview+json"
-      },
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/migrations"
-    },
-    listForOrg: {
-      headers: {
-        accept: "application/vnd.github.wyandotte-preview+json"
-      },
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/orgs/:org/migrations"
-    },
-    listReposForOrg: {
-      headers: {
-        accept: "application/vnd.github.wyandotte-preview+json"
-      },
-      method: "GET",
-      params: {
-        migration_id: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/orgs/:org/migrations/:migration_id/repositories"
-    },
-    listReposForUser: {
-      headers: {
-        accept: "application/vnd.github.wyandotte-preview+json"
-      },
-      method: "GET",
-      params: {
-        migration_id: {
-          required: true,
-          type: "integer"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/:migration_id/repositories"
-    },
-    mapCommitAuthor: {
-      method: "PATCH",
-      params: {
-        author_id: {
-          required: true,
-          type: "integer"
-        },
-        email: {
-          type: "string"
-        },
-        name: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/import/authors/:author_id"
-    },
-    setLfsPreference: {
-      method: "PATCH",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        use_lfs: {
-          enum: ["opt_in", "opt_out"],
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/import/lfs"
-    },
-    startForAuthenticatedUser: {
-      method: "POST",
-      params: {
-        exclude_attachments: {
-          type: "boolean"
-        },
-        lock_repositories: {
-          type: "boolean"
-        },
-        repositories: {
-          required: true,
-          type: "string[]"
-        }
-      },
-      url: "/user/migrations"
-    },
-    startForOrg: {
-      method: "POST",
-      params: {
-        exclude_attachments: {
-          type: "boolean"
-        },
-        lock_repositories: {
-          type: "boolean"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        repositories: {
-          required: true,
-          type: "string[]"
-        }
-      },
-      url: "/orgs/:org/migrations"
-    },
-    startImport: {
-      method: "PUT",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        tfvc_project: {
-          type: "string"
-        },
-        vcs: {
-          enum: ["subversion", "git", "mercurial", "tfvc"],
-          type: "string"
-        },
-        vcs_password: {
-          type: "string"
-        },
-        vcs_url: {
-          required: true,
-          type: "string"
-        },
-        vcs_username: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/import"
-    },
-    unlockRepoForAuthenticatedUser: {
-      headers: {
-        accept: "application/vnd.github.wyandotte-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        migration_id: {
-          required: true,
-          type: "integer"
-        },
-        repo_name: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/user/migrations/:migration_id/repos/:repo_name/lock"
-    },
-    unlockRepoForOrg: {
-      headers: {
-        accept: "application/vnd.github.wyandotte-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        migration_id: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        repo_name: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/migrations/:migration_id/repos/:repo_name/lock"
-    },
-    updateImport: {
-      method: "PATCH",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        vcs_password: {
-          type: "string"
-        },
-        vcs_username: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/import"
-    }
-  },
-  oauthAuthorizations: {
-    checkAuthorization: {
-      deprecated: "octokit.oauthAuthorizations.checkAuthorization() has been renamed to octokit.apps.checkAuthorization() (2019-11-05)",
-      method: "GET",
-      params: {
-        access_token: {
-          required: true,
-          type: "string"
-        },
-        client_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/applications/:client_id/tokens/:access_token"
-    },
-    createAuthorization: {
-      deprecated: "octokit.oauthAuthorizations.createAuthorization() is deprecated, see https://developer.github.com/v3/oauth_authorizations/#create-a-new-authorization",
-      method: "POST",
-      params: {
-        client_id: {
-          type: "string"
-        },
-        client_secret: {
-          type: "string"
-        },
-        fingerprint: {
-          type: "string"
-        },
-        note: {
-          required: true,
-          type: "string"
-        },
-        note_url: {
-          type: "string"
-        },
-        scopes: {
-          type: "string[]"
-        }
-      },
-      url: "/authorizations"
-    },
-    deleteAuthorization: {
-      deprecated: "octokit.oauthAuthorizations.deleteAuthorization() is deprecated, see https://developer.github.com/v3/oauth_authorizations/#delete-an-authorization",
-      method: "DELETE",
-      params: {
-        authorization_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/authorizations/:authorization_id"
-    },
-    deleteGrant: {
-      deprecated: "octokit.oauthAuthorizations.deleteGrant() is deprecated, see https://developer.github.com/v3/oauth_authorizations/#delete-a-grant",
-      method: "DELETE",
-      params: {
-        grant_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/applications/grants/:grant_id"
-    },
-    getAuthorization: {
-      deprecated: "octokit.oauthAuthorizations.getAuthorization() is deprecated, see https://developer.github.com/v3/oauth_authorizations/#get-a-single-authorization",
-      method: "GET",
-      params: {
-        authorization_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/authorizations/:authorization_id"
-    },
-    getGrant: {
-      deprecated: "octokit.oauthAuthorizations.getGrant() is deprecated, see https://developer.github.com/v3/oauth_authorizations/#get-a-single-grant",
-      method: "GET",
-      params: {
-        grant_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/applications/grants/:grant_id"
-    },
-    getOrCreateAuthorizationForApp: {
-      deprecated: "octokit.oauthAuthorizations.getOrCreateAuthorizationForApp() is deprecated, see https://developer.github.com/v3/oauth_authorizations/#get-or-create-an-authorization-for-a-specific-app",
-      method: "PUT",
-      params: {
-        client_id: {
-          required: true,
-          type: "string"
-        },
-        client_secret: {
-          required: true,
-          type: "string"
-        },
-        fingerprint: {
-          type: "string"
-        },
-        note: {
-          type: "string"
-        },
-        note_url: {
-          type: "string"
-        },
-        scopes: {
-          type: "string[]"
-        }
-      },
-      url: "/authorizations/clients/:client_id"
-    },
-    getOrCreateAuthorizationForAppAndFingerprint: {
-      deprecated: "octokit.oauthAuthorizations.getOrCreateAuthorizationForAppAndFingerprint() is deprecated, see https://developer.github.com/v3/oauth_authorizations/#get-or-create-an-authorization-for-a-specific-app-and-fingerprint",
-      method: "PUT",
-      params: {
-        client_id: {
-          required: true,
-          type: "string"
-        },
-        client_secret: {
-          required: true,
-          type: "string"
-        },
-        fingerprint: {
-          required: true,
-          type: "string"
-        },
-        note: {
-          type: "string"
-        },
-        note_url: {
-          type: "string"
-        },
-        scopes: {
-          type: "string[]"
-        }
-      },
-      url: "/authorizations/clients/:client_id/:fingerprint"
-    },
-    getOrCreateAuthorizationForAppFingerprint: {
-      deprecated: "octokit.oauthAuthorizations.getOrCreateAuthorizationForAppFingerprint() has been renamed to octokit.oauthAuthorizations.getOrCreateAuthorizationForAppAndFingerprint() (2018-12-27)",
-      method: "PUT",
-      params: {
-        client_id: {
-          required: true,
-          type: "string"
-        },
-        client_secret: {
-          required: true,
-          type: "string"
-        },
-        fingerprint: {
-          required: true,
-          type: "string"
-        },
-        note: {
-          type: "string"
-        },
-        note_url: {
-          type: "string"
-        },
-        scopes: {
-          type: "string[]"
-        }
-      },
-      url: "/authorizations/clients/:client_id/:fingerprint"
-    },
-    listAuthorizations: {
-      deprecated: "octokit.oauthAuthorizations.listAuthorizations() is deprecated, see https://developer.github.com/v3/oauth_authorizations/#list-your-authorizations",
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/authorizations"
-    },
-    listGrants: {
-      deprecated: "octokit.oauthAuthorizations.listGrants() is deprecated, see https://developer.github.com/v3/oauth_authorizations/#list-your-grants",
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/applications/grants"
-    },
-    resetAuthorization: {
-      deprecated: "octokit.oauthAuthorizations.resetAuthorization() has been renamed to octokit.apps.resetAuthorization() (2019-11-05)",
-      method: "POST",
-      params: {
-        access_token: {
-          required: true,
-          type: "string"
-        },
-        client_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/applications/:client_id/tokens/:access_token"
-    },
-    revokeAuthorizationForApplication: {
-      deprecated: "octokit.oauthAuthorizations.revokeAuthorizationForApplication() has been renamed to octokit.apps.revokeAuthorizationForApplication() (2019-11-05)",
-      method: "DELETE",
-      params: {
-        access_token: {
-          required: true,
-          type: "string"
-        },
-        client_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/applications/:client_id/tokens/:access_token"
-    },
-    revokeGrantForApplication: {
-      deprecated: "octokit.oauthAuthorizations.revokeGrantForApplication() has been renamed to octokit.apps.revokeGrantForApplication() (2019-11-05)",
-      method: "DELETE",
-      params: {
-        access_token: {
-          required: true,
-          type: "string"
-        },
-        client_id: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/applications/:client_id/grants/:access_token"
-    },
-    updateAuthorization: {
-      deprecated: "octokit.oauthAuthorizations.updateAuthorization() is deprecated, see https://developer.github.com/v3/oauth_authorizations/#update-an-existing-authorization",
-      method: "PATCH",
-      params: {
-        add_scopes: {
-          type: "string[]"
-        },
-        authorization_id: {
-          required: true,
-          type: "integer"
-        },
-        fingerprint: {
-          type: "string"
-        },
-        note: {
-          type: "string"
-        },
-        note_url: {
-          type: "string"
-        },
-        remove_scopes: {
-          type: "string[]"
-        },
-        scopes: {
-          type: "string[]"
-        }
-      },
-      url: "/authorizations/:authorization_id"
-    }
-  },
-  orgs: {
-    addOrUpdateMembership: {
-      method: "PUT",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        role: {
-          enum: ["admin", "member"],
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/memberships/:username"
-    },
-    blockUser: {
-      method: "PUT",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/blocks/:username"
-    },
-    checkBlockedUser: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/blocks/:username"
-    },
-    checkMembership: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/members/:username"
-    },
-    checkPublicMembership: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/public_members/:username"
-    },
-    concealMembership: {
-      method: "DELETE",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/public_members/:username"
-    },
-    convertMemberToOutsideCollaborator: {
-      method: "PUT",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/outside_collaborators/:username"
-    },
-    createHook: {
-      method: "POST",
-      params: {
-        active: {
-          type: "boolean"
-        },
-        config: {
-          required: true,
-          type: "object"
-        },
-        "config.content_type": {
-          type: "string"
-        },
-        "config.insecure_ssl": {
-          type: "string"
-        },
-        "config.secret": {
-          type: "string"
-        },
-        "config.url": {
-          required: true,
-          type: "string"
-        },
-        events: {
-          type: "string[]"
-        },
-        name: {
-          required: true,
-          type: "string"
-        },
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/hooks"
-    },
-    createInvitation: {
-      method: "POST",
-      params: {
-        email: {
-          type: "string"
-        },
-        invitee_id: {
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        role: {
-          enum: ["admin", "direct_member", "billing_manager"],
-          type: "string"
-        },
-        team_ids: {
-          type: "integer[]"
-        }
-      },
-      url: "/orgs/:org/invitations"
-    },
-    deleteHook: {
-      method: "DELETE",
-      params: {
-        hook_id: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/hooks/:hook_id"
-    },
-    get: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org"
-    },
-    getHook: {
-      method: "GET",
-      params: {
-        hook_id: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/hooks/:hook_id"
-    },
-    getMembership: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/memberships/:username"
-    },
-    getMembershipForAuthenticatedUser: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/user/memberships/orgs/:org"
-    },
-    list: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        since: {
-          type: "integer"
-        }
-      },
-      url: "/organizations"
-    },
-    listBlockedUsers: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/blocks"
-    },
-    listForAuthenticatedUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/orgs"
-    },
-    listForUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/orgs"
-    },
-    listHooks: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/orgs/:org/hooks"
-    },
-    listInstallations: {
-      headers: {
-        accept: "application/vnd.github.machine-man-preview+json"
-      },
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/orgs/:org/installations"
-    },
-    listInvitationTeams: {
-      method: "GET",
-      params: {
-        invitation_id: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/orgs/:org/invitations/:invitation_id/teams"
-    },
-    listMembers: {
-      method: "GET",
-      params: {
-        filter: {
-          enum: ["2fa_disabled", "all"],
-          type: "string"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        role: {
-          enum: ["all", "admin", "member"],
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/members"
-    },
-    listMemberships: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        state: {
-          enum: ["active", "pending"],
-          type: "string"
-        }
-      },
-      url: "/user/memberships/orgs"
-    },
-    listOutsideCollaborators: {
-      method: "GET",
-      params: {
-        filter: {
-          enum: ["2fa_disabled", "all"],
-          type: "string"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/orgs/:org/outside_collaborators"
-    },
-    listPendingInvitations: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/orgs/:org/invitations"
-    },
-    listPublicMembers: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/orgs/:org/public_members"
-    },
-    pingHook: {
-      method: "POST",
-      params: {
-        hook_id: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/hooks/:hook_id/pings"
-    },
-    publicizeMembership: {
-      method: "PUT",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/public_members/:username"
-    },
-    removeMember: {
-      method: "DELETE",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/members/:username"
-    },
-    removeMembership: {
-      method: "DELETE",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/memberships/:username"
-    },
-    removeOutsideCollaborator: {
-      method: "DELETE",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/outside_collaborators/:username"
-    },
-    unblockUser: {
-      method: "DELETE",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/blocks/:username"
-    },
-    update: {
-      method: "PATCH",
-      params: {
-        billing_email: {
-          type: "string"
-        },
-        company: {
-          type: "string"
-        },
-        default_repository_permission: {
-          enum: ["read", "write", "admin", "none"],
-          type: "string"
-        },
-        description: {
-          type: "string"
-        },
-        email: {
-          type: "string"
-        },
-        has_organization_projects: {
-          type: "boolean"
-        },
-        has_repository_projects: {
-          type: "boolean"
-        },
-        location: {
-          type: "string"
-        },
-        members_allowed_repository_creation_type: {
-          enum: ["all", "private", "none"],
-          type: "string"
-        },
-        members_can_create_internal_repositories: {
-          type: "boolean"
-        },
-        members_can_create_private_repositories: {
-          type: "boolean"
-        },
-        members_can_create_public_repositories: {
-          type: "boolean"
-        },
-        members_can_create_repositories: {
-          type: "boolean"
-        },
-        name: {
-          type: "string"
-        },
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org"
-    },
-    updateHook: {
-      method: "PATCH",
-      params: {
-        active: {
-          type: "boolean"
-        },
-        config: {
-          type: "object"
-        },
-        "config.content_type": {
-          type: "string"
-        },
-        "config.insecure_ssl": {
-          type: "string"
-        },
-        "config.secret": {
-          type: "string"
-        },
-        "config.url": {
-          required: true,
-          type: "string"
-        },
-        events: {
-          type: "string[]"
-        },
-        hook_id: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/hooks/:hook_id"
-    },
-    updateMembership: {
-      method: "PATCH",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        state: {
-          enum: ["active"],
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/user/memberships/orgs/:org"
-    }
-  },
-  projects: {
-    addCollaborator: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "PUT",
-      params: {
-        permission: {
-          enum: ["read", "write", "admin"],
-          type: "string"
-        },
-        project_id: {
-          required: true,
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/projects/:project_id/collaborators/:username"
-    },
-    createCard: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "POST",
-      params: {
-        column_id: {
-          required: true,
-          type: "integer"
-        },
-        content_id: {
-          type: "integer"
-        },
-        content_type: {
-          type: "string"
-        },
-        note: {
-          type: "string"
-        }
-      },
-      url: "/projects/columns/:column_id/cards"
-    },
-    createColumn: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "POST",
-      params: {
-        name: {
-          required: true,
-          type: "string"
-        },
-        project_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/projects/:project_id/columns"
-    },
-    createForAuthenticatedUser: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "POST",
-      params: {
-        body: {
-          type: "string"
-        },
-        name: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/user/projects"
-    },
-    createForOrg: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "POST",
-      params: {
-        body: {
-          type: "string"
-        },
-        name: {
-          required: true,
-          type: "string"
-        },
-        org: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/projects"
-    },
-    createForRepo: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "POST",
-      params: {
-        body: {
-          type: "string"
-        },
-        name: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/projects"
-    },
-    delete: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        project_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/projects/:project_id"
-    },
-    deleteCard: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        card_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/projects/columns/cards/:card_id"
-    },
-    deleteColumn: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        column_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/projects/columns/:column_id"
-    },
-    get: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        project_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/projects/:project_id"
-    },
-    getCard: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        card_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/projects/columns/cards/:card_id"
-    },
-    getColumn: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        column_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/projects/columns/:column_id"
-    },
-    listCards: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        archived_state: {
-          enum: ["all", "archived", "not_archived"],
-          type: "string"
-        },
-        column_id: {
-          required: true,
-          type: "integer"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/projects/columns/:column_id/cards"
-    },
-    listCollaborators: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        affiliation: {
-          enum: ["outside", "direct", "all"],
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        project_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/projects/:project_id/collaborators"
-    },
-    listColumns: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        project_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/projects/:project_id/columns"
-    },
-    listForOrg: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        state: {
-          enum: ["open", "closed", "all"],
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/projects"
-    },
-    listForRepo: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        state: {
-          enum: ["open", "closed", "all"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/projects"
-    },
-    listForUser: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        state: {
-          enum: ["open", "closed", "all"],
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/projects"
-    },
-    moveCard: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "POST",
-      params: {
-        card_id: {
-          required: true,
-          type: "integer"
-        },
-        column_id: {
-          type: "integer"
-        },
-        position: {
-          required: true,
-          type: "string",
-          validation: "^(top|bottom|after:\\d+)$"
-        }
-      },
-      url: "/projects/columns/cards/:card_id/moves"
-    },
-    moveColumn: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "POST",
-      params: {
-        column_id: {
-          required: true,
-          type: "integer"
-        },
-        position: {
-          required: true,
-          type: "string",
-          validation: "^(first|last|after:\\d+)$"
-        }
-      },
-      url: "/projects/columns/:column_id/moves"
-    },
-    removeCollaborator: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        project_id: {
-          required: true,
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/projects/:project_id/collaborators/:username"
-    },
-    reviewUserPermissionLevel: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        project_id: {
-          required: true,
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/projects/:project_id/collaborators/:username/permission"
-    },
-    update: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "PATCH",
-      params: {
-        body: {
-          type: "string"
-        },
-        name: {
-          type: "string"
-        },
-        organization_permission: {
-          type: "string"
-        },
-        private: {
-          type: "boolean"
-        },
-        project_id: {
-          required: true,
-          type: "integer"
-        },
-        state: {
-          enum: ["open", "closed"],
-          type: "string"
-        }
-      },
-      url: "/projects/:project_id"
-    },
-    updateCard: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "PATCH",
-      params: {
-        archived: {
-          type: "boolean"
-        },
-        card_id: {
-          required: true,
-          type: "integer"
-        },
-        note: {
-          type: "string"
-        }
-      },
-      url: "/projects/columns/cards/:card_id"
-    },
-    updateColumn: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "PATCH",
-      params: {
-        column_id: {
-          required: true,
-          type: "integer"
-        },
-        name: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/projects/columns/:column_id"
-    }
-  },
-  pulls: {
-    checkIfMerged: {
-      method: "GET",
-      params: {
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/merge"
-    },
-    create: {
-      method: "POST",
-      params: {
-        base: {
-          required: true,
-          type: "string"
-        },
-        body: {
-          type: "string"
-        },
-        draft: {
-          type: "boolean"
-        },
-        head: {
-          required: true,
-          type: "string"
-        },
-        maintainer_can_modify: {
-          type: "boolean"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        title: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls"
-    },
-    createComment: {
-      method: "POST",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        commit_id: {
-          required: true,
-          type: "string"
-        },
-        in_reply_to: {
-          deprecated: true,
-          description: "The comment ID to reply to. **Note**: This must be the ID of a top-level comment, not a reply to that comment. Replies to replies are not supported.",
-          type: "integer"
-        },
-        line: {
-          type: "integer"
-        },
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        path: {
-          required: true,
-          type: "string"
-        },
-        position: {
-          type: "integer"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        side: {
-          enum: ["LEFT", "RIGHT"],
-          type: "string"
-        },
-        start_line: {
-          type: "integer"
-        },
-        start_side: {
-          enum: ["LEFT", "RIGHT", "side"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/comments"
-    },
-    createCommentReply: {
-      deprecated: "octokit.pulls.createCommentReply() has been renamed to octokit.pulls.createComment() (2019-09-09)",
-      method: "POST",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        commit_id: {
-          required: true,
-          type: "string"
-        },
-        in_reply_to: {
-          deprecated: true,
-          description: "The comment ID to reply to. **Note**: This must be the ID of a top-level comment, not a reply to that comment. Replies to replies are not supported.",
-          type: "integer"
-        },
-        line: {
-          type: "integer"
-        },
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        path: {
-          required: true,
-          type: "string"
-        },
-        position: {
-          type: "integer"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        side: {
-          enum: ["LEFT", "RIGHT"],
-          type: "string"
-        },
-        start_line: {
-          type: "integer"
-        },
-        start_side: {
-          enum: ["LEFT", "RIGHT", "side"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/comments"
-    },
-    createFromIssue: {
-      deprecated: "octokit.pulls.createFromIssue() is deprecated, see https://developer.github.com/v3/pulls/#create-a-pull-request",
-      method: "POST",
-      params: {
-        base: {
-          required: true,
-          type: "string"
-        },
-        draft: {
-          type: "boolean"
-        },
-        head: {
-          required: true,
-          type: "string"
-        },
-        issue: {
-          required: true,
-          type: "integer"
-        },
-        maintainer_can_modify: {
-          type: "boolean"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls"
-    },
-    createReview: {
-      method: "POST",
-      params: {
-        body: {
-          type: "string"
-        },
-        comments: {
-          type: "object[]"
-        },
-        "comments[].body": {
-          required: true,
-          type: "string"
-        },
-        "comments[].path": {
-          required: true,
-          type: "string"
-        },
-        "comments[].position": {
-          required: true,
-          type: "integer"
-        },
-        commit_id: {
-          type: "string"
-        },
-        event: {
-          enum: ["APPROVE", "REQUEST_CHANGES", "COMMENT"],
-          type: "string"
-        },
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/reviews"
-    },
-    createReviewCommentReply: {
-      method: "POST",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/comments/:comment_id/replies"
-    },
-    createReviewRequest: {
-      method: "POST",
-      params: {
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        reviewers: {
-          type: "string[]"
-        },
-        team_reviewers: {
-          type: "string[]"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/requested_reviewers"
-    },
-    deleteComment: {
-      method: "DELETE",
-      params: {
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/comments/:comment_id"
-    },
-    deletePendingReview: {
-      method: "DELETE",
-      params: {
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        review_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/reviews/:review_id"
-    },
-    deleteReviewRequest: {
-      method: "DELETE",
-      params: {
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        reviewers: {
-          type: "string[]"
-        },
-        team_reviewers: {
-          type: "string[]"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/requested_reviewers"
-    },
-    dismissReview: {
-      method: "PUT",
-      params: {
-        message: {
-          required: true,
-          type: "string"
-        },
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        review_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/reviews/:review_id/dismissals"
-    },
-    get: {
-      method: "GET",
-      params: {
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number"
-    },
-    getComment: {
-      method: "GET",
-      params: {
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/comments/:comment_id"
-    },
-    getCommentsForReview: {
-      method: "GET",
-      params: {
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        review_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/reviews/:review_id/comments"
-    },
-    getReview: {
-      method: "GET",
-      params: {
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        review_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/reviews/:review_id"
-    },
-    list: {
-      method: "GET",
-      params: {
-        base: {
-          type: "string"
-        },
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        head: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        sort: {
-          enum: ["created", "updated", "popularity", "long-running"],
-          type: "string"
-        },
-        state: {
-          enum: ["open", "closed", "all"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls"
-    },
-    listComments: {
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        since: {
-          type: "string"
-        },
-        sort: {
-          enum: ["created", "updated"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/comments"
-    },
-    listCommentsForRepo: {
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        since: {
-          type: "string"
-        },
-        sort: {
-          enum: ["created", "updated"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/comments"
-    },
-    listCommits: {
-      method: "GET",
-      params: {
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/commits"
-    },
-    listFiles: {
-      method: "GET",
-      params: {
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/files"
-    },
-    listReviewRequests: {
-      method: "GET",
-      params: {
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/requested_reviewers"
-    },
-    listReviews: {
-      method: "GET",
-      params: {
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/reviews"
-    },
-    merge: {
-      method: "PUT",
-      params: {
-        commit_message: {
-          type: "string"
-        },
-        commit_title: {
-          type: "string"
-        },
-        merge_method: {
-          enum: ["merge", "squash", "rebase"],
-          type: "string"
-        },
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        sha: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/merge"
-    },
-    submitReview: {
-      method: "POST",
-      params: {
-        body: {
-          type: "string"
-        },
-        event: {
-          enum: ["APPROVE", "REQUEST_CHANGES", "COMMENT"],
-          required: true,
-          type: "string"
-        },
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        review_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/reviews/:review_id/events"
-    },
-    update: {
-      method: "PATCH",
-      params: {
-        base: {
-          type: "string"
-        },
-        body: {
-          type: "string"
-        },
-        maintainer_can_modify: {
-          type: "boolean"
-        },
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        state: {
-          enum: ["open", "closed"],
-          type: "string"
-        },
-        title: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number"
-    },
-    updateBranch: {
-      headers: {
-        accept: "application/vnd.github.lydian-preview+json"
-      },
-      method: "PUT",
-      params: {
-        expected_head_sha: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/update-branch"
-    },
-    updateComment: {
-      method: "PATCH",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/comments/:comment_id"
-    },
-    updateReview: {
-      method: "PUT",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        number: {
-          alias: "pull_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        pull_number: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        review_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/:pull_number/reviews/:review_id"
-    }
-  },
-  rateLimit: {
-    get: {
-      method: "GET",
-      params: {},
-      url: "/rate_limit"
-    }
-  },
-  reactions: {
-    createForCommitComment: {
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "POST",
-      params: {
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/comments/:comment_id/reactions"
-    },
-    createForIssue: {
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "POST",
-      params: {
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          required: true,
-          type: "string"
-        },
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number/reactions"
-    },
-    createForIssueComment: {
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "POST",
-      params: {
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/comments/:comment_id/reactions"
-    },
-    createForPullRequestReviewComment: {
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "POST",
-      params: {
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/comments/:comment_id/reactions"
-    },
-    createForTeamDiscussion: {
-      deprecated: "octokit.reactions.createForTeamDiscussion() has been renamed to octokit.reactions.createForTeamDiscussionLegacy() (2020-01-16)",
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "POST",
-      params: {
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          required: true,
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/reactions"
-    },
-    createForTeamDiscussionComment: {
-      deprecated: "octokit.reactions.createForTeamDiscussionComment() has been renamed to octokit.reactions.createForTeamDiscussionCommentLegacy() (2020-01-16)",
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "POST",
-      params: {
-        comment_number: {
-          required: true,
-          type: "integer"
-        },
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          required: true,
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/comments/:comment_number/reactions"
-    },
-    createForTeamDiscussionCommentInOrg: {
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "POST",
-      params: {
-        comment_number: {
-          required: true,
-          type: "integer"
-        },
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          required: true,
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/discussions/:discussion_number/comments/:comment_number/reactions"
-    },
-    createForTeamDiscussionCommentLegacy: {
-      deprecated: "octokit.reactions.createForTeamDiscussionCommentLegacy() is deprecated, see https://developer.github.com/v3/reactions/#create-reaction-for-a-team-discussion-comment-legacy",
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "POST",
-      params: {
-        comment_number: {
-          required: true,
-          type: "integer"
-        },
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          required: true,
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/comments/:comment_number/reactions"
-    },
-    createForTeamDiscussionInOrg: {
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "POST",
-      params: {
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          required: true,
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/discussions/:discussion_number/reactions"
-    },
-    createForTeamDiscussionLegacy: {
-      deprecated: "octokit.reactions.createForTeamDiscussionLegacy() is deprecated, see https://developer.github.com/v3/reactions/#create-reaction-for-a-team-discussion-legacy",
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "POST",
-      params: {
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          required: true,
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/reactions"
-    },
-    delete: {
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        reaction_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/reactions/:reaction_id"
-    },
-    listForCommitComment: {
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "GET",
-      params: {
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/comments/:comment_id/reactions"
-    },
-    listForIssue: {
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "GET",
-      params: {
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          type: "string"
-        },
-        issue_number: {
-          required: true,
-          type: "integer"
-        },
-        number: {
-          alias: "issue_number",
-          deprecated: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/:issue_number/reactions"
-    },
-    listForIssueComment: {
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "GET",
-      params: {
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/issues/comments/:comment_id/reactions"
-    },
-    listForPullRequestReviewComment: {
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "GET",
-      params: {
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pulls/comments/:comment_id/reactions"
-    },
-    listForTeamDiscussion: {
-      deprecated: "octokit.reactions.listForTeamDiscussion() has been renamed to octokit.reactions.listForTeamDiscussionLegacy() (2020-01-16)",
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "GET",
-      params: {
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/reactions"
-    },
-    listForTeamDiscussionComment: {
-      deprecated: "octokit.reactions.listForTeamDiscussionComment() has been renamed to octokit.reactions.listForTeamDiscussionCommentLegacy() (2020-01-16)",
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "GET",
-      params: {
-        comment_number: {
-          required: true,
-          type: "integer"
-        },
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/comments/:comment_number/reactions"
-    },
-    listForTeamDiscussionCommentInOrg: {
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "GET",
-      params: {
-        comment_number: {
-          required: true,
-          type: "integer"
-        },
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/discussions/:discussion_number/comments/:comment_number/reactions"
-    },
-    listForTeamDiscussionCommentLegacy: {
-      deprecated: "octokit.reactions.listForTeamDiscussionCommentLegacy() is deprecated, see https://developer.github.com/v3/reactions/#list-reactions-for-a-team-discussion-comment-legacy",
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "GET",
-      params: {
-        comment_number: {
-          required: true,
-          type: "integer"
-        },
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/comments/:comment_number/reactions"
-    },
-    listForTeamDiscussionInOrg: {
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "GET",
-      params: {
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/discussions/:discussion_number/reactions"
-    },
-    listForTeamDiscussionLegacy: {
-      deprecated: "octokit.reactions.listForTeamDiscussionLegacy() is deprecated, see https://developer.github.com/v3/reactions/#list-reactions-for-a-team-discussion-legacy",
-      headers: {
-        accept: "application/vnd.github.squirrel-girl-preview+json"
-      },
-      method: "GET",
-      params: {
-        content: {
-          enum: ["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"],
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/reactions"
-    }
-  },
-  repos: {
-    acceptInvitation: {
-      method: "PATCH",
-      params: {
-        invitation_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/user/repository_invitations/:invitation_id"
-    },
-    addCollaborator: {
-      method: "PUT",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        permission: {
-          enum: ["pull", "push", "admin"],
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/collaborators/:username"
-    },
-    addDeployKey: {
-      method: "POST",
-      params: {
-        key: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        read_only: {
-          type: "boolean"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        title: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/keys"
-    },
-    addProtectedBranchAdminEnforcement: {
-      method: "POST",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/enforce_admins"
-    },
-    addProtectedBranchAppRestrictions: {
-      method: "POST",
-      params: {
-        apps: {
-          mapTo: "data",
-          required: true,
-          type: "string[]"
-        },
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/apps"
-    },
-    addProtectedBranchRequiredSignatures: {
-      headers: {
-        accept: "application/vnd.github.zzzax-preview+json"
-      },
-      method: "POST",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/required_signatures"
-    },
-    addProtectedBranchRequiredStatusChecksContexts: {
-      method: "POST",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        contexts: {
-          mapTo: "data",
-          required: true,
-          type: "string[]"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/required_status_checks/contexts"
-    },
-    addProtectedBranchTeamRestrictions: {
-      method: "POST",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        teams: {
-          mapTo: "data",
-          required: true,
-          type: "string[]"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/teams"
-    },
-    addProtectedBranchUserRestrictions: {
-      method: "POST",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        users: {
-          mapTo: "data",
-          required: true,
-          type: "string[]"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/users"
-    },
-    checkCollaborator: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/collaborators/:username"
-    },
-    checkVulnerabilityAlerts: {
-      headers: {
-        accept: "application/vnd.github.dorian-preview+json"
-      },
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/vulnerability-alerts"
-    },
-    compareCommits: {
-      method: "GET",
-      params: {
-        base: {
-          required: true,
-          type: "string"
-        },
-        head: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/compare/:base...:head"
-    },
-    createCommitComment: {
-      method: "POST",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        commit_sha: {
-          required: true,
-          type: "string"
-        },
-        line: {
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        path: {
-          type: "string"
-        },
-        position: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        sha: {
-          alias: "commit_sha",
-          deprecated: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/commits/:commit_sha/comments"
-    },
-    createDeployment: {
-      method: "POST",
-      params: {
-        auto_merge: {
-          type: "boolean"
-        },
-        description: {
-          type: "string"
-        },
-        environment: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        payload: {
-          type: "string"
-        },
-        production_environment: {
-          type: "boolean"
-        },
-        ref: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        required_contexts: {
-          type: "string[]"
-        },
-        task: {
-          type: "string"
-        },
-        transient_environment: {
-          type: "boolean"
-        }
-      },
-      url: "/repos/:owner/:repo/deployments"
-    },
-    createDeploymentStatus: {
-      method: "POST",
-      params: {
-        auto_inactive: {
-          type: "boolean"
-        },
-        deployment_id: {
-          required: true,
-          type: "integer"
-        },
-        description: {
-          type: "string"
-        },
-        environment: {
-          enum: ["production", "staging", "qa"],
-          type: "string"
-        },
-        environment_url: {
-          type: "string"
-        },
-        log_url: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        state: {
-          enum: ["error", "failure", "inactive", "in_progress", "queued", "pending", "success"],
-          required: true,
-          type: "string"
-        },
-        target_url: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/deployments/:deployment_id/statuses"
-    },
-    createDispatchEvent: {
-      method: "POST",
-      params: {
-        client_payload: {
-          type: "object"
-        },
-        event_type: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/dispatches"
-    },
-    createFile: {
-      deprecated: "octokit.repos.createFile() has been renamed to octokit.repos.createOrUpdateFile() (2019-06-07)",
-      method: "PUT",
-      params: {
-        author: {
-          type: "object"
-        },
-        "author.email": {
-          required: true,
-          type: "string"
-        },
-        "author.name": {
-          required: true,
-          type: "string"
-        },
-        branch: {
-          type: "string"
-        },
-        committer: {
-          type: "object"
-        },
-        "committer.email": {
-          required: true,
-          type: "string"
-        },
-        "committer.name": {
-          required: true,
-          type: "string"
-        },
-        content: {
-          required: true,
-          type: "string"
-        },
-        message: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        path: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        sha: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/contents/:path"
-    },
-    createForAuthenticatedUser: {
-      method: "POST",
-      params: {
-        allow_merge_commit: {
-          type: "boolean"
-        },
-        allow_rebase_merge: {
-          type: "boolean"
-        },
-        allow_squash_merge: {
-          type: "boolean"
-        },
-        auto_init: {
-          type: "boolean"
-        },
-        delete_branch_on_merge: {
-          type: "boolean"
-        },
-        description: {
-          type: "string"
-        },
-        gitignore_template: {
-          type: "string"
-        },
-        has_issues: {
-          type: "boolean"
-        },
-        has_projects: {
-          type: "boolean"
-        },
-        has_wiki: {
-          type: "boolean"
-        },
-        homepage: {
-          type: "string"
-        },
-        is_template: {
-          type: "boolean"
-        },
-        license_template: {
-          type: "string"
-        },
-        name: {
-          required: true,
-          type: "string"
-        },
-        private: {
-          type: "boolean"
-        },
-        team_id: {
-          type: "integer"
-        },
-        visibility: {
-          enum: ["public", "private", "visibility", "internal"],
-          type: "string"
-        }
-      },
-      url: "/user/repos"
-    },
-    createFork: {
-      method: "POST",
-      params: {
-        organization: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/forks"
-    },
-    createHook: {
-      method: "POST",
-      params: {
-        active: {
-          type: "boolean"
-        },
-        config: {
-          required: true,
-          type: "object"
-        },
-        "config.content_type": {
-          type: "string"
-        },
-        "config.insecure_ssl": {
-          type: "string"
-        },
-        "config.secret": {
-          type: "string"
-        },
-        "config.url": {
-          required: true,
-          type: "string"
-        },
-        events: {
-          type: "string[]"
-        },
-        name: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/hooks"
-    },
-    createInOrg: {
-      method: "POST",
-      params: {
-        allow_merge_commit: {
-          type: "boolean"
-        },
-        allow_rebase_merge: {
-          type: "boolean"
-        },
-        allow_squash_merge: {
-          type: "boolean"
-        },
-        auto_init: {
-          type: "boolean"
-        },
-        delete_branch_on_merge: {
-          type: "boolean"
-        },
-        description: {
-          type: "string"
-        },
-        gitignore_template: {
-          type: "string"
-        },
-        has_issues: {
-          type: "boolean"
-        },
-        has_projects: {
-          type: "boolean"
-        },
-        has_wiki: {
-          type: "boolean"
-        },
-        homepage: {
-          type: "string"
-        },
-        is_template: {
-          type: "boolean"
-        },
-        license_template: {
-          type: "string"
-        },
-        name: {
-          required: true,
-          type: "string"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        private: {
-          type: "boolean"
-        },
-        team_id: {
-          type: "integer"
-        },
-        visibility: {
-          enum: ["public", "private", "visibility", "internal"],
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/repos"
-    },
-    createOrUpdateFile: {
-      method: "PUT",
-      params: {
-        author: {
-          type: "object"
-        },
-        "author.email": {
-          required: true,
-          type: "string"
-        },
-        "author.name": {
-          required: true,
-          type: "string"
-        },
-        branch: {
-          type: "string"
-        },
-        committer: {
-          type: "object"
-        },
-        "committer.email": {
-          required: true,
-          type: "string"
-        },
-        "committer.name": {
-          required: true,
-          type: "string"
-        },
-        content: {
-          required: true,
-          type: "string"
-        },
-        message: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        path: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        sha: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/contents/:path"
-    },
-    createRelease: {
-      method: "POST",
-      params: {
-        body: {
-          type: "string"
-        },
-        draft: {
-          type: "boolean"
-        },
-        name: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        prerelease: {
-          type: "boolean"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        tag_name: {
-          required: true,
-          type: "string"
-        },
-        target_commitish: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/releases"
-    },
-    createStatus: {
-      method: "POST",
-      params: {
-        context: {
-          type: "string"
-        },
-        description: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        sha: {
-          required: true,
-          type: "string"
-        },
-        state: {
-          enum: ["error", "failure", "pending", "success"],
-          required: true,
-          type: "string"
-        },
-        target_url: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/statuses/:sha"
-    },
-    createUsingTemplate: {
-      headers: {
-        accept: "application/vnd.github.baptiste-preview+json"
-      },
-      method: "POST",
-      params: {
-        description: {
-          type: "string"
-        },
-        name: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          type: "string"
-        },
-        private: {
-          type: "boolean"
-        },
-        template_owner: {
-          required: true,
-          type: "string"
-        },
-        template_repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:template_owner/:template_repo/generate"
-    },
-    declineInvitation: {
-      method: "DELETE",
-      params: {
-        invitation_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/user/repository_invitations/:invitation_id"
-    },
-    delete: {
-      method: "DELETE",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo"
-    },
-    deleteCommitComment: {
-      method: "DELETE",
-      params: {
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/comments/:comment_id"
-    },
-    deleteDownload: {
-      method: "DELETE",
-      params: {
-        download_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/downloads/:download_id"
-    },
-    deleteFile: {
-      method: "DELETE",
-      params: {
-        author: {
-          type: "object"
-        },
-        "author.email": {
-          type: "string"
-        },
-        "author.name": {
-          type: "string"
-        },
-        branch: {
-          type: "string"
-        },
-        committer: {
-          type: "object"
-        },
-        "committer.email": {
-          type: "string"
-        },
-        "committer.name": {
-          type: "string"
-        },
-        message: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        path: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        sha: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/contents/:path"
-    },
-    deleteHook: {
-      method: "DELETE",
-      params: {
-        hook_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/hooks/:hook_id"
-    },
-    deleteInvitation: {
-      method: "DELETE",
-      params: {
-        invitation_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/invitations/:invitation_id"
-    },
-    deleteRelease: {
-      method: "DELETE",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        release_id: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/releases/:release_id"
-    },
-    deleteReleaseAsset: {
-      method: "DELETE",
-      params: {
-        asset_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/releases/assets/:asset_id"
-    },
-    disableAutomatedSecurityFixes: {
-      headers: {
-        accept: "application/vnd.github.london-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/automated-security-fixes"
-    },
-    disablePagesSite: {
-      headers: {
-        accept: "application/vnd.github.switcheroo-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pages"
-    },
-    disableVulnerabilityAlerts: {
-      headers: {
-        accept: "application/vnd.github.dorian-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/vulnerability-alerts"
-    },
-    enableAutomatedSecurityFixes: {
-      headers: {
-        accept: "application/vnd.github.london-preview+json"
-      },
-      method: "PUT",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/automated-security-fixes"
-    },
-    enablePagesSite: {
-      headers: {
-        accept: "application/vnd.github.switcheroo-preview+json"
-      },
-      method: "POST",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        source: {
-          type: "object"
-        },
-        "source.branch": {
-          enum: ["master", "gh-pages"],
-          type: "string"
-        },
-        "source.path": {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pages"
-    },
-    enableVulnerabilityAlerts: {
-      headers: {
-        accept: "application/vnd.github.dorian-preview+json"
-      },
-      method: "PUT",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/vulnerability-alerts"
-    },
-    get: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo"
-    },
-    getAppsWithAccessToProtectedBranch: {
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/apps"
-    },
-    getArchiveLink: {
-      method: "GET",
-      params: {
-        archive_format: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        ref: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/:archive_format/:ref"
-    },
-    getBranch: {
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch"
-    },
-    getBranchProtection: {
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection"
-    },
-    getClones: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        per: {
-          enum: ["day", "week"],
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/traffic/clones"
-    },
-    getCodeFrequencyStats: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/stats/code_frequency"
-    },
-    getCollaboratorPermissionLevel: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/collaborators/:username/permission"
-    },
-    getCombinedStatusForRef: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        ref: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/commits/:ref/status"
-    },
-    getCommit: {
-      method: "GET",
-      params: {
-        commit_sha: {
-          alias: "ref",
-          deprecated: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        ref: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        sha: {
-          alias: "ref",
-          deprecated: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/commits/:ref"
-    },
-    getCommitActivityStats: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/stats/commit_activity"
-    },
-    getCommitComment: {
-      method: "GET",
-      params: {
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/comments/:comment_id"
-    },
-    getCommitRefSha: {
-      deprecated: "octokit.repos.getCommitRefSha() is deprecated, see https://developer.github.com/v3/repos/commits/#get-a-single-commit",
-      headers: {
-        accept: "application/vnd.github.v3.sha"
-      },
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        ref: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/commits/:ref"
-    },
-    getContents: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        path: {
-          required: true,
-          type: "string"
-        },
-        ref: {
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/contents/:path"
-    },
-    getContributorsStats: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/stats/contributors"
-    },
-    getDeployKey: {
-      method: "GET",
-      params: {
-        key_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/keys/:key_id"
-    },
-    getDeployment: {
-      method: "GET",
-      params: {
-        deployment_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/deployments/:deployment_id"
-    },
-    getDeploymentStatus: {
-      method: "GET",
-      params: {
-        deployment_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        status_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/deployments/:deployment_id/statuses/:status_id"
-    },
-    getDownload: {
-      method: "GET",
-      params: {
-        download_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/downloads/:download_id"
-    },
-    getHook: {
-      method: "GET",
-      params: {
-        hook_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/hooks/:hook_id"
-    },
-    getLatestPagesBuild: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pages/builds/latest"
-    },
-    getLatestRelease: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/releases/latest"
-    },
-    getPages: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pages"
-    },
-    getPagesBuild: {
-      method: "GET",
-      params: {
-        build_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pages/builds/:build_id"
-    },
-    getParticipationStats: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/stats/participation"
-    },
-    getProtectedBranchAdminEnforcement: {
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/enforce_admins"
-    },
-    getProtectedBranchPullRequestReviewEnforcement: {
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/required_pull_request_reviews"
-    },
-    getProtectedBranchRequiredSignatures: {
-      headers: {
-        accept: "application/vnd.github.zzzax-preview+json"
-      },
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/required_signatures"
-    },
-    getProtectedBranchRequiredStatusChecks: {
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/required_status_checks"
-    },
-    getProtectedBranchRestrictions: {
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions"
-    },
-    getPunchCardStats: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/stats/punch_card"
-    },
-    getReadme: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        ref: {
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/readme"
-    },
-    getRelease: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        release_id: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/releases/:release_id"
-    },
-    getReleaseAsset: {
-      method: "GET",
-      params: {
-        asset_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/releases/assets/:asset_id"
-    },
-    getReleaseByTag: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        tag: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/releases/tags/:tag"
-    },
-    getTeamsWithAccessToProtectedBranch: {
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/teams"
-    },
-    getTopPaths: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/traffic/popular/paths"
-    },
-    getTopReferrers: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/traffic/popular/referrers"
-    },
-    getUsersWithAccessToProtectedBranch: {
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/users"
-    },
-    getViews: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        per: {
-          enum: ["day", "week"],
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/traffic/views"
-    },
-    list: {
-      method: "GET",
-      params: {
-        affiliation: {
-          type: "string"
-        },
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        sort: {
-          enum: ["created", "updated", "pushed", "full_name"],
-          type: "string"
-        },
-        type: {
-          enum: ["all", "owner", "public", "private", "member"],
-          type: "string"
-        },
-        visibility: {
-          enum: ["all", "public", "private"],
-          type: "string"
-        }
-      },
-      url: "/user/repos"
-    },
-    listAppsWithAccessToProtectedBranch: {
-      deprecated: "octokit.repos.listAppsWithAccessToProtectedBranch() has been renamed to octokit.repos.getAppsWithAccessToProtectedBranch() (2019-09-13)",
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/apps"
-    },
-    listAssetsForRelease: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        release_id: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/releases/:release_id/assets"
-    },
-    listBranches: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        protected: {
-          type: "boolean"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches"
-    },
-    listBranchesForHeadCommit: {
-      headers: {
-        accept: "application/vnd.github.groot-preview+json"
-      },
-      method: "GET",
-      params: {
-        commit_sha: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/commits/:commit_sha/branches-where-head"
-    },
-    listCollaborators: {
-      method: "GET",
-      params: {
-        affiliation: {
-          enum: ["outside", "direct", "all"],
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/collaborators"
-    },
-    listCommentsForCommit: {
-      method: "GET",
-      params: {
-        commit_sha: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        ref: {
-          alias: "commit_sha",
-          deprecated: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/commits/:commit_sha/comments"
-    },
-    listCommitComments: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/comments"
-    },
-    listCommits: {
-      method: "GET",
-      params: {
-        author: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        path: {
-          type: "string"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        sha: {
-          type: "string"
-        },
-        since: {
-          type: "string"
-        },
-        until: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/commits"
-    },
-    listContributors: {
-      method: "GET",
-      params: {
-        anon: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/contributors"
-    },
-    listDeployKeys: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/keys"
-    },
-    listDeploymentStatuses: {
-      method: "GET",
-      params: {
-        deployment_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/deployments/:deployment_id/statuses"
-    },
-    listDeployments: {
-      method: "GET",
-      params: {
-        environment: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        ref: {
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        sha: {
-          type: "string"
-        },
-        task: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/deployments"
-    },
-    listDownloads: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/downloads"
-    },
-    listForOrg: {
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        sort: {
-          enum: ["created", "updated", "pushed", "full_name"],
-          type: "string"
-        },
-        type: {
-          enum: ["all", "public", "private", "forks", "sources", "member", "internal"],
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/repos"
-    },
-    listForUser: {
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        sort: {
-          enum: ["created", "updated", "pushed", "full_name"],
-          type: "string"
-        },
-        type: {
-          enum: ["all", "owner", "member"],
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/repos"
-    },
-    listForks: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        sort: {
-          enum: ["newest", "oldest", "stargazers"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/forks"
-    },
-    listHooks: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/hooks"
-    },
-    listInvitations: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/invitations"
-    },
-    listInvitationsForAuthenticatedUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/repository_invitations"
-    },
-    listLanguages: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/languages"
-    },
-    listPagesBuilds: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pages/builds"
-    },
-    listProtectedBranchRequiredStatusChecksContexts: {
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/required_status_checks/contexts"
-    },
-    listProtectedBranchTeamRestrictions: {
-      deprecated: "octokit.repos.listProtectedBranchTeamRestrictions() has been renamed to octokit.repos.getTeamsWithAccessToProtectedBranch() (2019-09-09)",
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/teams"
-    },
-    listProtectedBranchUserRestrictions: {
-      deprecated: "octokit.repos.listProtectedBranchUserRestrictions() has been renamed to octokit.repos.getUsersWithAccessToProtectedBranch() (2019-09-09)",
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/users"
-    },
-    listPublic: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        since: {
-          type: "integer"
-        }
-      },
-      url: "/repositories"
-    },
-    listPullRequestsAssociatedWithCommit: {
-      headers: {
-        accept: "application/vnd.github.groot-preview+json"
-      },
-      method: "GET",
-      params: {
-        commit_sha: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/commits/:commit_sha/pulls"
-    },
-    listReleases: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/releases"
-    },
-    listStatusesForRef: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        ref: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/commits/:ref/statuses"
-    },
-    listTags: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/tags"
-    },
-    listTeams: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/teams"
-    },
-    listTeamsWithAccessToProtectedBranch: {
-      deprecated: "octokit.repos.listTeamsWithAccessToProtectedBranch() has been renamed to octokit.repos.getTeamsWithAccessToProtectedBranch() (2019-09-13)",
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/teams"
-    },
-    listTopics: {
-      headers: {
-        accept: "application/vnd.github.mercy-preview+json"
-      },
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/topics"
-    },
-    listUsersWithAccessToProtectedBranch: {
-      deprecated: "octokit.repos.listUsersWithAccessToProtectedBranch() has been renamed to octokit.repos.getUsersWithAccessToProtectedBranch() (2019-09-13)",
-      method: "GET",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/users"
-    },
-    merge: {
-      method: "POST",
-      params: {
-        base: {
-          required: true,
-          type: "string"
-        },
-        commit_message: {
-          type: "string"
-        },
-        head: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/merges"
-    },
-    pingHook: {
-      method: "POST",
-      params: {
-        hook_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/hooks/:hook_id/pings"
-    },
-    removeBranchProtection: {
-      method: "DELETE",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection"
-    },
-    removeCollaborator: {
-      method: "DELETE",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/collaborators/:username"
-    },
-    removeDeployKey: {
-      method: "DELETE",
-      params: {
-        key_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/keys/:key_id"
-    },
-    removeProtectedBranchAdminEnforcement: {
-      method: "DELETE",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/enforce_admins"
-    },
-    removeProtectedBranchAppRestrictions: {
-      method: "DELETE",
-      params: {
-        apps: {
-          mapTo: "data",
-          required: true,
-          type: "string[]"
-        },
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/apps"
-    },
-    removeProtectedBranchPullRequestReviewEnforcement: {
-      method: "DELETE",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/required_pull_request_reviews"
-    },
-    removeProtectedBranchRequiredSignatures: {
-      headers: {
-        accept: "application/vnd.github.zzzax-preview+json"
-      },
-      method: "DELETE",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/required_signatures"
-    },
-    removeProtectedBranchRequiredStatusChecks: {
-      method: "DELETE",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/required_status_checks"
-    },
-    removeProtectedBranchRequiredStatusChecksContexts: {
-      method: "DELETE",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        contexts: {
-          mapTo: "data",
-          required: true,
-          type: "string[]"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/required_status_checks/contexts"
-    },
-    removeProtectedBranchRestrictions: {
-      method: "DELETE",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions"
-    },
-    removeProtectedBranchTeamRestrictions: {
-      method: "DELETE",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        teams: {
-          mapTo: "data",
-          required: true,
-          type: "string[]"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/teams"
-    },
-    removeProtectedBranchUserRestrictions: {
-      method: "DELETE",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        users: {
-          mapTo: "data",
-          required: true,
-          type: "string[]"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/users"
-    },
-    replaceProtectedBranchAppRestrictions: {
-      method: "PUT",
-      params: {
-        apps: {
-          mapTo: "data",
-          required: true,
-          type: "string[]"
-        },
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/apps"
-    },
-    replaceProtectedBranchRequiredStatusChecksContexts: {
-      method: "PUT",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        contexts: {
-          mapTo: "data",
-          required: true,
-          type: "string[]"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/required_status_checks/contexts"
-    },
-    replaceProtectedBranchTeamRestrictions: {
-      method: "PUT",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        teams: {
-          mapTo: "data",
-          required: true,
-          type: "string[]"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/teams"
-    },
-    replaceProtectedBranchUserRestrictions: {
-      method: "PUT",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        users: {
-          mapTo: "data",
-          required: true,
-          type: "string[]"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/restrictions/users"
-    },
-    replaceTopics: {
-      headers: {
-        accept: "application/vnd.github.mercy-preview+json"
-      },
-      method: "PUT",
-      params: {
-        names: {
-          required: true,
-          type: "string[]"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/topics"
-    },
-    requestPageBuild: {
-      method: "POST",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pages/builds"
-    },
-    retrieveCommunityProfileMetrics: {
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/community/profile"
-    },
-    testPushHook: {
-      method: "POST",
-      params: {
-        hook_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/hooks/:hook_id/tests"
-    },
-    transfer: {
-      method: "POST",
-      params: {
-        new_owner: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        team_ids: {
-          type: "integer[]"
-        }
-      },
-      url: "/repos/:owner/:repo/transfer"
-    },
-    update: {
-      method: "PATCH",
-      params: {
-        allow_merge_commit: {
-          type: "boolean"
-        },
-        allow_rebase_merge: {
-          type: "boolean"
-        },
-        allow_squash_merge: {
-          type: "boolean"
-        },
-        archived: {
-          type: "boolean"
-        },
-        default_branch: {
-          type: "string"
-        },
-        delete_branch_on_merge: {
-          type: "boolean"
-        },
-        description: {
-          type: "string"
-        },
-        has_issues: {
-          type: "boolean"
-        },
-        has_projects: {
-          type: "boolean"
-        },
-        has_wiki: {
-          type: "boolean"
-        },
-        homepage: {
-          type: "string"
-        },
-        is_template: {
-          type: "boolean"
-        },
-        name: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        private: {
-          type: "boolean"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        visibility: {
-          enum: ["public", "private", "visibility", "internal"],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo"
-    },
-    updateBranchProtection: {
-      method: "PUT",
-      params: {
-        allow_deletions: {
-          type: "boolean"
-        },
-        allow_force_pushes: {
-          allowNull: true,
-          type: "boolean"
-        },
-        branch: {
-          required: true,
-          type: "string"
-        },
-        enforce_admins: {
-          allowNull: true,
-          required: true,
-          type: "boolean"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        required_linear_history: {
-          type: "boolean"
-        },
-        required_pull_request_reviews: {
-          allowNull: true,
-          required: true,
-          type: "object"
-        },
-        "required_pull_request_reviews.dismiss_stale_reviews": {
-          type: "boolean"
-        },
-        "required_pull_request_reviews.dismissal_restrictions": {
-          type: "object"
-        },
-        "required_pull_request_reviews.dismissal_restrictions.teams": {
-          type: "string[]"
-        },
-        "required_pull_request_reviews.dismissal_restrictions.users": {
-          type: "string[]"
-        },
-        "required_pull_request_reviews.require_code_owner_reviews": {
-          type: "boolean"
-        },
-        "required_pull_request_reviews.required_approving_review_count": {
-          type: "integer"
-        },
-        required_status_checks: {
-          allowNull: true,
-          required: true,
-          type: "object"
-        },
-        "required_status_checks.contexts": {
-          required: true,
-          type: "string[]"
-        },
-        "required_status_checks.strict": {
-          required: true,
-          type: "boolean"
-        },
-        restrictions: {
-          allowNull: true,
-          required: true,
-          type: "object"
-        },
-        "restrictions.apps": {
-          type: "string[]"
-        },
-        "restrictions.teams": {
-          required: true,
-          type: "string[]"
-        },
-        "restrictions.users": {
-          required: true,
-          type: "string[]"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection"
-    },
-    updateCommitComment: {
-      method: "PATCH",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        comment_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/comments/:comment_id"
-    },
-    updateFile: {
-      deprecated: "octokit.repos.updateFile() has been renamed to octokit.repos.createOrUpdateFile() (2019-06-07)",
-      method: "PUT",
-      params: {
-        author: {
-          type: "object"
-        },
-        "author.email": {
-          required: true,
-          type: "string"
-        },
-        "author.name": {
-          required: true,
-          type: "string"
-        },
-        branch: {
-          type: "string"
-        },
-        committer: {
-          type: "object"
-        },
-        "committer.email": {
-          required: true,
-          type: "string"
-        },
-        "committer.name": {
-          required: true,
-          type: "string"
-        },
-        content: {
-          required: true,
-          type: "string"
-        },
-        message: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        path: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        sha: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/contents/:path"
-    },
-    updateHook: {
-      method: "PATCH",
-      params: {
-        active: {
-          type: "boolean"
-        },
-        add_events: {
-          type: "string[]"
-        },
-        config: {
-          type: "object"
-        },
-        "config.content_type": {
-          type: "string"
-        },
-        "config.insecure_ssl": {
-          type: "string"
-        },
-        "config.secret": {
-          type: "string"
-        },
-        "config.url": {
-          required: true,
-          type: "string"
-        },
-        events: {
-          type: "string[]"
-        },
-        hook_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        remove_events: {
-          type: "string[]"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/hooks/:hook_id"
-    },
-    updateInformationAboutPagesSite: {
-      method: "PUT",
-      params: {
-        cname: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        source: {
-          enum: ['"gh-pages"', '"master"', '"master /docs"'],
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/pages"
-    },
-    updateInvitation: {
-      method: "PATCH",
-      params: {
-        invitation_id: {
-          required: true,
-          type: "integer"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        permissions: {
-          enum: ["read", "write", "admin"],
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/invitations/:invitation_id"
-    },
-    updateProtectedBranchPullRequestReviewEnforcement: {
-      method: "PATCH",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        dismiss_stale_reviews: {
-          type: "boolean"
-        },
-        dismissal_restrictions: {
-          type: "object"
-        },
-        "dismissal_restrictions.teams": {
-          type: "string[]"
-        },
-        "dismissal_restrictions.users": {
-          type: "string[]"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        require_code_owner_reviews: {
-          type: "boolean"
-        },
-        required_approving_review_count: {
-          type: "integer"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/required_pull_request_reviews"
-    },
-    updateProtectedBranchRequiredStatusChecks: {
-      method: "PATCH",
-      params: {
-        branch: {
-          required: true,
-          type: "string"
-        },
-        contexts: {
-          type: "string[]"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        strict: {
-          type: "boolean"
-        }
-      },
-      url: "/repos/:owner/:repo/branches/:branch/protection/required_status_checks"
-    },
-    updateRelease: {
-      method: "PATCH",
-      params: {
-        body: {
-          type: "string"
-        },
-        draft: {
-          type: "boolean"
-        },
-        name: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        prerelease: {
-          type: "boolean"
-        },
-        release_id: {
-          required: true,
-          type: "integer"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        tag_name: {
-          type: "string"
-        },
-        target_commitish: {
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/releases/:release_id"
-    },
-    updateReleaseAsset: {
-      method: "PATCH",
-      params: {
-        asset_id: {
-          required: true,
-          type: "integer"
-        },
-        label: {
-          type: "string"
-        },
-        name: {
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/repos/:owner/:repo/releases/assets/:asset_id"
-    },
-    uploadReleaseAsset: {
-      method: "POST",
-      params: {
-        data: {
-          mapTo: "data",
-          required: true,
-          type: "string | object"
-        },
-        file: {
-          alias: "data",
-          deprecated: true,
-          type: "string | object"
-        },
-        headers: {
-          required: true,
-          type: "object"
-        },
-        "headers.content-length": {
-          required: true,
-          type: "integer"
-        },
-        "headers.content-type": {
-          required: true,
-          type: "string"
-        },
-        label: {
-          type: "string"
-        },
-        name: {
-          required: true,
-          type: "string"
-        },
-        url: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: ":url"
-    }
-  },
-  search: {
-    code: {
-      method: "GET",
-      params: {
-        order: {
-          enum: ["desc", "asc"],
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        q: {
-          required: true,
-          type: "string"
-        },
-        sort: {
-          enum: ["indexed"],
-          type: "string"
-        }
-      },
-      url: "/search/code"
-    },
-    commits: {
-      headers: {
-        accept: "application/vnd.github.cloak-preview+json"
-      },
-      method: "GET",
-      params: {
-        order: {
-          enum: ["desc", "asc"],
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        q: {
-          required: true,
-          type: "string"
-        },
-        sort: {
-          enum: ["author-date", "committer-date"],
-          type: "string"
-        }
-      },
-      url: "/search/commits"
-    },
-    issues: {
-      deprecated: "octokit.search.issues() has been renamed to octokit.search.issuesAndPullRequests() (2018-12-27)",
-      method: "GET",
-      params: {
-        order: {
-          enum: ["desc", "asc"],
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        q: {
-          required: true,
-          type: "string"
-        },
-        sort: {
-          enum: ["comments", "reactions", "reactions-+1", "reactions--1", "reactions-smile", "reactions-thinking_face", "reactions-heart", "reactions-tada", "interactions", "created", "updated"],
-          type: "string"
-        }
-      },
-      url: "/search/issues"
-    },
-    issuesAndPullRequests: {
-      method: "GET",
-      params: {
-        order: {
-          enum: ["desc", "asc"],
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        q: {
-          required: true,
-          type: "string"
-        },
-        sort: {
-          enum: ["comments", "reactions", "reactions-+1", "reactions--1", "reactions-smile", "reactions-thinking_face", "reactions-heart", "reactions-tada", "interactions", "created", "updated"],
-          type: "string"
-        }
-      },
-      url: "/search/issues"
-    },
-    labels: {
-      method: "GET",
-      params: {
-        order: {
-          enum: ["desc", "asc"],
-          type: "string"
-        },
-        q: {
-          required: true,
-          type: "string"
-        },
-        repository_id: {
-          required: true,
-          type: "integer"
-        },
-        sort: {
-          enum: ["created", "updated"],
-          type: "string"
-        }
-      },
-      url: "/search/labels"
-    },
-    repos: {
-      method: "GET",
-      params: {
-        order: {
-          enum: ["desc", "asc"],
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        q: {
-          required: true,
-          type: "string"
-        },
-        sort: {
-          enum: ["stars", "forks", "help-wanted-issues", "updated"],
-          type: "string"
-        }
-      },
-      url: "/search/repositories"
-    },
-    topics: {
-      method: "GET",
-      params: {
-        q: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/search/topics"
-    },
-    users: {
-      method: "GET",
-      params: {
-        order: {
-          enum: ["desc", "asc"],
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        q: {
-          required: true,
-          type: "string"
-        },
-        sort: {
-          enum: ["followers", "repositories", "joined"],
-          type: "string"
-        }
-      },
-      url: "/search/users"
-    }
-  },
-  teams: {
-    addMember: {
-      deprecated: "octokit.teams.addMember() has been renamed to octokit.teams.addMemberLegacy() (2020-01-16)",
-      method: "PUT",
-      params: {
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/members/:username"
-    },
-    addMemberLegacy: {
-      deprecated: "octokit.teams.addMemberLegacy() is deprecated, see https://developer.github.com/v3/teams/members/#add-team-member-legacy",
-      method: "PUT",
-      params: {
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/members/:username"
-    },
-    addOrUpdateMembership: {
-      deprecated: "octokit.teams.addOrUpdateMembership() has been renamed to octokit.teams.addOrUpdateMembershipLegacy() (2020-01-16)",
-      method: "PUT",
-      params: {
-        role: {
-          enum: ["member", "maintainer"],
-          type: "string"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/memberships/:username"
-    },
-    addOrUpdateMembershipInOrg: {
-      method: "PUT",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        role: {
-          enum: ["member", "maintainer"],
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/memberships/:username"
-    },
-    addOrUpdateMembershipLegacy: {
-      deprecated: "octokit.teams.addOrUpdateMembershipLegacy() is deprecated, see https://developer.github.com/v3/teams/members/#add-or-update-team-membership-legacy",
-      method: "PUT",
-      params: {
-        role: {
-          enum: ["member", "maintainer"],
-          type: "string"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/memberships/:username"
-    },
-    addOrUpdateProject: {
-      deprecated: "octokit.teams.addOrUpdateProject() has been renamed to octokit.teams.addOrUpdateProjectLegacy() (2020-01-16)",
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "PUT",
-      params: {
-        permission: {
-          enum: ["read", "write", "admin"],
-          type: "string"
-        },
-        project_id: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/projects/:project_id"
-    },
-    addOrUpdateProjectInOrg: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "PUT",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        permission: {
-          enum: ["read", "write", "admin"],
-          type: "string"
-        },
-        project_id: {
-          required: true,
-          type: "integer"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/projects/:project_id"
-    },
-    addOrUpdateProjectLegacy: {
-      deprecated: "octokit.teams.addOrUpdateProjectLegacy() is deprecated, see https://developer.github.com/v3/teams/#add-or-update-team-project-legacy",
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "PUT",
-      params: {
-        permission: {
-          enum: ["read", "write", "admin"],
-          type: "string"
-        },
-        project_id: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/projects/:project_id"
-    },
-    addOrUpdateRepo: {
-      deprecated: "octokit.teams.addOrUpdateRepo() has been renamed to octokit.teams.addOrUpdateRepoLegacy() (2020-01-16)",
-      method: "PUT",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        permission: {
-          enum: ["pull", "push", "admin"],
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/repos/:owner/:repo"
-    },
-    addOrUpdateRepoInOrg: {
-      method: "PUT",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        permission: {
-          enum: ["pull", "push", "admin"],
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/repos/:owner/:repo"
-    },
-    addOrUpdateRepoLegacy: {
-      deprecated: "octokit.teams.addOrUpdateRepoLegacy() is deprecated, see https://developer.github.com/v3/teams/#add-or-update-team-repository-legacy",
-      method: "PUT",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        permission: {
-          enum: ["pull", "push", "admin"],
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/repos/:owner/:repo"
-    },
-    checkManagesRepo: {
-      deprecated: "octokit.teams.checkManagesRepo() has been renamed to octokit.teams.checkManagesRepoLegacy() (2020-01-16)",
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/repos/:owner/:repo"
-    },
-    checkManagesRepoInOrg: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/repos/:owner/:repo"
-    },
-    checkManagesRepoLegacy: {
-      deprecated: "octokit.teams.checkManagesRepoLegacy() is deprecated, see https://developer.github.com/v3/teams/#check-if-a-team-manages-a-repository-legacy",
-      method: "GET",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/repos/:owner/:repo"
-    },
-    create: {
-      method: "POST",
-      params: {
-        description: {
-          type: "string"
-        },
-        maintainers: {
-          type: "string[]"
-        },
-        name: {
-          required: true,
-          type: "string"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        parent_team_id: {
-          type: "integer"
-        },
-        permission: {
-          enum: ["pull", "push", "admin"],
-          type: "string"
-        },
-        privacy: {
-          enum: ["secret", "closed"],
-          type: "string"
-        },
-        repo_names: {
-          type: "string[]"
-        }
-      },
-      url: "/orgs/:org/teams"
-    },
-    createDiscussion: {
-      deprecated: "octokit.teams.createDiscussion() has been renamed to octokit.teams.createDiscussionLegacy() (2020-01-16)",
-      method: "POST",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        private: {
-          type: "boolean"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        title: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/discussions"
-    },
-    createDiscussionComment: {
-      deprecated: "octokit.teams.createDiscussionComment() has been renamed to octokit.teams.createDiscussionCommentLegacy() (2020-01-16)",
-      method: "POST",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/comments"
-    },
-    createDiscussionCommentInOrg: {
-      method: "POST",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/discussions/:discussion_number/comments"
-    },
-    createDiscussionCommentLegacy: {
-      deprecated: "octokit.teams.createDiscussionCommentLegacy() is deprecated, see https://developer.github.com/v3/teams/discussion_comments/#create-a-comment-legacy",
-      method: "POST",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/comments"
-    },
-    createDiscussionInOrg: {
-      method: "POST",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        private: {
-          type: "boolean"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        },
-        title: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/discussions"
-    },
-    createDiscussionLegacy: {
-      deprecated: "octokit.teams.createDiscussionLegacy() is deprecated, see https://developer.github.com/v3/teams/discussions/#create-a-discussion-legacy",
-      method: "POST",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        private: {
-          type: "boolean"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        title: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/discussions"
-    },
-    delete: {
-      deprecated: "octokit.teams.delete() has been renamed to octokit.teams.deleteLegacy() (2020-01-16)",
-      method: "DELETE",
-      params: {
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id"
-    },
-    deleteDiscussion: {
-      deprecated: "octokit.teams.deleteDiscussion() has been renamed to octokit.teams.deleteDiscussionLegacy() (2020-01-16)",
-      method: "DELETE",
-      params: {
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number"
-    },
-    deleteDiscussionComment: {
-      deprecated: "octokit.teams.deleteDiscussionComment() has been renamed to octokit.teams.deleteDiscussionCommentLegacy() (2020-01-16)",
-      method: "DELETE",
-      params: {
-        comment_number: {
-          required: true,
-          type: "integer"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/comments/:comment_number"
-    },
-    deleteDiscussionCommentInOrg: {
-      method: "DELETE",
-      params: {
-        comment_number: {
-          required: true,
-          type: "integer"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/discussions/:discussion_number/comments/:comment_number"
-    },
-    deleteDiscussionCommentLegacy: {
-      deprecated: "octokit.teams.deleteDiscussionCommentLegacy() is deprecated, see https://developer.github.com/v3/teams/discussion_comments/#delete-a-comment-legacy",
-      method: "DELETE",
-      params: {
-        comment_number: {
-          required: true,
-          type: "integer"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/comments/:comment_number"
-    },
-    deleteDiscussionInOrg: {
-      method: "DELETE",
-      params: {
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/discussions/:discussion_number"
-    },
-    deleteDiscussionLegacy: {
-      deprecated: "octokit.teams.deleteDiscussionLegacy() is deprecated, see https://developer.github.com/v3/teams/discussions/#delete-a-discussion-legacy",
-      method: "DELETE",
-      params: {
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number"
-    },
-    deleteInOrg: {
-      method: "DELETE",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug"
-    },
-    deleteLegacy: {
-      deprecated: "octokit.teams.deleteLegacy() is deprecated, see https://developer.github.com/v3/teams/#delete-team-legacy",
-      method: "DELETE",
-      params: {
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id"
-    },
-    get: {
-      deprecated: "octokit.teams.get() has been renamed to octokit.teams.getLegacy() (2020-01-16)",
-      method: "GET",
-      params: {
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id"
-    },
-    getByName: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug"
-    },
-    getDiscussion: {
-      deprecated: "octokit.teams.getDiscussion() has been renamed to octokit.teams.getDiscussionLegacy() (2020-01-16)",
-      method: "GET",
-      params: {
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number"
-    },
-    getDiscussionComment: {
-      deprecated: "octokit.teams.getDiscussionComment() has been renamed to octokit.teams.getDiscussionCommentLegacy() (2020-01-16)",
-      method: "GET",
-      params: {
-        comment_number: {
-          required: true,
-          type: "integer"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/comments/:comment_number"
-    },
-    getDiscussionCommentInOrg: {
-      method: "GET",
-      params: {
-        comment_number: {
-          required: true,
-          type: "integer"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/discussions/:discussion_number/comments/:comment_number"
-    },
-    getDiscussionCommentLegacy: {
-      deprecated: "octokit.teams.getDiscussionCommentLegacy() is deprecated, see https://developer.github.com/v3/teams/discussion_comments/#get-a-single-comment-legacy",
-      method: "GET",
-      params: {
-        comment_number: {
-          required: true,
-          type: "integer"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/comments/:comment_number"
-    },
-    getDiscussionInOrg: {
-      method: "GET",
-      params: {
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/discussions/:discussion_number"
-    },
-    getDiscussionLegacy: {
-      deprecated: "octokit.teams.getDiscussionLegacy() is deprecated, see https://developer.github.com/v3/teams/discussions/#get-a-single-discussion-legacy",
-      method: "GET",
-      params: {
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number"
-    },
-    getLegacy: {
-      deprecated: "octokit.teams.getLegacy() is deprecated, see https://developer.github.com/v3/teams/#get-team-legacy",
-      method: "GET",
-      params: {
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id"
-    },
-    getMember: {
-      deprecated: "octokit.teams.getMember() has been renamed to octokit.teams.getMemberLegacy() (2020-01-16)",
-      method: "GET",
-      params: {
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/members/:username"
-    },
-    getMemberLegacy: {
-      deprecated: "octokit.teams.getMemberLegacy() is deprecated, see https://developer.github.com/v3/teams/members/#get-team-member-legacy",
-      method: "GET",
-      params: {
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/members/:username"
-    },
-    getMembership: {
-      deprecated: "octokit.teams.getMembership() has been renamed to octokit.teams.getMembershipLegacy() (2020-01-16)",
-      method: "GET",
-      params: {
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/memberships/:username"
-    },
-    getMembershipInOrg: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/memberships/:username"
-    },
-    getMembershipLegacy: {
-      deprecated: "octokit.teams.getMembershipLegacy() is deprecated, see https://developer.github.com/v3/teams/members/#get-team-membership-legacy",
-      method: "GET",
-      params: {
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/memberships/:username"
-    },
-    list: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/orgs/:org/teams"
-    },
-    listChild: {
-      deprecated: "octokit.teams.listChild() has been renamed to octokit.teams.listChildLegacy() (2020-01-16)",
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/teams"
-    },
-    listChildInOrg: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/teams"
-    },
-    listChildLegacy: {
-      deprecated: "octokit.teams.listChildLegacy() is deprecated, see https://developer.github.com/v3/teams/#list-child-teams-legacy",
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/teams"
-    },
-    listDiscussionComments: {
-      deprecated: "octokit.teams.listDiscussionComments() has been renamed to octokit.teams.listDiscussionCommentsLegacy() (2020-01-16)",
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/comments"
-    },
-    listDiscussionCommentsInOrg: {
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/discussions/:discussion_number/comments"
-    },
-    listDiscussionCommentsLegacy: {
-      deprecated: "octokit.teams.listDiscussionCommentsLegacy() is deprecated, see https://developer.github.com/v3/teams/discussion_comments/#list-comments-legacy",
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/comments"
-    },
-    listDiscussions: {
-      deprecated: "octokit.teams.listDiscussions() has been renamed to octokit.teams.listDiscussionsLegacy() (2020-01-16)",
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions"
-    },
-    listDiscussionsInOrg: {
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/discussions"
-    },
-    listDiscussionsLegacy: {
-      deprecated: "octokit.teams.listDiscussionsLegacy() is deprecated, see https://developer.github.com/v3/teams/discussions/#list-discussions-legacy",
-      method: "GET",
-      params: {
-        direction: {
-          enum: ["asc", "desc"],
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions"
-    },
-    listForAuthenticatedUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/teams"
-    },
-    listMembers: {
-      deprecated: "octokit.teams.listMembers() has been renamed to octokit.teams.listMembersLegacy() (2020-01-16)",
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        role: {
-          enum: ["member", "maintainer", "all"],
-          type: "string"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/members"
-    },
-    listMembersInOrg: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        role: {
-          enum: ["member", "maintainer", "all"],
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/members"
-    },
-    listMembersLegacy: {
-      deprecated: "octokit.teams.listMembersLegacy() is deprecated, see https://developer.github.com/v3/teams/members/#list-team-members-legacy",
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        role: {
-          enum: ["member", "maintainer", "all"],
-          type: "string"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/members"
-    },
-    listPendingInvitations: {
-      deprecated: "octokit.teams.listPendingInvitations() has been renamed to octokit.teams.listPendingInvitationsLegacy() (2020-01-16)",
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/invitations"
-    },
-    listPendingInvitationsInOrg: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/invitations"
-    },
-    listPendingInvitationsLegacy: {
-      deprecated: "octokit.teams.listPendingInvitationsLegacy() is deprecated, see https://developer.github.com/v3/teams/members/#list-pending-team-invitations-legacy",
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/invitations"
-    },
-    listProjects: {
-      deprecated: "octokit.teams.listProjects() has been renamed to octokit.teams.listProjectsLegacy() (2020-01-16)",
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/projects"
-    },
-    listProjectsInOrg: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/projects"
-    },
-    listProjectsLegacy: {
-      deprecated: "octokit.teams.listProjectsLegacy() is deprecated, see https://developer.github.com/v3/teams/#list-team-projects-legacy",
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/projects"
-    },
-    listRepos: {
-      deprecated: "octokit.teams.listRepos() has been renamed to octokit.teams.listReposLegacy() (2020-01-16)",
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/repos"
-    },
-    listReposInOrg: {
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/repos"
-    },
-    listReposLegacy: {
-      deprecated: "octokit.teams.listReposLegacy() is deprecated, see https://developer.github.com/v3/teams/#list-team-repos-legacy",
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/repos"
-    },
-    removeMember: {
-      deprecated: "octokit.teams.removeMember() has been renamed to octokit.teams.removeMemberLegacy() (2020-01-16)",
-      method: "DELETE",
-      params: {
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/members/:username"
-    },
-    removeMemberLegacy: {
-      deprecated: "octokit.teams.removeMemberLegacy() is deprecated, see https://developer.github.com/v3/teams/members/#remove-team-member-legacy",
-      method: "DELETE",
-      params: {
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/members/:username"
-    },
-    removeMembership: {
-      deprecated: "octokit.teams.removeMembership() has been renamed to octokit.teams.removeMembershipLegacy() (2020-01-16)",
-      method: "DELETE",
-      params: {
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/memberships/:username"
-    },
-    removeMembershipInOrg: {
-      method: "DELETE",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/memberships/:username"
-    },
-    removeMembershipLegacy: {
-      deprecated: "octokit.teams.removeMembershipLegacy() is deprecated, see https://developer.github.com/v3/teams/members/#remove-team-membership-legacy",
-      method: "DELETE",
-      params: {
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/memberships/:username"
-    },
-    removeProject: {
-      deprecated: "octokit.teams.removeProject() has been renamed to octokit.teams.removeProjectLegacy() (2020-01-16)",
-      method: "DELETE",
-      params: {
-        project_id: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/projects/:project_id"
-    },
-    removeProjectInOrg: {
-      method: "DELETE",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        project_id: {
-          required: true,
-          type: "integer"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/projects/:project_id"
-    },
-    removeProjectLegacy: {
-      deprecated: "octokit.teams.removeProjectLegacy() is deprecated, see https://developer.github.com/v3/teams/#remove-team-project-legacy",
-      method: "DELETE",
-      params: {
-        project_id: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/projects/:project_id"
-    },
-    removeRepo: {
-      deprecated: "octokit.teams.removeRepo() has been renamed to octokit.teams.removeRepoLegacy() (2020-01-16)",
-      method: "DELETE",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/repos/:owner/:repo"
-    },
-    removeRepoInOrg: {
-      method: "DELETE",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/repos/:owner/:repo"
-    },
-    removeRepoLegacy: {
-      deprecated: "octokit.teams.removeRepoLegacy() is deprecated, see https://developer.github.com/v3/teams/#remove-team-repository-legacy",
-      method: "DELETE",
-      params: {
-        owner: {
-          required: true,
-          type: "string"
-        },
-        repo: {
-          required: true,
-          type: "string"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/repos/:owner/:repo"
-    },
-    reviewProject: {
-      deprecated: "octokit.teams.reviewProject() has been renamed to octokit.teams.reviewProjectLegacy() (2020-01-16)",
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        project_id: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/projects/:project_id"
-    },
-    reviewProjectInOrg: {
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        org: {
-          required: true,
-          type: "string"
-        },
-        project_id: {
-          required: true,
-          type: "integer"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/projects/:project_id"
-    },
-    reviewProjectLegacy: {
-      deprecated: "octokit.teams.reviewProjectLegacy() is deprecated, see https://developer.github.com/v3/teams/#review-a-team-project-legacy",
-      headers: {
-        accept: "application/vnd.github.inertia-preview+json"
-      },
-      method: "GET",
-      params: {
-        project_id: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/projects/:project_id"
-    },
-    update: {
-      deprecated: "octokit.teams.update() has been renamed to octokit.teams.updateLegacy() (2020-01-16)",
-      method: "PATCH",
-      params: {
-        description: {
-          type: "string"
-        },
-        name: {
-          required: true,
-          type: "string"
-        },
-        parent_team_id: {
-          type: "integer"
-        },
-        permission: {
-          enum: ["pull", "push", "admin"],
-          type: "string"
-        },
-        privacy: {
-          enum: ["secret", "closed"],
-          type: "string"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id"
-    },
-    updateDiscussion: {
-      deprecated: "octokit.teams.updateDiscussion() has been renamed to octokit.teams.updateDiscussionLegacy() (2020-01-16)",
-      method: "PATCH",
-      params: {
-        body: {
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        title: {
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number"
-    },
-    updateDiscussionComment: {
-      deprecated: "octokit.teams.updateDiscussionComment() has been renamed to octokit.teams.updateDiscussionCommentLegacy() (2020-01-16)",
-      method: "PATCH",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        comment_number: {
-          required: true,
-          type: "integer"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/comments/:comment_number"
-    },
-    updateDiscussionCommentInOrg: {
-      method: "PATCH",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        comment_number: {
-          required: true,
-          type: "integer"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/discussions/:discussion_number/comments/:comment_number"
-    },
-    updateDiscussionCommentLegacy: {
-      deprecated: "octokit.teams.updateDiscussionCommentLegacy() is deprecated, see https://developer.github.com/v3/teams/discussion_comments/#edit-a-comment-legacy",
-      method: "PATCH",
-      params: {
-        body: {
-          required: true,
-          type: "string"
-        },
-        comment_number: {
-          required: true,
-          type: "integer"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number/comments/:comment_number"
-    },
-    updateDiscussionInOrg: {
-      method: "PATCH",
-      params: {
-        body: {
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        },
-        title: {
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug/discussions/:discussion_number"
-    },
-    updateDiscussionLegacy: {
-      deprecated: "octokit.teams.updateDiscussionLegacy() is deprecated, see https://developer.github.com/v3/teams/discussions/#edit-a-discussion-legacy",
-      method: "PATCH",
-      params: {
-        body: {
-          type: "string"
-        },
-        discussion_number: {
-          required: true,
-          type: "integer"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        },
-        title: {
-          type: "string"
-        }
-      },
-      url: "/teams/:team_id/discussions/:discussion_number"
-    },
-    updateInOrg: {
-      method: "PATCH",
-      params: {
-        description: {
-          type: "string"
-        },
-        name: {
-          required: true,
-          type: "string"
-        },
-        org: {
-          required: true,
-          type: "string"
-        },
-        parent_team_id: {
-          type: "integer"
-        },
-        permission: {
-          enum: ["pull", "push", "admin"],
-          type: "string"
-        },
-        privacy: {
-          enum: ["secret", "closed"],
-          type: "string"
-        },
-        team_slug: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/orgs/:org/teams/:team_slug"
-    },
-    updateLegacy: {
-      deprecated: "octokit.teams.updateLegacy() is deprecated, see https://developer.github.com/v3/teams/#edit-team-legacy",
-      method: "PATCH",
-      params: {
-        description: {
-          type: "string"
-        },
-        name: {
-          required: true,
-          type: "string"
-        },
-        parent_team_id: {
-          type: "integer"
-        },
-        permission: {
-          enum: ["pull", "push", "admin"],
-          type: "string"
-        },
-        privacy: {
-          enum: ["secret", "closed"],
-          type: "string"
-        },
-        team_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/teams/:team_id"
-    }
-  },
-  users: {
-    addEmails: {
-      method: "POST",
-      params: {
-        emails: {
-          required: true,
-          type: "string[]"
-        }
-      },
-      url: "/user/emails"
-    },
-    block: {
-      method: "PUT",
-      params: {
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/user/blocks/:username"
-    },
-    checkBlocked: {
-      method: "GET",
-      params: {
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/user/blocks/:username"
-    },
-    checkFollowing: {
-      method: "GET",
-      params: {
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/user/following/:username"
-    },
-    checkFollowingForUser: {
-      method: "GET",
-      params: {
-        target_user: {
-          required: true,
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/following/:target_user"
-    },
-    createGpgKey: {
-      method: "POST",
-      params: {
-        armored_public_key: {
-          type: "string"
-        }
-      },
-      url: "/user/gpg_keys"
-    },
-    createPublicKey: {
-      method: "POST",
-      params: {
-        key: {
-          type: "string"
-        },
-        title: {
-          type: "string"
-        }
-      },
-      url: "/user/keys"
-    },
-    deleteEmails: {
-      method: "DELETE",
-      params: {
-        emails: {
-          required: true,
-          type: "string[]"
-        }
-      },
-      url: "/user/emails"
-    },
-    deleteGpgKey: {
-      method: "DELETE",
-      params: {
-        gpg_key_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/user/gpg_keys/:gpg_key_id"
-    },
-    deletePublicKey: {
-      method: "DELETE",
-      params: {
-        key_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/user/keys/:key_id"
-    },
-    follow: {
-      method: "PUT",
-      params: {
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/user/following/:username"
-    },
-    getAuthenticated: {
-      method: "GET",
-      params: {},
-      url: "/user"
-    },
-    getByUsername: {
-      method: "GET",
-      params: {
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username"
-    },
-    getContextForUser: {
-      method: "GET",
-      params: {
-        subject_id: {
-          type: "string"
-        },
-        subject_type: {
-          enum: ["organization", "repository", "issue", "pull_request"],
-          type: "string"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/hovercard"
-    },
-    getGpgKey: {
-      method: "GET",
-      params: {
-        gpg_key_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/user/gpg_keys/:gpg_key_id"
-    },
-    getPublicKey: {
-      method: "GET",
-      params: {
-        key_id: {
-          required: true,
-          type: "integer"
-        }
-      },
-      url: "/user/keys/:key_id"
-    },
-    list: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        since: {
-          type: "string"
-        }
-      },
-      url: "/users"
-    },
-    listBlocked: {
-      method: "GET",
-      params: {},
-      url: "/user/blocks"
-    },
-    listEmails: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/emails"
-    },
-    listFollowersForAuthenticatedUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/followers"
-    },
-    listFollowersForUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/followers"
-    },
-    listFollowingForAuthenticatedUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/following"
-    },
-    listFollowingForUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/following"
-    },
-    listGpgKeys: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/gpg_keys"
-    },
-    listGpgKeysForUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/gpg_keys"
-    },
-    listPublicEmails: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/public_emails"
-    },
-    listPublicKeys: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        }
-      },
-      url: "/user/keys"
-    },
-    listPublicKeysForUser: {
-      method: "GET",
-      params: {
-        page: {
-          type: "integer"
-        },
-        per_page: {
-          type: "integer"
-        },
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/users/:username/keys"
-    },
-    togglePrimaryEmailVisibility: {
-      method: "PATCH",
-      params: {
-        email: {
-          required: true,
-          type: "string"
-        },
-        visibility: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/user/email/visibility"
-    },
-    unblock: {
-      method: "DELETE",
-      params: {
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/user/blocks/:username"
-    },
-    unfollow: {
-      method: "DELETE",
-      params: {
-        username: {
-          required: true,
-          type: "string"
-        }
-      },
-      url: "/user/following/:username"
-    },
-    updateAuthenticated: {
-      method: "PATCH",
-      params: {
-        bio: {
-          type: "string"
-        },
-        blog: {
-          type: "string"
-        },
-        company: {
-          type: "string"
-        },
-        email: {
-          type: "string"
-        },
-        hireable: {
-          type: "boolean"
-        },
-        location: {
-          type: "string"
-        },
-        name: {
-          type: "string"
-        }
-      },
-      url: "/user"
-    }
-  }
-};
-
-const VERSION = "2.4.0";
-
-function registerEndpoints(octokit, routes) {
-  Object.keys(routes).forEach(namespaceName => {
-    if (!octokit[namespaceName]) {
-      octokit[namespaceName] = {};
-    }
-
-    Object.keys(routes[namespaceName]).forEach(apiName => {
-      const apiOptions = routes[namespaceName][apiName];
-      const endpointDefaults = ["method", "url", "headers"].reduce((map, key) => {
-        if (typeof apiOptions[key] !== "undefined") {
-          map[key] = apiOptions[key];
-        }
-
-        return map;
-      }, {});
-      endpointDefaults.request = {
-        validate: apiOptions.params
-      };
-      let request = octokit.request.defaults(endpointDefaults); // patch request & endpoint methods to support deprecated parameters.
-      // Not the most elegant solution, but we don’t want to move deprecation
-      // logic into octokit/endpoint.js as it’s out of scope
-
-      const hasDeprecatedParam = Object.keys(apiOptions.params || {}).find(key => apiOptions.params[key].deprecated);
-
-      if (hasDeprecatedParam) {
-        const patch = patchForDeprecation.bind(null, octokit, apiOptions);
-        request = patch(octokit.request.defaults(endpointDefaults), `.${namespaceName}.${apiName}()`);
-        request.endpoint = patch(request.endpoint, `.${namespaceName}.${apiName}.endpoint()`);
-        request.endpoint.merge = patch(request.endpoint.merge, `.${namespaceName}.${apiName}.endpoint.merge()`);
-      }
-
-      if (apiOptions.deprecated) {
-        octokit[namespaceName][apiName] = Object.assign(function deprecatedEndpointMethod() {
-          octokit.log.warn(new deprecation.Deprecation(`[@octokit/rest] ${apiOptions.deprecated}`));
-          octokit[namespaceName][apiName] = request;
-          return request.apply(null, arguments);
-        }, request);
-        return;
-      }
-
-      octokit[namespaceName][apiName] = request;
-    });
-  });
-}
-
-function patchForDeprecation(octokit, apiOptions, method, methodName) {
-  const patchedMethod = options => {
-    options = Object.assign({}, options);
-    Object.keys(options).forEach(key => {
-      if (apiOptions.params[key] && apiOptions.params[key].deprecated) {
-        const aliasKey = apiOptions.params[key].alias;
-        octokit.log.warn(new deprecation.Deprecation(`[@octokit/rest] "${key}" parameter is deprecated for "${methodName}". Use "${aliasKey}" instead`));
-
-        if (!(aliasKey in options)) {
-          options[aliasKey] = options[key];
-        }
-
-        delete options[key];
-      }
-    });
-    return method(options);
-  };
-
-  Object.keys(method).forEach(key => {
-    patchedMethod[key] = method[key];
-  });
-  return patchedMethod;
-}
-
-/**
- * This plugin is a 1:1 copy of internal @octokit/rest plugins. The primary
- * goal is to rebuild @octokit/rest on top of @octokit/core. Once that is
- * done, we will remove the registerEndpoints methods and return the methods
- * directly as with the other plugins. At that point we will also remove the
- * legacy workarounds and deprecations.
- *
- * See the plan at
- * https://github.com/octokit/plugin-rest-endpoint-methods.js/pull/1
- */
-
-function restEndpointMethods(octokit) {
-  // @ts-ignore
-  octokit.registerEndpoints = registerEndpoints.bind(null, octokit);
-  registerEndpoints(octokit, endpointsByScope); // Aliasing scopes for backward compatibility
-  // See https://github.com/octokit/rest.js/pull/1134
-
-  [["gitdata", "git"], ["authorization", "oauthAuthorizations"], ["pullRequests", "pulls"]].forEach(([deprecatedScope, scope]) => {
-    Object.defineProperty(octokit, deprecatedScope, {
-      get() {
-        octokit.log.warn( // @ts-ignore
-        new deprecation.Deprecation(`[@octokit/plugin-rest-endpoint-methods] "octokit.${deprecatedScope}.*" methods are deprecated, use "octokit.${scope}.*" instead`)); // @ts-ignore
-
-        return octokit[scope];
-      }
-
-    });
-  });
-  return {};
-}
-restEndpointMethods.VERSION = VERSION;
-
-exports.restEndpointMethods = restEndpointMethods;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-/* 843 */,
-/* 844 */,
-/* 845 */,
-/* 846 */,
-/* 847 */,
-/* 848 */,
-/* 849 */,
-/* 850 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-module.exports = paginationMethodsPlugin
-
-function paginationMethodsPlugin (octokit) {
-  octokit.getFirstPage = __webpack_require__(777).bind(null, octokit)
-  octokit.getLastPage = __webpack_require__(649).bind(null, octokit)
-  octokit.getNextPage = __webpack_require__(550).bind(null, octokit)
-  octokit.getPreviousPage = __webpack_require__(563).bind(null, octokit)
-  octokit.hasFirstPage = __webpack_require__(536)
-  octokit.hasLastPage = __webpack_require__(336)
-  octokit.hasNextPage = __webpack_require__(929)
-  octokit.hasPreviousPage = __webpack_require__(558)
-}
-
-
-/***/ }),
-/* 851 */,
-/* 852 */,
-/* 853 */,
-/* 854 */
-/***/ (function(module) {
-
-/**
- * lodash (Custom Build) <https://lodash.com/>
- * Build: `lodash modularize exports="npm" -o ./`
- * Copyright jQuery Foundation and other contributors <https://jquery.org/>
- * Released under MIT license <https://lodash.com/license>
- * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
- * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- */
-
-/** Used as the `TypeError` message for "Functions" methods. */
-var FUNC_ERROR_TEXT = 'Expected a function';
-
-/** Used to stand-in for `undefined` hash values. */
-var HASH_UNDEFINED = '__lodash_hash_undefined__';
-
-/** Used as references for various `Number` constants. */
-var INFINITY = 1 / 0;
-
-/** `Object#toString` result references. */
-var funcTag = '[object Function]',
-    genTag = '[object GeneratorFunction]',
-    symbolTag = '[object Symbol]';
-
-/** Used to match property names within property paths. */
-var reIsDeepProp = /\.|\[(?:[^[\]]*|(["'])(?:(?!\1)[^\\]|\\.)*?\1)\]/,
-    reIsPlainProp = /^\w*$/,
-    reLeadingDot = /^\./,
-    rePropName = /[^.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|$))/g;
-
-/**
- * Used to match `RegExp`
- * [syntax characters](http://ecma-international.org/ecma-262/7.0/#sec-patterns).
- */
-var reRegExpChar = /[\\^$.*+?()[\]{}|]/g;
-
-/** Used to match backslashes in property paths. */
-var reEscapeChar = /\\(\\)?/g;
-
-/** Used to detect host constructors (Safari). */
-var reIsHostCtor = /^\[object .+?Constructor\]$/;
-
-/** Detect free variable `global` from Node.js. */
-var freeGlobal = typeof global == 'object' && global && global.Object === Object && global;
-
-/** Detect free variable `self`. */
-var freeSelf = typeof self == 'object' && self && self.Object === Object && self;
-
-/** Used as a reference to the global object. */
-var root = freeGlobal || freeSelf || Function('return this')();
-
-/**
- * Gets the value at `key` of `object`.
- *
- * @private
- * @param {Object} [object] The object to query.
- * @param {string} key The key of the property to get.
- * @returns {*} Returns the property value.
- */
-function getValue(object, key) {
-  return object == null ? undefined : object[key];
-}
-
-/**
- * Checks if `value` is a host object in IE < 9.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a host object, else `false`.
- */
-function isHostObject(value) {
-  // Many host objects are `Object` objects that can coerce to strings
-  // despite having improperly defined `toString` methods.
-  var result = false;
-  if (value != null && typeof value.toString != 'function') {
-    try {
-      result = !!(value + '');
-    } catch (e) {}
-  }
-  return result;
-}
-
-/** Used for built-in method references. */
-var arrayProto = Array.prototype,
-    funcProto = Function.prototype,
-    objectProto = Object.prototype;
-
-/** Used to detect overreaching core-js shims. */
-var coreJsData = root['__core-js_shared__'];
-
-/** Used to detect methods masquerading as native. */
-var maskSrcKey = (function() {
-  var uid = /[^.]+$/.exec(coreJsData && coreJsData.keys && coreJsData.keys.IE_PROTO || '');
-  return uid ? ('Symbol(src)_1.' + uid) : '';
-}());
-
-/** Used to resolve the decompiled source of functions. */
-var funcToString = funcProto.toString;
-
-/** Used to check objects for own properties. */
-var hasOwnProperty = objectProto.hasOwnProperty;
-
-/**
- * Used to resolve the
- * [`toStringTag`](http://ecma-international.org/ecma-262/7.0/#sec-object.prototype.tostring)
- * of values.
- */
-var objectToString = objectProto.toString;
-
-/** Used to detect if a method is native. */
-var reIsNative = RegExp('^' +
-  funcToString.call(hasOwnProperty).replace(reRegExpChar, '\\$&')
-  .replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$'
-);
-
-/** Built-in value references. */
-var Symbol = root.Symbol,
-    splice = arrayProto.splice;
-
-/* Built-in method references that are verified to be native. */
-var Map = getNative(root, 'Map'),
-    nativeCreate = getNative(Object, 'create');
-
-/** Used to convert symbols to primitives and strings. */
-var symbolProto = Symbol ? Symbol.prototype : undefined,
-    symbolToString = symbolProto ? symbolProto.toString : undefined;
-
-/**
- * Creates a hash object.
- *
- * @private
- * @constructor
- * @param {Array} [entries] The key-value pairs to cache.
- */
-function Hash(entries) {
-  var index = -1,
-      length = entries ? entries.length : 0;
-
-  this.clear();
-  while (++index < length) {
-    var entry = entries[index];
-    this.set(entry[0], entry[1]);
-  }
-}
-
-/**
- * Removes all key-value entries from the hash.
- *
- * @private
- * @name clear
- * @memberOf Hash
- */
-function hashClear() {
-  this.__data__ = nativeCreate ? nativeCreate(null) : {};
-}
-
-/**
- * Removes `key` and its value from the hash.
- *
- * @private
- * @name delete
- * @memberOf Hash
- * @param {Object} hash The hash to modify.
- * @param {string} key The key of the value to remove.
- * @returns {boolean} Returns `true` if the entry was removed, else `false`.
- */
-function hashDelete(key) {
-  return this.has(key) && delete this.__data__[key];
-}
-
-/**
- * Gets the hash value for `key`.
- *
- * @private
- * @name get
- * @memberOf Hash
- * @param {string} key The key of the value to get.
- * @returns {*} Returns the entry value.
- */
-function hashGet(key) {
-  var data = this.__data__;
-  if (nativeCreate) {
-    var result = data[key];
-    return result === HASH_UNDEFINED ? undefined : result;
-  }
-  return hasOwnProperty.call(data, key) ? data[key] : undefined;
-}
-
-/**
- * Checks if a hash value for `key` exists.
- *
- * @private
- * @name has
- * @memberOf Hash
- * @param {string} key The key of the entry to check.
- * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
- */
-function hashHas(key) {
-  var data = this.__data__;
-  return nativeCreate ? data[key] !== undefined : hasOwnProperty.call(data, key);
-}
-
-/**
- * Sets the hash `key` to `value`.
- *
- * @private
- * @name set
- * @memberOf Hash
- * @param {string} key The key of the value to set.
- * @param {*} value The value to set.
- * @returns {Object} Returns the hash instance.
- */
-function hashSet(key, value) {
-  var data = this.__data__;
-  data[key] = (nativeCreate && value === undefined) ? HASH_UNDEFINED : value;
-  return this;
-}
-
-// Add methods to `Hash`.
-Hash.prototype.clear = hashClear;
-Hash.prototype['delete'] = hashDelete;
-Hash.prototype.get = hashGet;
-Hash.prototype.has = hashHas;
-Hash.prototype.set = hashSet;
-
-/**
- * Creates an list cache object.
- *
- * @private
- * @constructor
- * @param {Array} [entries] The key-value pairs to cache.
- */
-function ListCache(entries) {
-  var index = -1,
-      length = entries ? entries.length : 0;
-
-  this.clear();
-  while (++index < length) {
-    var entry = entries[index];
-    this.set(entry[0], entry[1]);
-  }
-}
-
-/**
- * Removes all key-value entries from the list cache.
- *
- * @private
- * @name clear
- * @memberOf ListCache
- */
-function listCacheClear() {
-  this.__data__ = [];
-}
-
-/**
- * Removes `key` and its value from the list cache.
- *
- * @private
- * @name delete
- * @memberOf ListCache
- * @param {string} key The key of the value to remove.
- * @returns {boolean} Returns `true` if the entry was removed, else `false`.
- */
-function listCacheDelete(key) {
-  var data = this.__data__,
-      index = assocIndexOf(data, key);
-
-  if (index < 0) {
-    return false;
-  }
-  var lastIndex = data.length - 1;
-  if (index == lastIndex) {
-    data.pop();
-  } else {
-    splice.call(data, index, 1);
-  }
-  return true;
-}
-
-/**
- * Gets the list cache value for `key`.
- *
- * @private
- * @name get
- * @memberOf ListCache
- * @param {string} key The key of the value to get.
- * @returns {*} Returns the entry value.
- */
-function listCacheGet(key) {
-  var data = this.__data__,
-      index = assocIndexOf(data, key);
-
-  return index < 0 ? undefined : data[index][1];
-}
-
-/**
- * Checks if a list cache value for `key` exists.
- *
- * @private
- * @name has
- * @memberOf ListCache
- * @param {string} key The key of the entry to check.
- * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
- */
-function listCacheHas(key) {
-  return assocIndexOf(this.__data__, key) > -1;
-}
-
-/**
- * Sets the list cache `key` to `value`.
- *
- * @private
- * @name set
- * @memberOf ListCache
- * @param {string} key The key of the value to set.
- * @param {*} value The value to set.
- * @returns {Object} Returns the list cache instance.
- */
-function listCacheSet(key, value) {
-  var data = this.__data__,
-      index = assocIndexOf(data, key);
-
-  if (index < 0) {
-    data.push([key, value]);
-  } else {
-    data[index][1] = value;
-  }
-  return this;
-}
-
-// Add methods to `ListCache`.
-ListCache.prototype.clear = listCacheClear;
-ListCache.prototype['delete'] = listCacheDelete;
-ListCache.prototype.get = listCacheGet;
-ListCache.prototype.has = listCacheHas;
-ListCache.prototype.set = listCacheSet;
-
-/**
- * Creates a map cache object to store key-value pairs.
- *
- * @private
- * @constructor
- * @param {Array} [entries] The key-value pairs to cache.
- */
-function MapCache(entries) {
-  var index = -1,
-      length = entries ? entries.length : 0;
-
-  this.clear();
-  while (++index < length) {
-    var entry = entries[index];
-    this.set(entry[0], entry[1]);
-  }
-}
-
-/**
- * Removes all key-value entries from the map.
- *
- * @private
- * @name clear
- * @memberOf MapCache
- */
-function mapCacheClear() {
-  this.__data__ = {
-    'hash': new Hash,
-    'map': new (Map || ListCache),
-    'string': new Hash
-  };
-}
-
-/**
- * Removes `key` and its value from the map.
- *
- * @private
- * @name delete
- * @memberOf MapCache
- * @param {string} key The key of the value to remove.
- * @returns {boolean} Returns `true` if the entry was removed, else `false`.
- */
-function mapCacheDelete(key) {
-  return getMapData(this, key)['delete'](key);
-}
-
-/**
- * Gets the map value for `key`.
- *
- * @private
- * @name get
- * @memberOf MapCache
- * @param {string} key The key of the value to get.
- * @returns {*} Returns the entry value.
- */
-function mapCacheGet(key) {
-  return getMapData(this, key).get(key);
-}
-
-/**
- * Checks if a map value for `key` exists.
- *
- * @private
- * @name has
- * @memberOf MapCache
- * @param {string} key The key of the entry to check.
- * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
- */
-function mapCacheHas(key) {
-  return getMapData(this, key).has(key);
-}
-
-/**
- * Sets the map `key` to `value`.
- *
- * @private
- * @name set
- * @memberOf MapCache
- * @param {string} key The key of the value to set.
- * @param {*} value The value to set.
- * @returns {Object} Returns the map cache instance.
- */
-function mapCacheSet(key, value) {
-  getMapData(this, key).set(key, value);
-  return this;
-}
-
-// Add methods to `MapCache`.
-MapCache.prototype.clear = mapCacheClear;
-MapCache.prototype['delete'] = mapCacheDelete;
-MapCache.prototype.get = mapCacheGet;
-MapCache.prototype.has = mapCacheHas;
-MapCache.prototype.set = mapCacheSet;
-
-/**
- * Gets the index at which the `key` is found in `array` of key-value pairs.
- *
- * @private
- * @param {Array} array The array to inspect.
- * @param {*} key The key to search for.
- * @returns {number} Returns the index of the matched value, else `-1`.
- */
-function assocIndexOf(array, key) {
-  var length = array.length;
-  while (length--) {
-    if (eq(array[length][0], key)) {
-      return length;
-    }
-  }
-  return -1;
-}
-
-/**
- * The base implementation of `_.get` without support for default values.
- *
- * @private
- * @param {Object} object The object to query.
- * @param {Array|string} path The path of the property to get.
- * @returns {*} Returns the resolved value.
- */
-function baseGet(object, path) {
-  path = isKey(path, object) ? [path] : castPath(path);
-
-  var index = 0,
-      length = path.length;
-
-  while (object != null && index < length) {
-    object = object[toKey(path[index++])];
-  }
-  return (index && index == length) ? object : undefined;
-}
-
-/**
- * The base implementation of `_.isNative` without bad shim checks.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a native function,
- *  else `false`.
- */
-function baseIsNative(value) {
-  if (!isObject(value) || isMasked(value)) {
-    return false;
-  }
-  var pattern = (isFunction(value) || isHostObject(value)) ? reIsNative : reIsHostCtor;
-  return pattern.test(toSource(value));
-}
-
-/**
- * The base implementation of `_.toString` which doesn't convert nullish
- * values to empty strings.
- *
- * @private
- * @param {*} value The value to process.
- * @returns {string} Returns the string.
- */
-function baseToString(value) {
-  // Exit early for strings to avoid a performance hit in some environments.
-  if (typeof value == 'string') {
-    return value;
-  }
-  if (isSymbol(value)) {
-    return symbolToString ? symbolToString.call(value) : '';
-  }
-  var result = (value + '');
-  return (result == '0' && (1 / value) == -INFINITY) ? '-0' : result;
-}
-
-/**
- * Casts `value` to a path array if it's not one.
- *
- * @private
- * @param {*} value The value to inspect.
- * @returns {Array} Returns the cast property path array.
- */
-function castPath(value) {
-  return isArray(value) ? value : stringToPath(value);
-}
-
-/**
- * Gets the data for `map`.
- *
- * @private
- * @param {Object} map The map to query.
- * @param {string} key The reference key.
- * @returns {*} Returns the map data.
- */
-function getMapData(map, key) {
-  var data = map.__data__;
-  return isKeyable(key)
-    ? data[typeof key == 'string' ? 'string' : 'hash']
-    : data.map;
-}
-
-/**
- * Gets the native function at `key` of `object`.
- *
- * @private
- * @param {Object} object The object to query.
- * @param {string} key The key of the method to get.
- * @returns {*} Returns the function if it's native, else `undefined`.
- */
-function getNative(object, key) {
-  var value = getValue(object, key);
-  return baseIsNative(value) ? value : undefined;
-}
-
-/**
- * Checks if `value` is a property name and not a property path.
- *
- * @private
- * @param {*} value The value to check.
- * @param {Object} [object] The object to query keys on.
- * @returns {boolean} Returns `true` if `value` is a property name, else `false`.
- */
-function isKey(value, object) {
-  if (isArray(value)) {
-    return false;
-  }
-  var type = typeof value;
-  if (type == 'number' || type == 'symbol' || type == 'boolean' ||
-      value == null || isSymbol(value)) {
-    return true;
-  }
-  return reIsPlainProp.test(value) || !reIsDeepProp.test(value) ||
-    (object != null && value in Object(object));
-}
-
-/**
- * Checks if `value` is suitable for use as unique object key.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is suitable, else `false`.
- */
-function isKeyable(value) {
-  var type = typeof value;
-  return (type == 'string' || type == 'number' || type == 'symbol' || type == 'boolean')
-    ? (value !== '__proto__')
-    : (value === null);
-}
-
-/**
- * Checks if `func` has its source masked.
- *
- * @private
- * @param {Function} func The function to check.
- * @returns {boolean} Returns `true` if `func` is masked, else `false`.
- */
-function isMasked(func) {
-  return !!maskSrcKey && (maskSrcKey in func);
-}
-
-/**
- * Converts `string` to a property path array.
- *
- * @private
- * @param {string} string The string to convert.
- * @returns {Array} Returns the property path array.
- */
-var stringToPath = memoize(function(string) {
-  string = toString(string);
-
-  var result = [];
-  if (reLeadingDot.test(string)) {
-    result.push('');
-  }
-  string.replace(rePropName, function(match, number, quote, string) {
-    result.push(quote ? string.replace(reEscapeChar, '$1') : (number || match));
-  });
-  return result;
-});
-
-/**
- * Converts `value` to a string key if it's not a string or symbol.
- *
- * @private
- * @param {*} value The value to inspect.
- * @returns {string|symbol} Returns the key.
- */
-function toKey(value) {
-  if (typeof value == 'string' || isSymbol(value)) {
-    return value;
-  }
-  var result = (value + '');
-  return (result == '0' && (1 / value) == -INFINITY) ? '-0' : result;
-}
-
-/**
- * Converts `func` to its source code.
- *
- * @private
- * @param {Function} func The function to process.
- * @returns {string} Returns the source code.
- */
-function toSource(func) {
-  if (func != null) {
-    try {
-      return funcToString.call(func);
-    } catch (e) {}
-    try {
-      return (func + '');
-    } catch (e) {}
-  }
-  return '';
-}
-
-/**
- * Creates a function that memoizes the result of `func`. If `resolver` is
- * provided, it determines the cache key for storing the result based on the
- * arguments provided to the memoized function. By default, the first argument
- * provided to the memoized function is used as the map cache key. The `func`
- * is invoked with the `this` binding of the memoized function.
- *
- * **Note:** The cache is exposed as the `cache` property on the memoized
- * function. Its creation may be customized by replacing the `_.memoize.Cache`
- * constructor with one whose instances implement the
- * [`Map`](http://ecma-international.org/ecma-262/7.0/#sec-properties-of-the-map-prototype-object)
- * method interface of `delete`, `get`, `has`, and `set`.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Function
- * @param {Function} func The function to have its output memoized.
- * @param {Function} [resolver] The function to resolve the cache key.
- * @returns {Function} Returns the new memoized function.
- * @example
- *
- * var object = { 'a': 1, 'b': 2 };
- * var other = { 'c': 3, 'd': 4 };
- *
- * var values = _.memoize(_.values);
- * values(object);
- * // => [1, 2]
- *
- * values(other);
- * // => [3, 4]
- *
- * object.a = 2;
- * values(object);
- * // => [1, 2]
- *
- * // Modify the result cache.
- * values.cache.set(object, ['a', 'b']);
- * values(object);
- * // => ['a', 'b']
- *
- * // Replace `_.memoize.Cache`.
- * _.memoize.Cache = WeakMap;
- */
-function memoize(func, resolver) {
-  if (typeof func != 'function' || (resolver && typeof resolver != 'function')) {
-    throw new TypeError(FUNC_ERROR_TEXT);
-  }
-  var memoized = function() {
-    var args = arguments,
-        key = resolver ? resolver.apply(this, args) : args[0],
-        cache = memoized.cache;
-
-    if (cache.has(key)) {
-      return cache.get(key);
-    }
-    var result = func.apply(this, args);
-    memoized.cache = cache.set(key, result);
-    return result;
-  };
-  memoized.cache = new (memoize.Cache || MapCache);
-  return memoized;
-}
-
-// Assign cache to `_.memoize`.
-memoize.Cache = MapCache;
-
-/**
- * Performs a
- * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
- * comparison between two values to determine if they are equivalent.
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to compare.
- * @param {*} other The other value to compare.
- * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
- * @example
- *
- * var object = { 'a': 1 };
- * var other = { 'a': 1 };
- *
- * _.eq(object, object);
- * // => true
- *
- * _.eq(object, other);
- * // => false
- *
- * _.eq('a', 'a');
- * // => true
- *
- * _.eq('a', Object('a'));
- * // => false
- *
- * _.eq(NaN, NaN);
- * // => true
- */
-function eq(value, other) {
-  return value === other || (value !== value && other !== other);
-}
-
-/**
- * Checks if `value` is classified as an `Array` object.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is an array, else `false`.
- * @example
- *
- * _.isArray([1, 2, 3]);
- * // => true
- *
- * _.isArray(document.body.children);
- * // => false
- *
- * _.isArray('abc');
- * // => false
- *
- * _.isArray(_.noop);
- * // => false
- */
-var isArray = Array.isArray;
-
-/**
- * Checks if `value` is classified as a `Function` object.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a function, else `false`.
- * @example
- *
- * _.isFunction(_);
- * // => true
- *
- * _.isFunction(/abc/);
- * // => false
- */
-function isFunction(value) {
-  // The use of `Object#toString` avoids issues with the `typeof` operator
-  // in Safari 8-9 which returns 'object' for typed array and other constructors.
-  var tag = isObject(value) ? objectToString.call(value) : '';
-  return tag == funcTag || tag == genTag;
-}
-
-/**
- * Checks if `value` is the
- * [language type](http://www.ecma-international.org/ecma-262/7.0/#sec-ecmascript-language-types)
- * of `Object`. (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is an object, else `false`.
- * @example
- *
- * _.isObject({});
- * // => true
- *
- * _.isObject([1, 2, 3]);
- * // => true
- *
- * _.isObject(_.noop);
- * // => true
- *
- * _.isObject(null);
- * // => false
- */
-function isObject(value) {
-  var type = typeof value;
-  return !!value && (type == 'object' || type == 'function');
-}
-
-/**
- * Checks if `value` is object-like. A value is object-like if it's not `null`
- * and has a `typeof` result of "object".
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
- * @example
- *
- * _.isObjectLike({});
- * // => true
- *
- * _.isObjectLike([1, 2, 3]);
- * // => true
- *
- * _.isObjectLike(_.noop);
- * // => false
- *
- * _.isObjectLike(null);
- * // => false
- */
-function isObjectLike(value) {
-  return !!value && typeof value == 'object';
-}
-
-/**
- * Checks if `value` is classified as a `Symbol` primitive or object.
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a symbol, else `false`.
- * @example
- *
- * _.isSymbol(Symbol.iterator);
- * // => true
- *
- * _.isSymbol('abc');
- * // => false
- */
-function isSymbol(value) {
-  return typeof value == 'symbol' ||
-    (isObjectLike(value) && objectToString.call(value) == symbolTag);
-}
-
-/**
- * Converts `value` to a string. An empty string is returned for `null`
- * and `undefined` values. The sign of `-0` is preserved.
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to process.
- * @returns {string} Returns the string.
- * @example
- *
- * _.toString(null);
- * // => ''
- *
- * _.toString(-0);
- * // => '-0'
- *
- * _.toString([1, 2, 3]);
- * // => '1,2,3'
- */
-function toString(value) {
-  return value == null ? '' : baseToString(value);
-}
-
-/**
- * Gets the value at `path` of `object`. If the resolved value is
- * `undefined`, the `defaultValue` is returned in its place.
- *
- * @static
- * @memberOf _
- * @since 3.7.0
- * @category Object
- * @param {Object} object The object to query.
- * @param {Array|string} path The path of the property to get.
- * @param {*} [defaultValue] The value returned for `undefined` resolved values.
- * @returns {*} Returns the resolved value.
- * @example
- *
- * var object = { 'a': [{ 'b': { 'c': 3 } }] };
- *
- * _.get(object, 'a[0].b.c');
- * // => 3
- *
- * _.get(object, ['a', '0', 'b', 'c']);
- * // => 3
- *
- * _.get(object, 'a.b.c', 'default');
- * // => 'default'
- */
-function get(object, path, defaultValue) {
-  var result = object == null ? undefined : baseGet(object, path);
-  return result === undefined ? defaultValue : result;
-}
-
-module.exports = get;
-
-
-/***/ }),
-/* 855 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-module.exports = registerPlugin;
-
-const factory = __webpack_require__(47);
-
-function registerPlugin(plugins, pluginFunction) {
-  return factory(
-    plugins.includes(pluginFunction) ? plugins : plugins.concat(pluginFunction)
-  );
-}
-
-
-/***/ }),
-/* 856 */
+/***/ 856:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 module.exports = __webpack_require__(141);
 
 
 /***/ }),
-/* 857 */,
-/* 858 */,
-/* 859 */,
-/* 860 */,
-/* 861 */
+
+/***/ 861:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -33447,69 +16142,8 @@ module.exports = response => {
 
 
 /***/ }),
-/* 862 */,
-/* 863 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = authenticationBeforeRequest;
-
-const btoa = __webpack_require__(397);
-
-const withAuthorizationPrefix = __webpack_require__(143);
-
-function authenticationBeforeRequest(state, options) {
-  if (typeof state.auth === "string") {
-    options.headers.authorization = withAuthorizationPrefix(state.auth);
-    return;
-  }
-
-  if (state.auth.username) {
-    const hash = btoa(`${state.auth.username}:${state.auth.password}`);
-    options.headers.authorization = `Basic ${hash}`;
-    if (state.otp) {
-      options.headers["x-github-otp"] = state.otp;
-    }
-    return;
-  }
-
-  if (state.auth.clientId) {
-    // There is a special case for OAuth applications, when `clientId` and `clientSecret` is passed as
-    // Basic Authorization instead of query parameters. The only routes where that applies share the same
-    // URL though: `/applications/:client_id/tokens/:access_token`.
-    //
-    //  1. [Check an authorization](https://developer.github.com/v3/oauth_authorizations/#check-an-authorization)
-    //  2. [Reset an authorization](https://developer.github.com/v3/oauth_authorizations/#reset-an-authorization)
-    //  3. [Revoke an authorization for an application](https://developer.github.com/v3/oauth_authorizations/#revoke-an-authorization-for-an-application)
-    //
-    // We identify by checking the URL. It must merge both "/applications/:client_id/tokens/:access_token"
-    // as well as "/applications/123/tokens/token456"
-    if (/\/applications\/:?[\w_]+\/tokens\/:?[\w_]+($|\?)/.test(options.url)) {
-      const hash = btoa(`${state.auth.clientId}:${state.auth.clientSecret}`);
-      options.headers.authorization = `Basic ${hash}`;
-      return;
-    }
-
-    options.url += options.url.indexOf("?") === -1 ? "?" : "&";
-    options.url += `client_id=${state.auth.clientId}&client_secret=${state.auth.clientSecret}`;
-    return;
-  }
-
-  return Promise.resolve()
-
-    .then(() => {
-      return state.auth();
-    })
-
-    .then(authorization => {
-      options.headers.authorization = withAuthorizationPrefix(authorization);
-    });
-}
-
-
-/***/ }),
-/* 864 */,
-/* 865 */,
-/* 866 */
+/***/ 866:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -33535,1024 +16169,15 @@ module.exports = function (str) {
 
 
 /***/ }),
-/* 867 */,
-/* 868 */,
-/* 869 */,
-/* 870 */,
-/* 871 */,
-/* 872 */,
-/* 873 */,
-/* 874 */,
-/* 875 */,
-/* 876 */,
-/* 877 */,
-/* 878 */,
-/* 879 */,
-/* 880 */,
-/* 881 */
+
+/***/ 881:
 /***/ (function(module) {
 
 module.exports = require("dns");
 
 /***/ }),
-/* 882 */,
-/* 883 */
-/***/ (function(module) {
 
-/**
- * lodash (Custom Build) <https://lodash.com/>
- * Build: `lodash modularize exports="npm" -o ./`
- * Copyright jQuery Foundation and other contributors <https://jquery.org/>
- * Released under MIT license <https://lodash.com/license>
- * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
- * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- */
-
-/** Used as the `TypeError` message for "Functions" methods. */
-var FUNC_ERROR_TEXT = 'Expected a function';
-
-/** Used to stand-in for `undefined` hash values. */
-var HASH_UNDEFINED = '__lodash_hash_undefined__';
-
-/** Used as references for various `Number` constants. */
-var INFINITY = 1 / 0,
-    MAX_SAFE_INTEGER = 9007199254740991;
-
-/** `Object#toString` result references. */
-var funcTag = '[object Function]',
-    genTag = '[object GeneratorFunction]',
-    symbolTag = '[object Symbol]';
-
-/** Used to match property names within property paths. */
-var reIsDeepProp = /\.|\[(?:[^[\]]*|(["'])(?:(?!\1)[^\\]|\\.)*?\1)\]/,
-    reIsPlainProp = /^\w*$/,
-    reLeadingDot = /^\./,
-    rePropName = /[^.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|$))/g;
-
-/**
- * Used to match `RegExp`
- * [syntax characters](http://ecma-international.org/ecma-262/7.0/#sec-patterns).
- */
-var reRegExpChar = /[\\^$.*+?()[\]{}|]/g;
-
-/** Used to match backslashes in property paths. */
-var reEscapeChar = /\\(\\)?/g;
-
-/** Used to detect host constructors (Safari). */
-var reIsHostCtor = /^\[object .+?Constructor\]$/;
-
-/** Used to detect unsigned integer values. */
-var reIsUint = /^(?:0|[1-9]\d*)$/;
-
-/** Detect free variable `global` from Node.js. */
-var freeGlobal = typeof global == 'object' && global && global.Object === Object && global;
-
-/** Detect free variable `self`. */
-var freeSelf = typeof self == 'object' && self && self.Object === Object && self;
-
-/** Used as a reference to the global object. */
-var root = freeGlobal || freeSelf || Function('return this')();
-
-/**
- * Gets the value at `key` of `object`.
- *
- * @private
- * @param {Object} [object] The object to query.
- * @param {string} key The key of the property to get.
- * @returns {*} Returns the property value.
- */
-function getValue(object, key) {
-  return object == null ? undefined : object[key];
-}
-
-/**
- * Checks if `value` is a host object in IE < 9.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a host object, else `false`.
- */
-function isHostObject(value) {
-  // Many host objects are `Object` objects that can coerce to strings
-  // despite having improperly defined `toString` methods.
-  var result = false;
-  if (value != null && typeof value.toString != 'function') {
-    try {
-      result = !!(value + '');
-    } catch (e) {}
-  }
-  return result;
-}
-
-/** Used for built-in method references. */
-var arrayProto = Array.prototype,
-    funcProto = Function.prototype,
-    objectProto = Object.prototype;
-
-/** Used to detect overreaching core-js shims. */
-var coreJsData = root['__core-js_shared__'];
-
-/** Used to detect methods masquerading as native. */
-var maskSrcKey = (function() {
-  var uid = /[^.]+$/.exec(coreJsData && coreJsData.keys && coreJsData.keys.IE_PROTO || '');
-  return uid ? ('Symbol(src)_1.' + uid) : '';
-}());
-
-/** Used to resolve the decompiled source of functions. */
-var funcToString = funcProto.toString;
-
-/** Used to check objects for own properties. */
-var hasOwnProperty = objectProto.hasOwnProperty;
-
-/**
- * Used to resolve the
- * [`toStringTag`](http://ecma-international.org/ecma-262/7.0/#sec-object.prototype.tostring)
- * of values.
- */
-var objectToString = objectProto.toString;
-
-/** Used to detect if a method is native. */
-var reIsNative = RegExp('^' +
-  funcToString.call(hasOwnProperty).replace(reRegExpChar, '\\$&')
-  .replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$'
-);
-
-/** Built-in value references. */
-var Symbol = root.Symbol,
-    splice = arrayProto.splice;
-
-/* Built-in method references that are verified to be native. */
-var Map = getNative(root, 'Map'),
-    nativeCreate = getNative(Object, 'create');
-
-/** Used to convert symbols to primitives and strings. */
-var symbolProto = Symbol ? Symbol.prototype : undefined,
-    symbolToString = symbolProto ? symbolProto.toString : undefined;
-
-/**
- * Creates a hash object.
- *
- * @private
- * @constructor
- * @param {Array} [entries] The key-value pairs to cache.
- */
-function Hash(entries) {
-  var index = -1,
-      length = entries ? entries.length : 0;
-
-  this.clear();
-  while (++index < length) {
-    var entry = entries[index];
-    this.set(entry[0], entry[1]);
-  }
-}
-
-/**
- * Removes all key-value entries from the hash.
- *
- * @private
- * @name clear
- * @memberOf Hash
- */
-function hashClear() {
-  this.__data__ = nativeCreate ? nativeCreate(null) : {};
-}
-
-/**
- * Removes `key` and its value from the hash.
- *
- * @private
- * @name delete
- * @memberOf Hash
- * @param {Object} hash The hash to modify.
- * @param {string} key The key of the value to remove.
- * @returns {boolean} Returns `true` if the entry was removed, else `false`.
- */
-function hashDelete(key) {
-  return this.has(key) && delete this.__data__[key];
-}
-
-/**
- * Gets the hash value for `key`.
- *
- * @private
- * @name get
- * @memberOf Hash
- * @param {string} key The key of the value to get.
- * @returns {*} Returns the entry value.
- */
-function hashGet(key) {
-  var data = this.__data__;
-  if (nativeCreate) {
-    var result = data[key];
-    return result === HASH_UNDEFINED ? undefined : result;
-  }
-  return hasOwnProperty.call(data, key) ? data[key] : undefined;
-}
-
-/**
- * Checks if a hash value for `key` exists.
- *
- * @private
- * @name has
- * @memberOf Hash
- * @param {string} key The key of the entry to check.
- * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
- */
-function hashHas(key) {
-  var data = this.__data__;
-  return nativeCreate ? data[key] !== undefined : hasOwnProperty.call(data, key);
-}
-
-/**
- * Sets the hash `key` to `value`.
- *
- * @private
- * @name set
- * @memberOf Hash
- * @param {string} key The key of the value to set.
- * @param {*} value The value to set.
- * @returns {Object} Returns the hash instance.
- */
-function hashSet(key, value) {
-  var data = this.__data__;
-  data[key] = (nativeCreate && value === undefined) ? HASH_UNDEFINED : value;
-  return this;
-}
-
-// Add methods to `Hash`.
-Hash.prototype.clear = hashClear;
-Hash.prototype['delete'] = hashDelete;
-Hash.prototype.get = hashGet;
-Hash.prototype.has = hashHas;
-Hash.prototype.set = hashSet;
-
-/**
- * Creates an list cache object.
- *
- * @private
- * @constructor
- * @param {Array} [entries] The key-value pairs to cache.
- */
-function ListCache(entries) {
-  var index = -1,
-      length = entries ? entries.length : 0;
-
-  this.clear();
-  while (++index < length) {
-    var entry = entries[index];
-    this.set(entry[0], entry[1]);
-  }
-}
-
-/**
- * Removes all key-value entries from the list cache.
- *
- * @private
- * @name clear
- * @memberOf ListCache
- */
-function listCacheClear() {
-  this.__data__ = [];
-}
-
-/**
- * Removes `key` and its value from the list cache.
- *
- * @private
- * @name delete
- * @memberOf ListCache
- * @param {string} key The key of the value to remove.
- * @returns {boolean} Returns `true` if the entry was removed, else `false`.
- */
-function listCacheDelete(key) {
-  var data = this.__data__,
-      index = assocIndexOf(data, key);
-
-  if (index < 0) {
-    return false;
-  }
-  var lastIndex = data.length - 1;
-  if (index == lastIndex) {
-    data.pop();
-  } else {
-    splice.call(data, index, 1);
-  }
-  return true;
-}
-
-/**
- * Gets the list cache value for `key`.
- *
- * @private
- * @name get
- * @memberOf ListCache
- * @param {string} key The key of the value to get.
- * @returns {*} Returns the entry value.
- */
-function listCacheGet(key) {
-  var data = this.__data__,
-      index = assocIndexOf(data, key);
-
-  return index < 0 ? undefined : data[index][1];
-}
-
-/**
- * Checks if a list cache value for `key` exists.
- *
- * @private
- * @name has
- * @memberOf ListCache
- * @param {string} key The key of the entry to check.
- * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
- */
-function listCacheHas(key) {
-  return assocIndexOf(this.__data__, key) > -1;
-}
-
-/**
- * Sets the list cache `key` to `value`.
- *
- * @private
- * @name set
- * @memberOf ListCache
- * @param {string} key The key of the value to set.
- * @param {*} value The value to set.
- * @returns {Object} Returns the list cache instance.
- */
-function listCacheSet(key, value) {
-  var data = this.__data__,
-      index = assocIndexOf(data, key);
-
-  if (index < 0) {
-    data.push([key, value]);
-  } else {
-    data[index][1] = value;
-  }
-  return this;
-}
-
-// Add methods to `ListCache`.
-ListCache.prototype.clear = listCacheClear;
-ListCache.prototype['delete'] = listCacheDelete;
-ListCache.prototype.get = listCacheGet;
-ListCache.prototype.has = listCacheHas;
-ListCache.prototype.set = listCacheSet;
-
-/**
- * Creates a map cache object to store key-value pairs.
- *
- * @private
- * @constructor
- * @param {Array} [entries] The key-value pairs to cache.
- */
-function MapCache(entries) {
-  var index = -1,
-      length = entries ? entries.length : 0;
-
-  this.clear();
-  while (++index < length) {
-    var entry = entries[index];
-    this.set(entry[0], entry[1]);
-  }
-}
-
-/**
- * Removes all key-value entries from the map.
- *
- * @private
- * @name clear
- * @memberOf MapCache
- */
-function mapCacheClear() {
-  this.__data__ = {
-    'hash': new Hash,
-    'map': new (Map || ListCache),
-    'string': new Hash
-  };
-}
-
-/**
- * Removes `key` and its value from the map.
- *
- * @private
- * @name delete
- * @memberOf MapCache
- * @param {string} key The key of the value to remove.
- * @returns {boolean} Returns `true` if the entry was removed, else `false`.
- */
-function mapCacheDelete(key) {
-  return getMapData(this, key)['delete'](key);
-}
-
-/**
- * Gets the map value for `key`.
- *
- * @private
- * @name get
- * @memberOf MapCache
- * @param {string} key The key of the value to get.
- * @returns {*} Returns the entry value.
- */
-function mapCacheGet(key) {
-  return getMapData(this, key).get(key);
-}
-
-/**
- * Checks if a map value for `key` exists.
- *
- * @private
- * @name has
- * @memberOf MapCache
- * @param {string} key The key of the entry to check.
- * @returns {boolean} Returns `true` if an entry for `key` exists, else `false`.
- */
-function mapCacheHas(key) {
-  return getMapData(this, key).has(key);
-}
-
-/**
- * Sets the map `key` to `value`.
- *
- * @private
- * @name set
- * @memberOf MapCache
- * @param {string} key The key of the value to set.
- * @param {*} value The value to set.
- * @returns {Object} Returns the map cache instance.
- */
-function mapCacheSet(key, value) {
-  getMapData(this, key).set(key, value);
-  return this;
-}
-
-// Add methods to `MapCache`.
-MapCache.prototype.clear = mapCacheClear;
-MapCache.prototype['delete'] = mapCacheDelete;
-MapCache.prototype.get = mapCacheGet;
-MapCache.prototype.has = mapCacheHas;
-MapCache.prototype.set = mapCacheSet;
-
-/**
- * Assigns `value` to `key` of `object` if the existing value is not equivalent
- * using [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
- * for equality comparisons.
- *
- * @private
- * @param {Object} object The object to modify.
- * @param {string} key The key of the property to assign.
- * @param {*} value The value to assign.
- */
-function assignValue(object, key, value) {
-  var objValue = object[key];
-  if (!(hasOwnProperty.call(object, key) && eq(objValue, value)) ||
-      (value === undefined && !(key in object))) {
-    object[key] = value;
-  }
-}
-
-/**
- * Gets the index at which the `key` is found in `array` of key-value pairs.
- *
- * @private
- * @param {Array} array The array to inspect.
- * @param {*} key The key to search for.
- * @returns {number} Returns the index of the matched value, else `-1`.
- */
-function assocIndexOf(array, key) {
-  var length = array.length;
-  while (length--) {
-    if (eq(array[length][0], key)) {
-      return length;
-    }
-  }
-  return -1;
-}
-
-/**
- * The base implementation of `_.isNative` without bad shim checks.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a native function,
- *  else `false`.
- */
-function baseIsNative(value) {
-  if (!isObject(value) || isMasked(value)) {
-    return false;
-  }
-  var pattern = (isFunction(value) || isHostObject(value)) ? reIsNative : reIsHostCtor;
-  return pattern.test(toSource(value));
-}
-
-/**
- * The base implementation of `_.set`.
- *
- * @private
- * @param {Object} object The object to modify.
- * @param {Array|string} path The path of the property to set.
- * @param {*} value The value to set.
- * @param {Function} [customizer] The function to customize path creation.
- * @returns {Object} Returns `object`.
- */
-function baseSet(object, path, value, customizer) {
-  if (!isObject(object)) {
-    return object;
-  }
-  path = isKey(path, object) ? [path] : castPath(path);
-
-  var index = -1,
-      length = path.length,
-      lastIndex = length - 1,
-      nested = object;
-
-  while (nested != null && ++index < length) {
-    var key = toKey(path[index]),
-        newValue = value;
-
-    if (index != lastIndex) {
-      var objValue = nested[key];
-      newValue = customizer ? customizer(objValue, key, nested) : undefined;
-      if (newValue === undefined) {
-        newValue = isObject(objValue)
-          ? objValue
-          : (isIndex(path[index + 1]) ? [] : {});
-      }
-    }
-    assignValue(nested, key, newValue);
-    nested = nested[key];
-  }
-  return object;
-}
-
-/**
- * The base implementation of `_.toString` which doesn't convert nullish
- * values to empty strings.
- *
- * @private
- * @param {*} value The value to process.
- * @returns {string} Returns the string.
- */
-function baseToString(value) {
-  // Exit early for strings to avoid a performance hit in some environments.
-  if (typeof value == 'string') {
-    return value;
-  }
-  if (isSymbol(value)) {
-    return symbolToString ? symbolToString.call(value) : '';
-  }
-  var result = (value + '');
-  return (result == '0' && (1 / value) == -INFINITY) ? '-0' : result;
-}
-
-/**
- * Casts `value` to a path array if it's not one.
- *
- * @private
- * @param {*} value The value to inspect.
- * @returns {Array} Returns the cast property path array.
- */
-function castPath(value) {
-  return isArray(value) ? value : stringToPath(value);
-}
-
-/**
- * Gets the data for `map`.
- *
- * @private
- * @param {Object} map The map to query.
- * @param {string} key The reference key.
- * @returns {*} Returns the map data.
- */
-function getMapData(map, key) {
-  var data = map.__data__;
-  return isKeyable(key)
-    ? data[typeof key == 'string' ? 'string' : 'hash']
-    : data.map;
-}
-
-/**
- * Gets the native function at `key` of `object`.
- *
- * @private
- * @param {Object} object The object to query.
- * @param {string} key The key of the method to get.
- * @returns {*} Returns the function if it's native, else `undefined`.
- */
-function getNative(object, key) {
-  var value = getValue(object, key);
-  return baseIsNative(value) ? value : undefined;
-}
-
-/**
- * Checks if `value` is a valid array-like index.
- *
- * @private
- * @param {*} value The value to check.
- * @param {number} [length=MAX_SAFE_INTEGER] The upper bounds of a valid index.
- * @returns {boolean} Returns `true` if `value` is a valid index, else `false`.
- */
-function isIndex(value, length) {
-  length = length == null ? MAX_SAFE_INTEGER : length;
-  return !!length &&
-    (typeof value == 'number' || reIsUint.test(value)) &&
-    (value > -1 && value % 1 == 0 && value < length);
-}
-
-/**
- * Checks if `value` is a property name and not a property path.
- *
- * @private
- * @param {*} value The value to check.
- * @param {Object} [object] The object to query keys on.
- * @returns {boolean} Returns `true` if `value` is a property name, else `false`.
- */
-function isKey(value, object) {
-  if (isArray(value)) {
-    return false;
-  }
-  var type = typeof value;
-  if (type == 'number' || type == 'symbol' || type == 'boolean' ||
-      value == null || isSymbol(value)) {
-    return true;
-  }
-  return reIsPlainProp.test(value) || !reIsDeepProp.test(value) ||
-    (object != null && value in Object(object));
-}
-
-/**
- * Checks if `value` is suitable for use as unique object key.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is suitable, else `false`.
- */
-function isKeyable(value) {
-  var type = typeof value;
-  return (type == 'string' || type == 'number' || type == 'symbol' || type == 'boolean')
-    ? (value !== '__proto__')
-    : (value === null);
-}
-
-/**
- * Checks if `func` has its source masked.
- *
- * @private
- * @param {Function} func The function to check.
- * @returns {boolean} Returns `true` if `func` is masked, else `false`.
- */
-function isMasked(func) {
-  return !!maskSrcKey && (maskSrcKey in func);
-}
-
-/**
- * Converts `string` to a property path array.
- *
- * @private
- * @param {string} string The string to convert.
- * @returns {Array} Returns the property path array.
- */
-var stringToPath = memoize(function(string) {
-  string = toString(string);
-
-  var result = [];
-  if (reLeadingDot.test(string)) {
-    result.push('');
-  }
-  string.replace(rePropName, function(match, number, quote, string) {
-    result.push(quote ? string.replace(reEscapeChar, '$1') : (number || match));
-  });
-  return result;
-});
-
-/**
- * Converts `value` to a string key if it's not a string or symbol.
- *
- * @private
- * @param {*} value The value to inspect.
- * @returns {string|symbol} Returns the key.
- */
-function toKey(value) {
-  if (typeof value == 'string' || isSymbol(value)) {
-    return value;
-  }
-  var result = (value + '');
-  return (result == '0' && (1 / value) == -INFINITY) ? '-0' : result;
-}
-
-/**
- * Converts `func` to its source code.
- *
- * @private
- * @param {Function} func The function to process.
- * @returns {string} Returns the source code.
- */
-function toSource(func) {
-  if (func != null) {
-    try {
-      return funcToString.call(func);
-    } catch (e) {}
-    try {
-      return (func + '');
-    } catch (e) {}
-  }
-  return '';
-}
-
-/**
- * Creates a function that memoizes the result of `func`. If `resolver` is
- * provided, it determines the cache key for storing the result based on the
- * arguments provided to the memoized function. By default, the first argument
- * provided to the memoized function is used as the map cache key. The `func`
- * is invoked with the `this` binding of the memoized function.
- *
- * **Note:** The cache is exposed as the `cache` property on the memoized
- * function. Its creation may be customized by replacing the `_.memoize.Cache`
- * constructor with one whose instances implement the
- * [`Map`](http://ecma-international.org/ecma-262/7.0/#sec-properties-of-the-map-prototype-object)
- * method interface of `delete`, `get`, `has`, and `set`.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Function
- * @param {Function} func The function to have its output memoized.
- * @param {Function} [resolver] The function to resolve the cache key.
- * @returns {Function} Returns the new memoized function.
- * @example
- *
- * var object = { 'a': 1, 'b': 2 };
- * var other = { 'c': 3, 'd': 4 };
- *
- * var values = _.memoize(_.values);
- * values(object);
- * // => [1, 2]
- *
- * values(other);
- * // => [3, 4]
- *
- * object.a = 2;
- * values(object);
- * // => [1, 2]
- *
- * // Modify the result cache.
- * values.cache.set(object, ['a', 'b']);
- * values(object);
- * // => ['a', 'b']
- *
- * // Replace `_.memoize.Cache`.
- * _.memoize.Cache = WeakMap;
- */
-function memoize(func, resolver) {
-  if (typeof func != 'function' || (resolver && typeof resolver != 'function')) {
-    throw new TypeError(FUNC_ERROR_TEXT);
-  }
-  var memoized = function() {
-    var args = arguments,
-        key = resolver ? resolver.apply(this, args) : args[0],
-        cache = memoized.cache;
-
-    if (cache.has(key)) {
-      return cache.get(key);
-    }
-    var result = func.apply(this, args);
-    memoized.cache = cache.set(key, result);
-    return result;
-  };
-  memoized.cache = new (memoize.Cache || MapCache);
-  return memoized;
-}
-
-// Assign cache to `_.memoize`.
-memoize.Cache = MapCache;
-
-/**
- * Performs a
- * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
- * comparison between two values to determine if they are equivalent.
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to compare.
- * @param {*} other The other value to compare.
- * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
- * @example
- *
- * var object = { 'a': 1 };
- * var other = { 'a': 1 };
- *
- * _.eq(object, object);
- * // => true
- *
- * _.eq(object, other);
- * // => false
- *
- * _.eq('a', 'a');
- * // => true
- *
- * _.eq('a', Object('a'));
- * // => false
- *
- * _.eq(NaN, NaN);
- * // => true
- */
-function eq(value, other) {
-  return value === other || (value !== value && other !== other);
-}
-
-/**
- * Checks if `value` is classified as an `Array` object.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is an array, else `false`.
- * @example
- *
- * _.isArray([1, 2, 3]);
- * // => true
- *
- * _.isArray(document.body.children);
- * // => false
- *
- * _.isArray('abc');
- * // => false
- *
- * _.isArray(_.noop);
- * // => false
- */
-var isArray = Array.isArray;
-
-/**
- * Checks if `value` is classified as a `Function` object.
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a function, else `false`.
- * @example
- *
- * _.isFunction(_);
- * // => true
- *
- * _.isFunction(/abc/);
- * // => false
- */
-function isFunction(value) {
-  // The use of `Object#toString` avoids issues with the `typeof` operator
-  // in Safari 8-9 which returns 'object' for typed array and other constructors.
-  var tag = isObject(value) ? objectToString.call(value) : '';
-  return tag == funcTag || tag == genTag;
-}
-
-/**
- * Checks if `value` is the
- * [language type](http://www.ecma-international.org/ecma-262/7.0/#sec-ecmascript-language-types)
- * of `Object`. (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
- *
- * @static
- * @memberOf _
- * @since 0.1.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is an object, else `false`.
- * @example
- *
- * _.isObject({});
- * // => true
- *
- * _.isObject([1, 2, 3]);
- * // => true
- *
- * _.isObject(_.noop);
- * // => true
- *
- * _.isObject(null);
- * // => false
- */
-function isObject(value) {
-  var type = typeof value;
-  return !!value && (type == 'object' || type == 'function');
-}
-
-/**
- * Checks if `value` is object-like. A value is object-like if it's not `null`
- * and has a `typeof` result of "object".
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
- * @example
- *
- * _.isObjectLike({});
- * // => true
- *
- * _.isObjectLike([1, 2, 3]);
- * // => true
- *
- * _.isObjectLike(_.noop);
- * // => false
- *
- * _.isObjectLike(null);
- * // => false
- */
-function isObjectLike(value) {
-  return !!value && typeof value == 'object';
-}
-
-/**
- * Checks if `value` is classified as a `Symbol` primitive or object.
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a symbol, else `false`.
- * @example
- *
- * _.isSymbol(Symbol.iterator);
- * // => true
- *
- * _.isSymbol('abc');
- * // => false
- */
-function isSymbol(value) {
-  return typeof value == 'symbol' ||
-    (isObjectLike(value) && objectToString.call(value) == symbolTag);
-}
-
-/**
- * Converts `value` to a string. An empty string is returned for `null`
- * and `undefined` values. The sign of `-0` is preserved.
- *
- * @static
- * @memberOf _
- * @since 4.0.0
- * @category Lang
- * @param {*} value The value to process.
- * @returns {string} Returns the string.
- * @example
- *
- * _.toString(null);
- * // => ''
- *
- * _.toString(-0);
- * // => '-0'
- *
- * _.toString([1, 2, 3]);
- * // => '1,2,3'
- */
-function toString(value) {
-  return value == null ? '' : baseToString(value);
-}
-
-/**
- * Sets the value at `path` of `object`. If a portion of `path` doesn't exist,
- * it's created. Arrays are created for missing index properties while objects
- * are created for all other missing properties. Use `_.setWith` to customize
- * `path` creation.
- *
- * **Note:** This method mutates `object`.
- *
- * @static
- * @memberOf _
- * @since 3.7.0
- * @category Object
- * @param {Object} object The object to modify.
- * @param {Array|string} path The path of the property to set.
- * @param {*} value The value to set.
- * @returns {Object} Returns `object`.
- * @example
- *
- * var object = { 'a': [{ 'b': { 'c': 3 } }] };
- *
- * _.set(object, 'a[0].b.c', 4);
- * console.log(object.a[0].b.c);
- * // => 4
- *
- * _.set(object, ['x', '0', 'y', 'z'], 5);
- * console.log(object.x[0].y.z);
- * // => 5
- */
-function set(object, path, value) {
-  return object == null ? object : baseSet(object, path, value);
-}
-
-module.exports = set;
-
-
-/***/ }),
-/* 884 */
+/***/ 884:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -34650,20 +16275,33 @@ module.exports = parse;
 
 
 /***/ }),
-/* 885 */,
-/* 886 */,
-/* 887 */,
-/* 888 */,
-/* 889 */,
-/* 890 */,
-/* 891 */,
-/* 892 */,
-/* 893 */,
-/* 894 */,
-/* 895 */,
-/* 896 */,
-/* 897 */,
-/* 898 */
+
+/***/ 889:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+var core = __webpack_require__(448);
+var pluginRequestLog = __webpack_require__(916);
+var pluginPaginateRest = __webpack_require__(299);
+var pluginRestEndpointMethods = __webpack_require__(842);
+
+const VERSION = "18.0.0";
+
+const Octokit = core.Octokit.plugin(pluginRequestLog.requestLog, pluginRestEndpointMethods.restEndpointMethods, pluginPaginateRest.paginateRest).defaults({
+  userAgent: `octokit-rest.js/${VERSION}`
+});
+
+exports.Octokit = Octokit;
+//# sourceMappingURL=index.js.map
+
+
+/***/ }),
+
+/***/ 898:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -34674,7 +16312,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 var request = __webpack_require__(753);
 var universalUserAgent = __webpack_require__(796);
 
-const VERSION = "4.4.0";
+const VERSION = "4.5.1";
 
 class GraphqlError extends Error {
   constructor(request, response) {
@@ -34755,7 +16393,8 @@ exports.withCustomRequest = withCustomRequest;
 
 
 /***/ }),
-/* 899 */
+
+/***/ 899:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -34768,6 +16407,7 @@ const QuickLRU = __webpack_require__(290);
 const kCurrentStreamsCount = Symbol('currentStreamsCount');
 const kRequest = Symbol('request');
 const kOriginSet = Symbol('cachedOriginSet');
+const kGracefullyClosing = Symbol('gracefullyClosing');
 
 const nameKeys = [
 	// `http2.connect()` options
@@ -34804,52 +16444,35 @@ const nameKeys = [
 	'sessionIdContext'
 ];
 
-const removeSession = (where, name, session) => {
-	if (name in where) {
-		const index = where[name].indexOf(session);
+const getSortedIndex = (array, value, compare) => {
+	let low = 0;
+	let high = array.length;
 
-		if (index !== -1) {
-			where[name].splice(index, 1);
+	while (low < high) {
+		const mid = (low + high) >>> 1;
 
-			if (where[name].length === 0) {
-				delete where[name];
-			}
-
-			return true;
+		/* istanbul ignore next */
+		if (compare(array[mid], value)) {
+			// This never gets called because we use descending sort. Better to have this anyway.
+			low = mid + 1;
+		} else {
+			high = mid;
 		}
 	}
 
-	return false;
+	return low;
 };
 
-const addSession = (where, name, session) => {
-	if (name in where) {
-		where[name].push(session);
-	} else {
-		where[name] = [session];
-	}
-};
-
-const getSessions = (where, name, normalizedOrigin) => {
-	if (!(name in where)) {
-		return [];
-	}
-
-	return where[name].filter(session => {
-		return !session.closed && !session.destroyed && session[kOriginSet].includes(normalizedOrigin);
-	});
+const compareSessions = (a, b) => {
+	return a.remoteSettings.maxConcurrentStreams > b.remoteSettings.maxConcurrentStreams;
 };
 
 // See https://tools.ietf.org/html/rfc8336
-const closeCoveredSessions = (where, name, session) => {
-	if (!(name in where)) {
-		return;
-	}
-
+const closeCoveredSessions = (where, session) => {
 	// Clients SHOULD NOT emit new requests on any connection whose Origin
 	// Set is a proper subset of another connection's Origin Set, and they
 	// SHOULD close it once all outstanding requests are satisfied.
-	for (const coveredSession of where[name]) {
+	for (const coveredSession of where) {
 		if (
 			// The set is a proper subset when its length is less than the other set.
 			coveredSession[kOriginSet].length < session[kOriginSet].length &&
@@ -34858,43 +16481,68 @@ const closeCoveredSessions = (where, name, session) => {
 			coveredSession[kOriginSet].every(origin => session[kOriginSet].includes(origin)) &&
 
 			// Makes sure that the session can handle all requests from the covered session.
-			// TODO: can the session become uncovered when a stream is closed after checking this condition?
 			coveredSession[kCurrentStreamsCount] + session[kCurrentStreamsCount] <= session.remoteSettings.maxConcurrentStreams
 		) {
 			// This allows pending requests to finish and prevents making new requests.
-			coveredSession.close();
+			gracefullyClose(coveredSession);
 		}
 	}
 };
 
 // This is basically inverted `closeCoveredSessions(...)`.
-const closeSessionIfCovered = (where, name, coveredSession) => {
-	if (!(name in where)) {
-		return;
-	}
-
-	for (const session of where[name]) {
+const closeSessionIfCovered = (where, coveredSession) => {
+	for (const session of where) {
 		if (
 			coveredSession[kOriginSet].length < session[kOriginSet].length &&
 			coveredSession[kOriginSet].every(origin => session[kOriginSet].includes(origin)) &&
 			coveredSession[kCurrentStreamsCount] + session[kCurrentStreamsCount] <= session.remoteSettings.maxConcurrentStreams
 		) {
-			coveredSession.close();
+			gracefullyClose(coveredSession);
 		}
 	}
 };
 
+const getSessions = ({agent, isFree}) => {
+	const result = {};
+
+	// eslint-disable-next-line guard-for-in
+	for (const normalizedOptions in agent.sessions) {
+		const sessions = agent.sessions[normalizedOptions];
+
+		const filtered = sessions.filter(session => {
+			const result = session[Agent.kCurrentStreamsCount] < session.remoteSettings.maxConcurrentStreams;
+
+			return isFree ? result : !result;
+		});
+
+		if (filtered.length !== 0) {
+			result[normalizedOptions] = filtered;
+		}
+	}
+
+	return result;
+};
+
+const gracefullyClose = session => {
+	session[kGracefullyClosing] = true;
+
+	if (session[kCurrentStreamsCount] === 0) {
+		session.close();
+	}
+};
+
 class Agent extends EventEmitter {
-	constructor({timeout = 60000, maxSessions = Infinity, maxFreeSessions = 1, maxCachedTlsSessions = 100} = {}) {
+	constructor({timeout = 60000, maxSessions = Infinity, maxFreeSessions = 10, maxCachedTlsSessions = 100} = {}) {
 		super();
 
 		// A session is considered busy when its current streams count
 		// is equal to or greater than the `maxConcurrentStreams` value.
-		this.busySessions = {};
 
 		// A session is considered free when its current streams count
 		// is less than the `maxConcurrentStreams` value.
-		this.freeSessions = {};
+
+		// SESSIONS[NORMALIZED_OPTIONS] = [];
+		this.sessions = {};
 
 		// The queue for creating new sessions. It looks like this:
 		// QUEUE[NORMALIZED_OPTIONS][NORMALIZED_ORIGIN] = ENTRY_FUNCTION
@@ -34908,13 +16556,15 @@ class Agent extends EventEmitter {
 		// Each session will use this timeout value.
 		this.timeout = timeout;
 
-		// Max sessions per origin.
+		// Max sessions in total
 		this.maxSessions = maxSessions;
 
-		// Max free sessions per origin.
+		// Max free sessions in total
 		// TODO: decreasing `maxFreeSessions` should close some sessions
-		// TODO: should `maxFreeSessions` be related only to sessions with 0 pending streams?
 		this.maxFreeSessions = maxFreeSessions;
+
+		this._freeSessionsCount = 0;
+		this._sessionsCount = 0;
 
 		// We don't support push streams by default.
 		this.settings = {
@@ -34956,21 +16606,17 @@ class Agent extends EventEmitter {
 			return;
 		}
 
-		// We need the busy sessions length to check if a session can be created.
-		const busyLength = getSessions(this.busySessions, normalizedOptions, normalizedOrigin).length;
 		const item = this.queue[normalizedOptions][normalizedOrigin];
 
 		// The entry function can be run only once.
-		if (busyLength < this.maxSessions && !item.completed) {
+		// BUG: The session may be never created when:
+		// - the first condition is false AND
+		// - this function is never called with the same arguments in the future.
+		if (this._sessionsCount < this.maxSessions && !item.completed) {
 			item.completed = true;
 
 			item();
 		}
-	}
-
-	_closeCoveredSessions(normalizedOptions, session) {
-		closeCoveredSessions(this.freeSessions, normalizedOptions, session);
-		closeCoveredSessions(this.busySessions, normalizedOptions, session);
 	}
 
 	getSession(origin, options, listeners) {
@@ -34996,28 +16642,65 @@ class Agent extends EventEmitter {
 				return;
 			}
 
-			if (normalizedOptions in this.freeSessions) {
-				// Look for all available free sessions.
-				const freeSessions = getSessions(this.freeSessions, normalizedOptions, normalizedOrigin);
+			if (normalizedOptions in this.sessions) {
+				const sessions = this.sessions[normalizedOptions];
 
-				if (freeSessions.length !== 0) {
-					// Use session which has the biggest stream capacity in order to use the smallest number of sessions possible.
-					const session = freeSessions.reduce((previousSession, nextSession) => {
-						if (
-							nextSession.remoteSettings.maxConcurrentStreams >= previousSession.remoteSettings.maxConcurrentStreams &&
-							nextSession[kCurrentStreamsCount] > previousSession[kCurrentStreamsCount]
-						) {
-							return nextSession;
-						}
+				let maxConcurrentStreams = -1;
+				let currentStreamsCount = -1;
+				let optimalSession;
 
-						return previousSession;
-					});
+				// We could just do this.sessions[normalizedOptions].find(...) but that isn't optimal.
+				// Additionally, we are looking for session which has biggest current pending streams count.
+				for (const session of sessions) {
+					const sessionMaxConcurrentStreams = session.remoteSettings.maxConcurrentStreams;
 
-					for (const {resolve} of listeners) {
-						// TODO: The session can get busy here
-						resolve(session);
+					if (sessionMaxConcurrentStreams < maxConcurrentStreams) {
+						break;
 					}
 
+					if (session[kOriginSet].includes(normalizedOrigin)) {
+						const sessionCurrentStreamsCount = session[kCurrentStreamsCount];
+
+						if (
+							sessionCurrentStreamsCount >= sessionMaxConcurrentStreams ||
+							session[kGracefullyClosing] ||
+							// Unfortunately the `close` event isn't called immediately,
+							// so `session.destroyed` is `true`, but `session.closed` is `false`.
+							session.destroyed
+						) {
+							continue;
+						}
+
+						// We only need set this once.
+						if (!optimalSession) {
+							maxConcurrentStreams = sessionMaxConcurrentStreams;
+						}
+
+						// We're looking for the session which has biggest current pending stream count,
+						// in order to minimalize the amount of active sessions.
+						if (sessionCurrentStreamsCount > currentStreamsCount) {
+							optimalSession = session;
+							currentStreamsCount = sessionCurrentStreamsCount;
+						}
+					}
+				}
+
+				if (optimalSession) {
+					/* istanbul ignore next: safety check */
+					if (listeners.length !== 1) {
+						for (const {reject} of listeners) {
+							const error = new Error(
+								`Expected the length of listeners to be 1, got ${listeners.length}.\n` +
+								'Please report this to https://github.com/szmarczak/http2-wrapper/'
+							);
+
+							reject(error);
+						}
+
+						return;
+					}
+
+					listeners[0].resolve(optimalSession);
 					return;
 				}
 			}
@@ -35027,6 +16710,9 @@ class Agent extends EventEmitter {
 					// There's already an item in the queue, just attach ourselves to it.
 					this.queue[normalizedOptions][normalizedOrigin].listeners.push(...listeners);
 
+					// This shouldn't be executed here.
+					// See the comment inside _tryToCreateNewSession.
+					this._tryToCreateNewSession(normalizedOptions, normalizedOrigin);
 					return;
 				}
 			} else {
@@ -35051,64 +16737,28 @@ class Agent extends EventEmitter {
 			const entry = () => {
 				const name = `${normalizedOrigin}:${normalizedOptions}`;
 				let receivedSettings = false;
-				let servername;
 
 				try {
-					const tlsSessionCache = this.tlsSessionCache.get(name);
-
 					const session = http2.connect(origin, {
 						createConnection: this.createConnection,
 						settings: this.settings,
-						session: tlsSessionCache ? tlsSessionCache.session : undefined,
+						session: this.tlsSessionCache.get(name),
 						...options
 					});
 					session[kCurrentStreamsCount] = 0;
-
-					// Tries to free the session.
-					const freeSession = () => {
-						// Fetch the smallest amount of free sessions of any origin we have.
-						const freeSessionsCount = session[kOriginSet].reduce((accumulator, origin) => {
-							return Math.min(accumulator, getSessions(this.freeSessions, normalizedOptions, origin).length);
-						}, Infinity);
-
-						// Check the limit.
-						if (freeSessionsCount < this.maxFreeSessions) {
-							addSession(this.freeSessions, normalizedOptions, session);
-
-							return true;
-						}
-
-						return false;
-					};
+					session[kGracefullyClosing] = false;
 
 					const isFree = () => session[kCurrentStreamsCount] < session.remoteSettings.maxConcurrentStreams;
+					let wasFree = true;
 
 					session.socket.once('session', tlsSession => {
-						// We need to cache the servername due to a bug in OpenSSL.
-						setImmediate(() => {
-							this.tlsSessionCache.set(name, {
-								session: tlsSession,
-								servername
-							});
-						});
-					});
-
-					// OpenSSL bug workaround.
-					// See https://github.com/nodejs/node/issues/28985
-					session.socket.once('secureConnect', () => {
-						servername = session.socket.servername;
-
-						if (servername === false && typeof tlsSessionCache !== 'undefined' && typeof tlsSessionCache.servername !== 'undefined') {
-							session.socket.servername = tlsSessionCache.servername;
-						}
+						this.tlsSessionCache.set(name, tlsSession);
 					});
 
 					session.once('error', error => {
-						// `receivedSettings` is true when the session has successfully connected.
-						if (!receivedSettings) {
-							for (const {reject} of listeners) {
-								reject(error);
-							}
+						// Listeners are empty when the session successfully connected.
+						for (const {reject} of listeners) {
+							reject(error);
 						}
 
 						// The connection got broken, purge the cache.
@@ -35117,24 +16767,41 @@ class Agent extends EventEmitter {
 
 					session.setTimeout(this.timeout, () => {
 						// Terminates all streams owned by this session.
+						// TODO: Maybe the streams should have a "Session timed out" error?
 						session.destroy();
 					});
 
 					session.once('close', () => {
-						if (!receivedSettings) {
+						if (receivedSettings) {
+							// 1. If it wasn't free then no need to decrease because
+							//    it has been decreased already in session.request().
+							// 2. `stream.once('close')` won't increment the count
+							//    because the session is already closed.
+							if (wasFree) {
+								this._freeSessionsCount--;
+							}
+
+							this._sessionsCount--;
+
+							// This cannot be moved to the stream logic,
+							// because there may be a session that hadn't made a single request.
+							const where = this.sessions[normalizedOptions];
+							where.splice(where.indexOf(session), 1);
+
+							if (where.length === 0) {
+								delete this.sessions[normalizedOptions];
+							}
+						} else {
 							// Broken connection
 							const error = new Error('Session closed without receiving a SETTINGS frame');
+							error.code = 'HTTP2WRAPPER_NOSETTINGS';
 
 							for (const {reject} of listeners) {
 								reject(error);
 							}
+
+							removeFromQueue();
 						}
-
-						removeFromQueue();
-
-						// This cannot be moved to the stream logic,
-						// because there may be a session that hadn't made a single request.
-						removeSession(this.freeSessions, normalizedOptions, session);
 
 						// There may be another session awaiting.
 						this._tryToCreateNewSession(normalizedOptions, normalizedOrigin);
@@ -35142,7 +16809,7 @@ class Agent extends EventEmitter {
 
 					// Iterates over the queue and processes listeners.
 					const processListeners = () => {
-						if (!(normalizedOptions in this.queue)) {
+						if (!(normalizedOptions in this.queue) || !isFree()) {
 							return;
 						}
 
@@ -35157,10 +16824,11 @@ class Agent extends EventEmitter {
 									listeners.shift().resolve(session);
 								}
 
-								if (this.queue[normalizedOptions][origin].listeners.length === 0) {
-									delete this.queue[normalizedOptions][origin];
+								const where = this.queue[normalizedOptions];
+								if (where[origin].listeners.length === 0) {
+									delete where[origin];
 
-									if (Object.keys(this.queue[normalizedOptions]).length === 0) {
+									if (Object.keys(where).length === 0) {
 										delete this.queue[normalizedOptions];
 										break;
 									}
@@ -35175,7 +16843,7 @@ class Agent extends EventEmitter {
 					};
 
 					// The Origin Set cannot shrink. No need to check if it suddenly became covered by another one.
-					session.once('origin', () => {
+					session.on('origin', () => {
 						session[kOriginSet] = session.originSet;
 
 						if (!isFree()) {
@@ -35183,18 +16851,19 @@ class Agent extends EventEmitter {
 							return;
 						}
 
-						// Close covered sessions (if possible).
-						this._closeCoveredSessions(normalizedOptions, session);
-
 						processListeners();
 
-						// `session.remoteSettings.maxConcurrentStreams` might get increased
-						session.on('remoteSettings', () => {
-							this._closeCoveredSessions(normalizedOptions, session);
-						});
+						// Close covered sessions (if possible).
+						closeCoveredSessions(this.sessions[normalizedOptions], session);
 					});
 
 					session.once('remoteSettings', () => {
+						// Fix Node.js bug preventing the process from exiting
+						session.ref();
+						session.unref();
+
+						this._sessionsCount++;
+
 						// The Agent could have been destroyed already.
 						if (entry.destroyed) {
 							const error = new Error('Agent has been destroyed');
@@ -35208,24 +16877,30 @@ class Agent extends EventEmitter {
 						}
 
 						session[kOriginSet] = session.originSet;
-						this.emit('session', session);
 
-						if (freeSession()) {
-							// Process listeners, we're free.
-							processListeners();
-						} else if (this.maxFreeSessions === 0) {
-							processListeners();
+						{
+							const where = this.sessions;
 
-							// We're closing ASAP, when all possible requests have been made for this event loop tick.
-							setImmediate(() => {
-								session.close();
-							});
-						} else {
-							// Too late, another free session took these listeners.
-							session.close();
+							if (normalizedOptions in where) {
+								const sessions = where[normalizedOptions];
+								sessions.splice(getSortedIndex(sessions, session, compareSessions), 0, session);
+							} else {
+								where[normalizedOptions] = [session];
+							}
 						}
 
+						this._freeSessionsCount += 1;
+						receivedSettings = true;
+
+						this.emit('session', session);
+
+						processListeners();
 						removeFromQueue();
+
+						// TODO: Close last recently used (or least used?) session
+						if (session[kCurrentStreamsCount] === 0 && this._freeSessionsCount > this.maxFreeSessions) {
+							session.close();
+						}
 
 						// Check if we haven't managed to execute all listeners.
 						if (listeners.length !== 0) {
@@ -35234,63 +16909,67 @@ class Agent extends EventEmitter {
 							listeners.length = 0;
 						}
 
-						receivedSettings = true;
-
 						// `session.remoteSettings.maxConcurrentStreams` might get increased
 						session.on('remoteSettings', () => {
-							// Check if we're eligible to become a free session
-							if (isFree() && removeSession(this.busySessions, normalizedOptions, session)) {
-								// Check for free seats
-								if (freeSession()) {
-									processListeners();
-								} else {
-									// Assume it's still a busy session
-									addSession(this.busySessions, normalizedOptions, session);
-								}
-							}
+							processListeners();
+
+							// In case the Origin Set changes
+							closeCoveredSessions(this.sessions[normalizedOptions], session);
 						});
 					});
 
 					// Shim `session.request()` in order to catch all streams
 					session[kRequest] = session.request;
-					session.request = headers => {
-						const stream = session[kRequest](headers, {
-							endStream: false
-						});
+					session.request = (headers, streamOptions) => {
+						if (session[kGracefullyClosing]) {
+							throw new Error('The session is gracefully closing. No new streams are allowed.');
+						}
 
-						// The process won't exit until the session is closed.
+						const stream = session[kRequest](headers, streamOptions);
+
+						// The process won't exit until the session is closed or all requests are gone.
 						session.ref();
 
 						++session[kCurrentStreamsCount];
 
-						// Check if we became busy
-						if (!isFree() && removeSession(this.freeSessions, normalizedOptions, session)) {
-							addSession(this.busySessions, normalizedOptions, session);
+						if (session[kCurrentStreamsCount] === session.remoteSettings.maxConcurrentStreams) {
+							this._freeSessionsCount--;
 						}
 
 						stream.once('close', () => {
+							wasFree = isFree();
+
 							--session[kCurrentStreamsCount];
 
-							if (isFree()) {
-								if (session[kCurrentStreamsCount] === 0) {
-									// All requests are finished, the process may exit now.
-									session.unref();
-								}
+							if (!session.destroyed && !session.closed) {
+								closeSessionIfCovered(this.sessions[normalizedOptions], session);
 
-								// Check if we are no longer busy and the session is not broken.
-								if (removeSession(this.busySessions, normalizedOptions, session) && !session.destroyed && !session.closed) {
-									// Check the sessions count of this authority and compare it to `maxSessionsCount`.
-									if (freeSession()) {
-										this._closeCoveredSessions(normalizedOptions, session);
-										processListeners();
-									} else {
+								if (isFree() && !session.closed) {
+									if (!wasFree) {
+										this._freeSessionsCount++;
+
+										wasFree = true;
+									}
+
+									const isEmpty = session[kCurrentStreamsCount] === 0;
+
+									if (isEmpty) {
+										session.unref();
+									}
+
+									if (
+										isEmpty &&
+										(
+											this._freeSessionsCount > this.maxFreeSessions ||
+											session[kGracefullyClosing]
+										)
+									) {
 										session.close();
+									} else {
+										closeCoveredSessions(this.sessions[normalizedOptions], session);
+										processListeners();
 									}
 								}
-							}
-
-							if (!session.destroyed && !session.closed) {
-								closeSessionIfCovered(this.freeSessions, normalizedOptions, session);
 							}
 						});
 
@@ -35314,12 +16993,16 @@ class Agent extends EventEmitter {
 		});
 	}
 
-	request(origin, options, headers) {
+	request(origin, options, headers, streamOptions) {
 		return new Promise((resolve, reject) => {
 			this.getSession(origin, options, [{
 				reject,
 				resolve: session => {
-					resolve(session.request(headers));
+					try {
+						resolve(session.request(headers, streamOptions));
+					} catch (error) {
+						reject(error);
+					}
 				}
 			}]);
 		});
@@ -35343,8 +17026,8 @@ class Agent extends EventEmitter {
 	}
 
 	closeFreeSessions() {
-		for (const freeSessions of Object.values(this.freeSessions)) {
-			for (const session of freeSessions) {
+		for (const sessions of Object.values(this.sessions)) {
+			for (const session of sessions) {
 				if (session[kCurrentStreamsCount] === 0) {
 					session.close();
 				}
@@ -35353,14 +17036,8 @@ class Agent extends EventEmitter {
 	}
 
 	destroy(reason) {
-		for (const busySessions of Object.values(this.busySessions)) {
-			for (const session of busySessions) {
-				session.destroy(reason);
-			}
-		}
-
-		for (const freeSessions of Object.values(this.freeSessions)) {
-			for (const session of freeSessions) {
+		for (const sessions of Object.values(this.sessions)) {
+			for (const session of sessions) {
 				session.destroy(reason);
 			}
 		}
@@ -35374,7 +17051,18 @@ class Agent extends EventEmitter {
 		// New requests should NOT attach to destroyed sessions
 		this.queue = {};
 	}
+
+	get freeSessions() {
+		return getSessions({agent: this, isFree: true});
+	}
+
+	get busySessions() {
+		return getSessions({agent: this, isFree: false});
+	}
 }
+
+Agent.kCurrentStreamsCount = kCurrentStreamsCount;
+Agent.kGracefullyClosing = kGracefullyClosing;
 
 module.exports = {
 	Agent,
@@ -35383,10 +17071,8 @@ module.exports = {
 
 
 /***/ }),
-/* 900 */,
-/* 901 */,
-/* 902 */,
-/* 903 */
+
+/***/ 903:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -35459,11 +17145,14 @@ const create = (defaults) => {
         const iterateHandlers = (newOptions) => {
             return defaults.handlers[iteration++](newOptions, iteration === defaults.handlers.length ? getPromiseOrStream : iterateHandlers);
         };
+        // TODO: remove this in Got 12
         if (is_1.default.plainObject(url)) {
-            options = {
+            const mergedOptions = {
                 ...url,
                 ...options
             };
+            core_1.setNonEnumerableProperties([url, options], mergedOptions);
+            options = mergedOptions;
             url = undefined;
         }
         try {
@@ -35535,7 +17224,7 @@ const create = (defaults) => {
         while (numberOfRequests < pagination.requestLimit) {
             // TODO: Throw when result is not an instance of Response
             // eslint-disable-next-line no-await-in-loop
-            const result = (await got('', normalizedOptions));
+            const result = (await got(normalizedOptions));
             // eslint-disable-next-line no-await-in-loop
             const parsed = await pagination.transform(result);
             const current = [];
@@ -35601,10 +17290,8 @@ exports.default = create;
 
 
 /***/ }),
-/* 904 */,
-/* 905 */,
-/* 906 */,
-/* 907 */
+
+/***/ 907:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -35630,9 +17317,8 @@ module.exports = (string = '') => {
 
 
 /***/ }),
-/* 908 */,
-/* 909 */,
-/* 910 */
+
+/***/ 910:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -35669,12 +17355,8 @@ exports.default = createRejection;
 
 
 /***/ }),
-/* 911 */,
-/* 912 */,
-/* 913 */,
-/* 914 */,
-/* 915 */,
-/* 916 */
+
+/***/ 916:
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
@@ -35711,17 +17393,8 @@ exports.requestLog = requestLog;
 
 
 /***/ }),
-/* 917 */,
-/* 918 */,
-/* 919 */,
-/* 920 */,
-/* 921 */,
-/* 922 */,
-/* 923 */,
-/* 924 */,
-/* 925 */,
-/* 926 */,
-/* 927 */
+
+/***/ 927:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -35766,93 +17439,8 @@ exports.default = calculateRetryDelay;
 
 
 /***/ }),
-/* 928 */,
-/* 929 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
 
-module.exports = hasNextPage
-
-const deprecate = __webpack_require__(370)
-const getPageLinks = __webpack_require__(13)
-
-function hasNextPage (link) {
-  deprecate(`octokit.hasNextPage() – You can use octokit.paginate or async iterators instead: https://github.com/octokit/rest.js#pagination.`)
-  return getPageLinks(link).next
-}
-
-
-/***/ }),
-/* 930 */,
-/* 931 */,
-/* 932 */
-/***/ (function(module) {
-
-"use strict";
-
-
-/*!
- * isobject <https://github.com/jonschlinkert/isobject>
- *
- * Copyright (c) 2014-2017, Jon Schlinkert.
- * Released under the MIT License.
- */
-
-function isObject(val) {
-  return val != null && typeof val === 'object' && Array.isArray(val) === false;
-}
-
-/*!
- * is-plain-object <https://github.com/jonschlinkert/is-plain-object>
- *
- * Copyright (c) 2014-2017, Jon Schlinkert.
- * Released under the MIT License.
- */
-
-function isObjectObject(o) {
-  return isObject(o) === true
-    && Object.prototype.toString.call(o) === '[object Object]';
-}
-
-function isPlainObject(o) {
-  var ctor,prot;
-
-  if (isObjectObject(o) === false) return false;
-
-  // If has modified constructor
-  ctor = o.constructor;
-  if (typeof ctor !== 'function') return false;
-
-  // If has modified prototype
-  prot = ctor.prototype;
-  if (isObjectObject(prot) === false) return false;
-
-  // If constructor does not have an Object-specific method
-  if (prot.hasOwnProperty('isPrototypeOf') === false) {
-    return false;
-  }
-
-  // Most likely a plain Object
-  return true;
-}
-
-module.exports = isPlainObject;
-
-
-/***/ }),
-/* 933 */,
-/* 934 */,
-/* 935 */,
-/* 936 */,
-/* 937 */,
-/* 938 */,
-/* 939 */,
-/* 940 */,
-/* 941 */,
-/* 942 */,
-/* 943 */,
-/* 944 */,
-/* 945 */,
-/* 946 */
+/***/ 946:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -35872,7 +17460,6 @@ const decompressResponse = __webpack_require__(861);
 // @ts-ignore Missing types
 const http2wrapper = __webpack_require__(157);
 const lowercaseKeys = __webpack_require__(474);
-const getStream = __webpack_require__(145);
 const is_1 = __webpack_require__(534);
 const get_body_size_1 = __webpack_require__(786);
 const is_form_data_1 = __webpack_require__(460);
@@ -35881,6 +17468,9 @@ const timed_out_1 = __webpack_require__(811);
 const url_to_options_1 = __webpack_require__(10);
 const options_to_url_1 = __webpack_require__(328);
 const weakable_map_1 = __webpack_require__(48);
+const get_buffer_1 = __webpack_require__(452);
+const dns_ip_version_1 = __webpack_require__(738);
+const deprecation_warning_1 = __webpack_require__(189);
 const kRequest = Symbol('request');
 const kResponse = Symbol('response');
 const kResponseSize = Symbol('responseSize');
@@ -35905,7 +17495,7 @@ function validateSearchParameters(searchParameters) {
     // eslint-disable-next-line guard-for-in
     for (const key in searchParameters) {
         const value = searchParameters[key];
-        if (!is_1.default.string(value) && !is_1.default.number(value) && !is_1.default.boolean(value) && !is_1.default.null_(value)) {
+        if (!is_1.default.string(value) && !is_1.default.number(value) && !is_1.default.boolean(value) && !is_1.default.null_(value) && !is_1.default.undefined(value)) {
             throw new TypeError(`The \`searchParams\` value '${String(value)}' must be a string, number, boolean or null`);
         }
     }
@@ -35918,8 +17508,11 @@ const waitForOpenFile = async (file) => new Promise((resolve, reject) => {
     const onError = (error) => {
         reject(error);
     };
+    if (!file.pending) {
+        resolve();
+    }
     file.once('error', onError);
-    file.once('open', () => {
+    file.once('ready', () => {
         file.off('error', onError);
         resolve();
     });
@@ -35931,7 +17524,7 @@ const nonEnumerableProperties = [
     'json',
     'form'
 ];
-const setNonEnumerableProperties = (sources, to) => {
+exports.setNonEnumerableProperties = (sources, to) => {
     // Non enumerable properties shall not be merged
     const properties = {};
     for (const source of sources) {
@@ -36150,11 +17743,11 @@ class Request extends stream_1.Duplex {
             options = { ...defaults, ...url, ...options };
         }
         else {
-            if (url && options && options.url) {
+            if (url && options && options.url !== undefined) {
                 throw new TypeError('The `url` option is mutually exclusive with the `input` argument');
             }
             options = { ...defaults, ...options };
-            if (url) {
+            if (url !== undefined) {
                 options.url = url;
             }
             if (is_1.default.urlInstance(options.url)) {
@@ -36186,8 +17779,18 @@ class Request extends stream_1.Duplex {
         is_1.assert.any([is_1.default.boolean, is_1.default.undefined], options.throwHttpErrors);
         is_1.assert.any([is_1.default.boolean, is_1.default.undefined], options.http2);
         is_1.assert.any([is_1.default.boolean, is_1.default.undefined], options.allowGetBody);
-        is_1.assert.any([is_1.default.boolean, is_1.default.undefined], options.rejectUnauthorized);
         is_1.assert.any([is_1.default.string, is_1.default.undefined], options.localAddress);
+        is_1.assert.any([dns_ip_version_1.isDnsLookupIpVersion, is_1.default.undefined], options.dnsLookupIpVersion);
+        is_1.assert.any([is_1.default.object, is_1.default.undefined], options.https);
+        is_1.assert.any([is_1.default.boolean, is_1.default.undefined], options.rejectUnauthorized);
+        if (options.https) {
+            is_1.assert.any([is_1.default.boolean, is_1.default.undefined], options.https.rejectUnauthorized);
+            is_1.assert.any([is_1.default.function_, is_1.default.undefined], options.https.checkServerIdentity);
+            is_1.assert.any([is_1.default.string, is_1.default.object, is_1.default.array, is_1.default.undefined], options.https.certificateAuthority);
+            is_1.assert.any([is_1.default.string, is_1.default.object, is_1.default.array, is_1.default.undefined], options.https.key);
+            is_1.assert.any([is_1.default.string, is_1.default.object, is_1.default.array, is_1.default.undefined], options.https.certificate);
+            is_1.assert.any([is_1.default.string, is_1.default.undefined], options.https.passphrase);
+        }
         // `options.method`
         if (is_1.default.string(options.method)) {
             options.method = options.method.toUpperCase();
@@ -36213,10 +17816,24 @@ class Request extends stream_1.Duplex {
         // `options.searchParams`
         if ('searchParams' in options) {
             if (options.searchParams && options.searchParams !== (defaults === null || defaults === void 0 ? void 0 : defaults.searchParams)) {
-                if (!is_1.default.string(options.searchParams) && !(options.searchParams instanceof url_1.URLSearchParams)) {
-                    validateSearchParameters(options.searchParams);
+                let searchParameters;
+                if (is_1.default.string(options.searchParams) || (options.searchParams instanceof url_1.URLSearchParams)) {
+                    searchParameters = new url_1.URLSearchParams(options.searchParams);
                 }
-                const searchParameters = new url_1.URLSearchParams(options.searchParams);
+                else {
+                    validateSearchParameters(options.searchParams);
+                    searchParameters = new url_1.URLSearchParams();
+                    // eslint-disable-next-line guard-for-in
+                    for (const key in options.searchParams) {
+                        const value = options.searchParams[key];
+                        if (value === null) {
+                            searchParameters.append(key, '');
+                        }
+                        else if (value !== undefined) {
+                            searchParameters.append(key, value);
+                        }
+                    }
+                }
                 // `normalizeArguments()` is also used to merge options
                 (_a = defaults === null || defaults === void 0 ? void 0 : defaults.searchParams) === null || _a === void 0 ? void 0 : _a.forEach((value, key) => {
                     // Only use default if one isn't already defined
@@ -36368,6 +17985,32 @@ class Request extends stream_1.Duplex {
                 }
             }
         }
+        // DNS options
+        if ('family' in options) {
+            deprecation_warning_1.default('"options.family" was never documented, please use "options.dnsLookupIpVersion"');
+        }
+        // HTTPS options
+        if (defaults === null || defaults === void 0 ? void 0 : defaults.https) {
+            options.https = { ...defaults.https, ...options.https };
+        }
+        if ('rejectUnauthorized' in options) {
+            deprecation_warning_1.default('"options.rejectUnauthorized" is now deprecated, please use "options.https.rejectUnauthorized"');
+        }
+        if ('checkServerIdentity' in options) {
+            deprecation_warning_1.default('"options.checkServerIdentity" was never documented, please use "options.https.checkServerIdentity"');
+        }
+        if ('ca' in options) {
+            deprecation_warning_1.default('"options.ca" was never documented, please use "options.https.certificateAuthority"');
+        }
+        if ('key' in options) {
+            deprecation_warning_1.default('"options.key" was never documented, please use "options.https.key"');
+        }
+        if ('cert' in options) {
+            deprecation_warning_1.default('"options.cert" was never documented, please use "options.https.certificate"');
+        }
+        if ('passphrase' in options) {
+            deprecation_warning_1.default('"options.passphrase" was never documented, please use "options.https.passphrase"');
+        }
         // Other options
         if ('followRedirects' in options) {
             throw new TypeError('The `followRedirects` option does not exist. Use `followRedirect` instead.');
@@ -36381,7 +18024,7 @@ class Request extends stream_1.Duplex {
         }
         options.maxRedirects = (_d = options.maxRedirects) !== null && _d !== void 0 ? _d : 0;
         // Set non-enumerable properties
-        setNonEnumerableProperties([defaults, rawOptions], options);
+        exports.setNonEnumerableProperties([defaults, rawOptions], options);
         return options;
     }
     _lockWrite() {
@@ -36441,7 +18084,7 @@ class Request extends stream_1.Duplex {
                     if (noContentType) {
                         headers['content-type'] = 'application/json';
                     }
-                    this[kBody] = JSON.stringify(options.json);
+                    this[kBody] = options.stringifyJson(options.json);
                 }
                 const uploadBodySize = await get_body_size_1.default(this[kBody], options.headers);
                 // See https://tools.ietf.org/html/rfc7230#section-3.3.2
@@ -36498,12 +18141,10 @@ class Request extends stream_1.Duplex {
             this._beforeError(new ReadError(error, this));
         });
         response.once('aborted', () => {
-            if (this.aborted) {
-                return;
-            }
             this._beforeError(new ReadError({
                 name: 'Error',
-                message: 'The server aborted the pending request'
+                message: 'The server aborted pending request',
+                code: 'ECONNRESET'
             }, this));
         });
         this.emit('downloadProgress', this.downloadProgress);
@@ -36702,7 +18343,7 @@ class Request extends stream_1.Duplex {
     async _makeRequest() {
         var _a;
         const { options } = this;
-        const { url, headers, request, agent, timeout } = options;
+        const { headers } = options;
         for (const key in headers) {
             if (is_1.default.undefined(headers[key])) {
                 // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
@@ -36731,6 +18372,7 @@ class Request extends stream_1.Duplex {
                 break;
             }
         }
+        const { agent, request, timeout, url } = options;
         if (options.dnsCache && !('lookup' in options)) {
             options.lookup = options.dnsCache.lookup;
         }
@@ -36766,10 +18408,41 @@ class Request extends stream_1.Duplex {
         options[kRequest] = realFn;
         delete options.request;
         delete options.timeout;
+        const requestOptions = options;
+        // If `dnsLookupIpVersion` is not present do not override `family`
+        if (options.dnsLookupIpVersion !== undefined) {
+            try {
+                requestOptions.family = dns_ip_version_1.dnsLookupIpVersionToFamily(options.dnsLookupIpVersion);
+            }
+            catch (_b) {
+                throw new Error('Invalid `dnsLookupIpVersion` option value');
+            }
+        }
+        // HTTPS options remapping
+        if (options.https) {
+            if ('rejectUnauthorized' in options.https) {
+                requestOptions.rejectUnauthorized = options.https.rejectUnauthorized;
+            }
+            if (options.https.checkServerIdentity) {
+                requestOptions.checkServerIdentity = options.https.checkServerIdentity;
+            }
+            if (options.https.certificateAuthority) {
+                requestOptions.ca = options.https.certificateAuthority;
+            }
+            if (options.https.certificate) {
+                requestOptions.cert = options.https.certificate;
+            }
+            if (options.https.key) {
+                requestOptions.key = options.https.key;
+            }
+            if (options.https.passphrase) {
+                requestOptions.passphrase = options.https.passphrase;
+            }
+        }
         try {
-            let requestOrResponse = await fn(url, options);
+            let requestOrResponse = await fn(url, requestOptions);
             if (is_1.default.undefined(requestOrResponse)) {
-                requestOrResponse = fallbackFn(url, options);
+                requestOrResponse = fallbackFn(url, requestOptions);
             }
             // Restore options
             options.request = request;
@@ -36799,6 +18472,9 @@ class Request extends stream_1.Duplex {
         }
     }
     async _beforeError(error) {
+        if (this.destroyed) {
+            return;
+        }
         this[kStopReading] = true;
         if (!(error instanceof RequestError)) {
             error = new RequestError(error.message, error, this);
@@ -36807,7 +18483,7 @@ class Request extends stream_1.Duplex {
             const { response } = error;
             if (response) {
                 response.setEncoding(this._readableState.encoding);
-                response.rawBody = await getStream.buffer(response);
+                response.rawBody = await get_buffer_1.default(response);
                 response.body = response.rawBody.toString();
             }
         }
@@ -36821,10 +18497,7 @@ class Request extends stream_1.Duplex {
         catch (error_) {
             error = new RequestError(error_.message, error_, this);
         }
-        // This is a workaround for https://github.com/nodejs/node/issues/33335
-        if (!this.destroyed) {
-            this.destroy(error);
-        }
+        this.destroy(error);
     }
     _read() {
         this[kTriggerRead] = true;
@@ -36998,8 +18671,8 @@ exports.default = Request;
 
 
 /***/ }),
-/* 947 */,
-/* 948 */
+
+/***/ 948:
 /***/ (function(module) {
 
 "use strict";
@@ -37017,8 +18690,8 @@ module.exports = function(fn) {
 }
 
 /***/ }),
-/* 949 */,
-/* 950 */
+
+/***/ 950:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -37083,37 +18756,8 @@ exports.checkBypass = checkBypass;
 
 
 /***/ }),
-/* 951 */,
-/* 952 */,
-/* 953 */,
-/* 954 */
-/***/ (function(module) {
 
-module.exports = validateAuth;
-
-function validateAuth(auth) {
-  if (typeof auth === "string") {
-    return;
-  }
-
-  if (typeof auth === "function") {
-    return;
-  }
-
-  if (auth.username && auth.password) {
-    return;
-  }
-
-  if (auth.clientId && auth.clientSecret) {
-    return;
-  }
-
-  throw new Error(`Invalid "auth" option: ${JSON.stringify(auth)}`);
-}
-
-
-/***/ }),
-/* 955 */
+/***/ 955:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -37143,7 +18787,7 @@ const getEnv = ({env: envOption, extendEnv, preferLocal, localDir, execPath}) =>
 	return env;
 };
 
-const handleArgs = (file, args, options = {}) => {
+const handleArguments = (file, args, options = {}) => {
 	const parsed = crossSpawn._parse(file, args, options);
 	file = parsed.command;
 	args = parsed.args;
@@ -37191,7 +18835,7 @@ const handleOutput = (options, value, error) => {
 };
 
 const execa = (file, args, options) => {
-	const parsed = handleArgs(file, args, options);
+	const parsed = handleArguments(file, args, options);
 	const command = joinCommand(file, args);
 
 	let spawned;
@@ -37278,7 +18922,7 @@ const execa = (file, args, options) => {
 module.exports = execa;
 
 module.exports.sync = (file, args, options) => {
-	const parsed = handleArgs(file, args, options);
+	const parsed = handleArguments(file, args, options);
 	const command = joinCommand(file, args);
 
 	validateInputSync(parsed.options);
@@ -37376,17 +19020,8 @@ module.exports.node = (scriptPath, args, options = {}) => {
 
 
 /***/ }),
-/* 956 */,
-/* 957 */,
-/* 958 */,
-/* 959 */,
-/* 960 */,
-/* 961 */,
-/* 962 */,
-/* 963 */,
-/* 964 */,
-/* 965 */,
-/* 966 */
+
+/***/ 966:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -37445,210 +19080,8 @@ module.exports = options => {
 
 
 /***/ }),
-/* 967 */,
-/* 968 */,
-/* 969 */,
-/* 970 */,
-/* 971 */,
-/* 972 */,
-/* 973 */,
-/* 974 */,
-/* 975 */,
-/* 976 */,
-/* 977 */,
-/* 978 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-var universalUserAgent = __webpack_require__(796);
-var beforeAfterHook = __webpack_require__(523);
-var request = __webpack_require__(417);
-var graphql = __webpack_require__(270);
-var authToken = __webpack_require__(341);
-
-function _defineProperty(obj, key, value) {
-  if (key in obj) {
-    Object.defineProperty(obj, key, {
-      value: value,
-      enumerable: true,
-      configurable: true,
-      writable: true
-    });
-  } else {
-    obj[key] = value;
-  }
-
-  return obj;
-}
-
-function ownKeys(object, enumerableOnly) {
-  var keys = Object.keys(object);
-
-  if (Object.getOwnPropertySymbols) {
-    var symbols = Object.getOwnPropertySymbols(object);
-    if (enumerableOnly) symbols = symbols.filter(function (sym) {
-      return Object.getOwnPropertyDescriptor(object, sym).enumerable;
-    });
-    keys.push.apply(keys, symbols);
-  }
-
-  return keys;
-}
-
-function _objectSpread2(target) {
-  for (var i = 1; i < arguments.length; i++) {
-    var source = arguments[i] != null ? arguments[i] : {};
-
-    if (i % 2) {
-      ownKeys(Object(source), true).forEach(function (key) {
-        _defineProperty(target, key, source[key]);
-      });
-    } else if (Object.getOwnPropertyDescriptors) {
-      Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
-    } else {
-      ownKeys(Object(source)).forEach(function (key) {
-        Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
-      });
-    }
-  }
-
-  return target;
-}
-
-const VERSION = "3.1.0";
-
-class Octokit {
-  constructor(options = {}) {
-    const hook = new beforeAfterHook.Collection();
-    const requestDefaults = {
-      baseUrl: request.request.endpoint.DEFAULTS.baseUrl,
-      headers: {},
-      request: Object.assign({}, options.request, {
-        hook: hook.bind(null, "request")
-      }),
-      mediaType: {
-        previews: [],
-        format: ""
-      }
-    }; // prepend default user agent with `options.userAgent` if set
-
-    requestDefaults.headers["user-agent"] = [options.userAgent, `octokit-core.js/${VERSION} ${universalUserAgent.getUserAgent()}`].filter(Boolean).join(" ");
-
-    if (options.baseUrl) {
-      requestDefaults.baseUrl = options.baseUrl;
-    }
-
-    if (options.previews) {
-      requestDefaults.mediaType.previews = options.previews;
-    }
-
-    if (options.timeZone) {
-      requestDefaults.headers["time-zone"] = options.timeZone;
-    }
-
-    this.request = request.request.defaults(requestDefaults);
-    this.graphql = graphql.withCustomRequest(this.request).defaults(_objectSpread2(_objectSpread2({}, requestDefaults), {}, {
-      baseUrl: requestDefaults.baseUrl.replace(/\/api\/v3$/, "/api")
-    }));
-    this.log = Object.assign({
-      debug: () => {},
-      info: () => {},
-      warn: console.warn.bind(console),
-      error: console.error.bind(console)
-    }, options.log);
-    this.hook = hook; // (1) If neither `options.authStrategy` nor `options.auth` are set, the `octokit` instance
-    //     is unauthenticated. The `this.auth()` method is a no-op and no request hook is registred.
-    // (2) If only `options.auth` is set, use the default token authentication strategy.
-    // (3) If `options.authStrategy` is set then use it and pass in `options.auth`. Always pass own request as many strategies accept a custom request instance.
-    // TODO: type `options.auth` based on `options.authStrategy`.
-
-    if (!options.authStrategy) {
-      if (!options.auth) {
-        // (1)
-        this.auth = async () => ({
-          type: "unauthenticated"
-        });
-      } else {
-        // (2)
-        const auth = authToken.createTokenAuth(options.auth); // @ts-ignore  ¯\_(ツ)_/¯
-
-        hook.wrap("request", auth.hook);
-        this.auth = auth;
-      }
-    } else {
-      const auth = options.authStrategy(Object.assign({
-        request: this.request
-      }, options.auth)); // @ts-ignore  ¯\_(ツ)_/¯
-
-      hook.wrap("request", auth.hook);
-      this.auth = auth;
-    } // apply plugins
-    // https://stackoverflow.com/a/16345172
-
-
-    const classConstructor = this.constructor;
-    classConstructor.plugins.forEach(plugin => {
-      Object.assign(this, plugin(this, options));
-    });
-  }
-
-  static defaults(defaults) {
-    const OctokitWithDefaults = class extends this {
-      constructor(...args) {
-        const options = args[0] || {};
-
-        if (typeof defaults === "function") {
-          super(defaults(options));
-          return;
-        }
-
-        super(Object.assign({}, defaults, options, options.userAgent && defaults.userAgent ? {
-          userAgent: `${options.userAgent} ${defaults.userAgent}`
-        } : null));
-      }
-
-    };
-    return OctokitWithDefaults;
-  }
-  /**
-   * Attach a plugin (or many) to your Octokit instance.
-   *
-   * @example
-   * const API = Octokit.plugin(plugin1, plugin2, plugin3, ...)
-   */
-
-
-  static plugin(...newPlugins) {
-    var _a;
-
-    const currentPlugins = this.plugins;
-    const NewOctokit = (_a = class extends this {}, _a.plugins = currentPlugins.concat(newPlugins.filter(plugin => !currentPlugins.includes(plugin))), _a);
-    return NewOctokit;
-  }
-
-}
-Octokit.VERSION = VERSION;
-Octokit.plugins = [];
-
-exports.Octokit = Octokit;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-/* 979 */,
-/* 980 */,
-/* 981 */,
-/* 982 */,
-/* 983 */,
-/* 984 */,
-/* 985 */,
-/* 986 */,
-/* 987 */,
-/* 988 */
+/***/ 988:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
 "use strict";
@@ -37757,20 +19190,25 @@ module.exports = async (input, options, callback) => {
 
 	options = {
 		ALPNProtocols: ['h2', 'http/1.1'],
-		protocol: 'https:',
 		...input,
 		...options,
 		resolveSocket: true
 	};
 
+	if (!Array.isArray(options.ALPNProtocols) || options.ALPNProtocols.length === 0) {
+		throw new Error('The `ALPNProtocols` option must be an Array with at least one entry');
+	}
+
+	options.protocol = options.protocol || 'https:';
 	const isHttps = options.protocol === 'https:';
-	const agents = options.agent;
 
 	options.host = options.hostname || options.host || 'localhost';
 	options.session = options.tlsSession;
 	options.servername = options.servername || calculateServerName(options);
 	options.port = options.port || (isHttps ? 443 : 80);
 	options._defaultAgent = isHttps ? https.globalAgent : http.globalAgent;
+
+	const agents = options.agent;
 
 	if (agents) {
 		if (agents.addRequest) {
@@ -37799,4 +19237,5 @@ module.exports.protocolCache = cache;
 
 
 /***/ })
-/******/ ]);
+
+/******/ });

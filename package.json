@@ -1,6 +1,6 @@
 {
   "name": "new-gems-action",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "TypeScript template action",
   "main": "lib/main.js",
@@ -26,10 +26,10 @@
   "license": "MIT",
   "dependencies": {
     "@actions/core": "^1.2.0",
-    "@actions/github": "^2.2.0",
-    "@aki77/actions-replace-comment": "^0.4.0",
+    "@actions/github": "^4.0.0",
+    "@aki77/actions-replace-comment": "^0.4.1",
     "execa": "^4.0.1",
-    "got": "^11.1.4",
+    "got": "11.4.0",
     "markdown-table": "^2.0.0"
   },
   "devDependencies": {
