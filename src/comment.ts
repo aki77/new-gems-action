@@ -29,7 +29,7 @@ ${table}
 </details>
 `
 
-  await replaceComment({
+  const data = await replaceComment({
     token: core.getInput('token', {required: true}),
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
@@ -37,6 +37,10 @@ ${table}
     issue_number: github.context.issue.number,
     body
   })
+
+  if (!data) {
+    core.debug('Already commented.')
+  }
 }
 
 export {createComment}
