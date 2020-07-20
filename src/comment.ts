@@ -33,7 +33,6 @@ ${table}
     token: core.getInput('token', {required: true}),
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
-    // eslint-disable-next-line @typescript-eslint/camelcase
     issue_number: github.context.issue.number,
     body
   })
