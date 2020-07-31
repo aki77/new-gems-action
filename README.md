@@ -2,7 +2,7 @@
 
 Add a message in Pull Request with basic information when new gems are added.
 
-![Demo](https://i.gyazo.com/e426ce8e7d705e9531364bce4e6e13db.png)
+![Demo](https://i.gyazo.com/7b87cc40ca21eb528b067fddb57ecc03.png)
 
 ## Usage:
 
