@@ -13,11 +13,12 @@ const createComment = async (newGems: GemWithInfo[]): Promise<void> => {
       `[${gem.name}](${gem.homepage_uri})`,
       gem.groups.join(', '),
       toMarkdownString(gem.authors),
-      toMarkdownString(gem.info)
+      toMarkdownString(gem.info),
+      gem.created_at ? new Date(gem.created_at).toLocaleDateString() : ''
     ]
   })
   const table = markdownTable([
-    ['Name', 'Groups', 'Authors', 'Summary'],
+    ['Name', 'Groups', 'Authors', 'Summary', 'Updated'],
     ...gemRows
   ])
 

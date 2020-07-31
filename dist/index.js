@@ -1060,11 +1060,12 @@ const createComment = (newGems) => __awaiter(void 0, void 0, void 0, function* (
             `[${gem.name}](${gem.homepage_uri})`,
             gem.groups.join(', '),
             toMarkdownString(gem.authors),
-            toMarkdownString(gem.info)
+            toMarkdownString(gem.info),
+            gem.created_at ? new Date(gem.created_at).toLocaleDateString() : ''
         ];
     });
     const table = markdown_table_1.default([
-        ['Name', 'Groups', 'Authors', 'Summary'],
+        ['Name', 'Groups', 'Authors', 'Summary', 'Updated'],
         ...gemRows
     ]);
     const body = `## :gem: New Gems!
@@ -11903,7 +11904,10 @@ const getGems = (gemfile) => __awaiter(void 0, void 0, void 0, function* () {
 exports.getGems = getGems;
 const gemInfo = (gem) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { body } = yield got_1.default.get(`https://rubygems.org/api/v1/gems/${gem.name}.json`, {
+        const { body: { version } } = yield got_1.default.get(`https://rubygems.org/api/v1/gems/${gem.name}.json`, {
+            responseType: 'json'
+        });
+        const { body } = yield got_1.default.get(`https://rubygems.org/api/v2/rubygems/${gem.name}/versions/${version}.json`, {
             responseType: 'json'
         });
         return body;

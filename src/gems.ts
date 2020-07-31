@@ -8,13 +8,18 @@ interface Gem {
   groups: string[]
 }
 
-interface GemInfo {
+interface GemInfoV1 {
   info?: string
   homepage_uri?: string
   authors?: string
+  version?: string
 }
 
-export type GemWithInfo = Gem & GemInfo
+interface GemInfoV2 extends GemInfoV1 {
+  created_at?: string
+}
+
+export type GemWithInfo = Gem & GemInfoV2
 
 const getGems = async (gemfile: string): Promise<Gem[]> => {
   const parseScript = path.resolve(__dirname, '../parse_gemfile.rb')
@@ -23,14 +28,24 @@ const getGems = async (gemfile: string): Promise<Gem[]> => {
   return JSON.parse(stdout)
 }
 
-const gemInfo = async (gem: Gem): Promise<GemInfo | null> => {
+const gemInfo = async (gem: Gem): Promise<GemInfoV2 | null> => {
   try {
-    const {body} = await got.get<GemInfo>(
+    const {
+      body: {version}
+    } = await got.get<GemInfoV1>(
       `https://rubygems.org/api/v1/gems/${gem.name}.json`,
       {
         responseType: 'json'
       }
     )
+
+    const {body} = await got.get<GemInfoV2>(
+      `https://rubygems.org/api/v2/rubygems/${gem.name}/versions/${version}.json`,
+      {
+        responseType: 'json'
+      }
+    )
+
     return body
   } catch (error) {
     return null
