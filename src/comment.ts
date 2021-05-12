@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import markdownTable from 'markdown-table'
+import {markdownTable} from 'markdown-table'
 import replaceComment from '@aki77/actions-replace-comment'
 import {GemWithInfo} from './gems'
 
