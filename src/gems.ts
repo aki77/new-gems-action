@@ -1,7 +1,7 @@
-import fs from 'fs'
-import path from 'path'
 import execa, {command} from 'execa'
+import fs from 'fs'
 import got from 'got'
+import path from 'path'
 
 interface Gem {
   name: string

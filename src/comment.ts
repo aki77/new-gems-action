@@ -1,8 +1,8 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+import {GemWithInfo} from './gems'
 import {markdownTable} from 'markdown-table'
 import replaceComment from '@aki77/actions-replace-comment'
-import {GemWithInfo} from './gems'
 
 const toMarkdownString = (text?: string): string =>
   text ? text.replace(/\r?\n/g, '') : ''
@@ -39,6 +39,7 @@ ${table}
   })
 
   if (!data) {
+    // eslint-disable-next-line i18n-text/no-en
     core.debug('Already commented.')
   }
 }
