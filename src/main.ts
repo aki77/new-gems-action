@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
-import {detectNewGems} from './gems'
 import {createComment} from './comment'
+import {detectNewGems} from './gems'
 
 async function run(): Promise<void> {
   try {
@@ -10,7 +10,9 @@ async function run(): Promise<void> {
       await createComment(newGems)
     }
   } catch (error) {
-    core.setFailed(error.message)
+    if (error instanceof Error) {
+      core.setFailed(error.message)
+    }
   }
 }
 
