@@ -12479,7 +12479,6 @@ var gems_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arg
 };
 
 
-// eslint-disable-next-line import/no-unresolved
 
 
 const getGems = (gemfile) => gems_awaiter(void 0, void 0, void 0, function* () {
