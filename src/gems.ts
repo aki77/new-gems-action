@@ -1,4 +1,5 @@
-import execa, {command} from 'execa'
+/* eslint-disable import/no-unresolved */
+import {execa, execaCommand} from 'execa'
 import fs from 'fs'
 import got from 'got'
 import path from 'path'
@@ -23,7 +24,7 @@ export type GemWithInfo = Gem & GemInfoV2
 
 const getGems = async (gemfile: string): Promise<Gem[]> => {
   const parseScript = path.resolve(__dirname, '../parse_gemfile.rb')
-  const {stdout} = await command(`ruby ${parseScript} ${gemfile}`)
+  const {stdout} = await execaCommand(`ruby ${parseScript} ${gemfile}`)
 
   return JSON.parse(stdout)
 }

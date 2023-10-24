@@ -1,6 +1,7 @@
+/* eslint-disable import/no-unresolved */
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import {GemWithInfo} from './gems'
+import {GemWithInfo} from './gems.js'
 import {markdownTable} from 'markdown-table'
 import replaceComment from '@aki77/actions-replace-comment'
 
@@ -30,7 +31,7 @@ ${table}
 </details>
 `
 
-  const data = await replaceComment({
+  const data = await replaceComment.default({
     token: core.getInput('token', {required: true}),
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
