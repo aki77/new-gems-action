@@ -30,7 +30,7 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
-      - uses: aki77/new-gems-action@v1
+      - uses: aki77/new-gems-action@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 ```
