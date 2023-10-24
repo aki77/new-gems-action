@@ -1,6 +1,7 @@
+/* eslint-disable import/no-unresolved */
 import * as core from '@actions/core'
-import {createComment} from './comment'
-import {detectNewGems} from './gems'
+import {createComment} from './comment.js'
+import {detectNewGems} from './gems.js'
 
 async function run(): Promise<void> {
   try {
