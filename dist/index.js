@@ -1830,7 +1830,7 @@ class HttpClient {
         if (this._keepAlive && useProxy) {
             agent = this._proxyAgent;
         }
-        if (this._keepAlive && !useProxy) {
+        if (!useProxy) {
             agent = this._agent;
         }
         // if agent is already assigned use that agent.
@@ -1862,15 +1862,11 @@ class HttpClient {
             agent = tunnelAgent(agentOptions);
             this._proxyAgent = agent;
         }
-        // if reusing agent across request and tunneling agent isn't assigned create a new agent
-        if (this._keepAlive && !agent) {
+        // if tunneling agent isn't assigned create a new agent
+        if (!agent) {
             const options = { keepAlive: this._keepAlive, maxSockets };
             agent = usingSsl ? new https.Agent(options) : new http.Agent(options);
             this._agent = agent;
-        }
-        // if not using private agent and tunnel agent isn't setup then use global agent
-        if (!agent) {
-            agent = usingSsl ? https.globalAgent : http.globalAgent;
         }
         if (usingSsl && this._ignoreSslError) {
             // we don't want to set NODE_TLS_REJECT_UNAUTHORIZED=0 since that will affect request for entire process
@@ -2091,7 +2087,7 @@ exports.createComment = exports.deleteComment = exports.findComment = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const rest_1 = __nccwpck_require__(5375);
 const issues = (auth) => new rest_1.Octokit({ auth }).issues;
-const findComment = ({ token, owner, repo, issue_number, body }) => __awaiter(void 0, void 0, void 0, function* () {
+const findComment = (_a) => __awaiter(void 0, [_a], void 0, function* ({ token, owner, repo, issue_number, body }) {
     const firstLine = body.split('\n', 1)[0];
     const { data: existingComments } = yield issues(token).listComments({ owner, repo, issue_number });
     const comment = existingComments.find(comment => { var _a; return (_a = comment.body) === null || _a === void 0 ? void 0 : _a.startsWith(firstLine); });
@@ -2101,1441 +2097,39 @@ const findComment = ({ token, owner, repo, issue_number, body }) => __awaiter(vo
     };
 });
 exports.findComment = findComment;
-const deleteComment = ({ token, owner, repo, issue_number, body, startsWith = false }) => __awaiter(void 0, void 0, void 0, function* () {
-    const { comment_id, exactMatch } = yield (0, exports.findComment)({ token, owner, repo, issue_number, body });
+const deleteComment = (_b) => __awaiter(void 0, [_b], void 0, function* ({ token, owner, repo, issue_number, body, startsWith = false }) {
+    const { comment_id, exactMatch } = yield (0, exports.findComment)({
+        token, owner, repo, issue_number, body,
+    });
     if (comment_id && (startsWith || exactMatch)) {
         yield issues(token).deleteComment({ owner, repo, comment_id });
     }
 });
 exports.deleteComment = deleteComment;
-const createComment = ({ token, owner, repo, issue_number, body }) => __awaiter(void 0, void 0, void 0, function* () {
-    const responce = yield issues(token).createComment({ owner, repo, issue_number, body });
+const createComment = (_c) => __awaiter(void 0, [_c], void 0, function* ({ token, owner, repo, issue_number, body }) {
+    const responce = yield issues(token).createComment({
+        owner, repo, issue_number, body,
+    });
     return responce.data;
 });
 exports.createComment = createComment;
-function replaceComment({ token, owner, repo, issue_number, body }) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const { comment_id, exactMatch } = yield (0, exports.findComment)({ token, owner, repo, issue_number, body });
+function replaceComment(_a) {
+    return __awaiter(this, arguments, void 0, function* ({ token, owner, repo, issue_number, body }) {
+        const { comment_id, exactMatch } = yield (0, exports.findComment)({
+            token, owner, repo, issue_number, body,
+        });
         if (exactMatch) {
             return;
         }
         if (comment_id) {
             yield issues(token).deleteComment({ owner, repo, comment_id });
         }
-        return (0, exports.createComment)({ token, owner, repo, issue_number, body });
+        return (0, exports.createComment)({
+            token, owner, repo, issue_number, body,
+        });
     });
 }
 exports["default"] = replaceComment;
-
-
-/***/ }),
-
-/***/ 2856:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-
-
-const WritableStream = (__nccwpck_require__(4492).Writable)
-const inherits = (__nccwpck_require__(7261).inherits)
-
-const StreamSearch = __nccwpck_require__(8534)
-
-const PartStream = __nccwpck_require__(8710)
-const HeaderParser = __nccwpck_require__(333)
-
-const DASH = 45
-const B_ONEDASH = Buffer.from('-')
-const B_CRLF = Buffer.from('\r\n')
-const EMPTY_FN = function () {}
-
-function Dicer (cfg) {
-  if (!(this instanceof Dicer)) { return new Dicer(cfg) }
-  WritableStream.call(this, cfg)
-
-  if (!cfg || (!cfg.headerFirst && typeof cfg.boundary !== 'string')) { throw new TypeError('Boundary required') }
-
-  if (typeof cfg.boundary === 'string') { this.setBoundary(cfg.boundary) } else { this._bparser = undefined }
-
-  this._headerFirst = cfg.headerFirst
-
-  this._dashes = 0
-  this._parts = 0
-  this._finished = false
-  this._realFinish = false
-  this._isPreamble = true
-  this._justMatched = false
-  this._firstWrite = true
-  this._inHeader = true
-  this._part = undefined
-  this._cb = undefined
-  this._ignoreData = false
-  this._partOpts = { highWaterMark: cfg.partHwm }
-  this._pause = false
-
-  const self = this
-  this._hparser = new HeaderParser(cfg)
-  this._hparser.on('header', function (header) {
-    self._inHeader = false
-    self._part.emit('header', header)
-  })
-}
-inherits(Dicer, WritableStream)
-
-Dicer.prototype.emit = function (ev) {
-  if (ev === 'finish' && !this._realFinish) {
-    if (!this._finished) {
-      const self = this
-      process.nextTick(function () {
-        self.emit('error', new Error('Unexpected end of multipart data'))
-        if (self._part && !self._ignoreData) {
-          const type = (self._isPreamble ? 'Preamble' : 'Part')
-          self._part.emit('error', new Error(type + ' terminated early due to unexpected end of multipart data'))
-          self._part.push(null)
-          process.nextTick(function () {
-            self._realFinish = true
-            self.emit('finish')
-            self._realFinish = false
-          })
-          return
-        }
-        self._realFinish = true
-        self.emit('finish')
-        self._realFinish = false
-      })
-    }
-  } else { WritableStream.prototype.emit.apply(this, arguments) }
-}
-
-Dicer.prototype._write = function (data, encoding, cb) {
-  // ignore unexpected data (e.g. extra trailer data after finished)
-  if (!this._hparser && !this._bparser) { return cb() }
-
-  if (this._headerFirst && this._isPreamble) {
-    if (!this._part) {
-      this._part = new PartStream(this._partOpts)
-      if (this._events.preamble) { this.emit('preamble', this._part) } else { this._ignore() }
-    }
-    const r = this._hparser.push(data)
-    if (!this._inHeader && r !== undefined && r < data.length) { data = data.slice(r) } else { return cb() }
-  }
-
-  // allows for "easier" testing
-  if (this._firstWrite) {
-    this._bparser.push(B_CRLF)
-    this._firstWrite = false
-  }
-
-  this._bparser.push(data)
-
-  if (this._pause) { this._cb = cb } else { cb() }
-}
-
-Dicer.prototype.reset = function () {
-  this._part = undefined
-  this._bparser = undefined
-  this._hparser = undefined
-}
-
-Dicer.prototype.setBoundary = function (boundary) {
-  const self = this
-  this._bparser = new StreamSearch('\r\n--' + boundary)
-  this._bparser.on('info', function (isMatch, data, start, end) {
-    self._oninfo(isMatch, data, start, end)
-  })
-}
-
-Dicer.prototype._ignore = function () {
-  if (this._part && !this._ignoreData) {
-    this._ignoreData = true
-    this._part.on('error', EMPTY_FN)
-    // we must perform some kind of read on the stream even though we are
-    // ignoring the data, otherwise node's Readable stream will not emit 'end'
-    // after pushing null to the stream
-    this._part.resume()
-  }
-}
-
-Dicer.prototype._oninfo = function (isMatch, data, start, end) {
-  let buf; const self = this; let i = 0; let r; let shouldWriteMore = true
-
-  if (!this._part && this._justMatched && data) {
-    while (this._dashes < 2 && (start + i) < end) {
-      if (data[start + i] === DASH) {
-        ++i
-        ++this._dashes
-      } else {
-        if (this._dashes) { buf = B_ONEDASH }
-        this._dashes = 0
-        break
-      }
-    }
-    if (this._dashes === 2) {
-      if ((start + i) < end && this._events.trailer) { this.emit('trailer', data.slice(start + i, end)) }
-      this.reset()
-      this._finished = true
-      // no more parts will be added
-      if (self._parts === 0) {
-        self._realFinish = true
-        self.emit('finish')
-        self._realFinish = false
-      }
-    }
-    if (this._dashes) { return }
-  }
-  if (this._justMatched) { this._justMatched = false }
-  if (!this._part) {
-    this._part = new PartStream(this._partOpts)
-    this._part._read = function (n) {
-      self._unpause()
-    }
-    if (this._isPreamble && this._events.preamble) { this.emit('preamble', this._part) } else if (this._isPreamble !== true && this._events.part) { this.emit('part', this._part) } else { this._ignore() }
-    if (!this._isPreamble) { this._inHeader = true }
-  }
-  if (data && start < end && !this._ignoreData) {
-    if (this._isPreamble || !this._inHeader) {
-      if (buf) { shouldWriteMore = this._part.push(buf) }
-      shouldWriteMore = this._part.push(data.slice(start, end))
-      if (!shouldWriteMore) { this._pause = true }
-    } else if (!this._isPreamble && this._inHeader) {
-      if (buf) { this._hparser.push(buf) }
-      r = this._hparser.push(data.slice(start, end))
-      if (!this._inHeader && r !== undefined && r < end) { this._oninfo(false, data, start + r, end) }
-    }
-  }
-  if (isMatch) {
-    this._hparser.reset()
-    if (this._isPreamble) { this._isPreamble = false } else {
-      if (start !== end) {
-        ++this._parts
-        this._part.on('end', function () {
-          if (--self._parts === 0) {
-            if (self._finished) {
-              self._realFinish = true
-              self.emit('finish')
-              self._realFinish = false
-            } else {
-              self._unpause()
-            }
-          }
-        })
-      }
-    }
-    this._part.push(null)
-    this._part = undefined
-    this._ignoreData = false
-    this._justMatched = true
-    this._dashes = 0
-  }
-}
-
-Dicer.prototype._unpause = function () {
-  if (!this._pause) { return }
-
-  this._pause = false
-  if (this._cb) {
-    const cb = this._cb
-    this._cb = undefined
-    cb()
-  }
-}
-
-module.exports = Dicer
-
-
-/***/ }),
-
-/***/ 333:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-
-
-const EventEmitter = (__nccwpck_require__(5673).EventEmitter)
-const inherits = (__nccwpck_require__(7261).inherits)
-const getLimit = __nccwpck_require__(9692)
-
-const StreamSearch = __nccwpck_require__(8534)
-
-const B_DCRLF = Buffer.from('\r\n\r\n')
-const RE_CRLF = /\r\n/g
-const RE_HDR = /^([^:]+):[ \t]?([\x00-\xFF]+)?$/ // eslint-disable-line no-control-regex
-
-function HeaderParser (cfg) {
-  EventEmitter.call(this)
-
-  cfg = cfg || {}
-  const self = this
-  this.nread = 0
-  this.maxed = false
-  this.npairs = 0
-  this.maxHeaderPairs = getLimit(cfg, 'maxHeaderPairs', 2000)
-  this.maxHeaderSize = getLimit(cfg, 'maxHeaderSize', 80 * 1024)
-  this.buffer = ''
-  this.header = {}
-  this.finished = false
-  this.ss = new StreamSearch(B_DCRLF)
-  this.ss.on('info', function (isMatch, data, start, end) {
-    if (data && !self.maxed) {
-      if (self.nread + end - start >= self.maxHeaderSize) {
-        end = self.maxHeaderSize - self.nread + start
-        self.nread = self.maxHeaderSize
-        self.maxed = true
-      } else { self.nread += (end - start) }
-
-      self.buffer += data.toString('binary', start, end)
-    }
-    if (isMatch) { self._finish() }
-  })
-}
-inherits(HeaderParser, EventEmitter)
-
-HeaderParser.prototype.push = function (data) {
-  const r = this.ss.push(data)
-  if (this.finished) { return r }
-}
-
-HeaderParser.prototype.reset = function () {
-  this.finished = false
-  this.buffer = ''
-  this.header = {}
-  this.ss.reset()
-}
-
-HeaderParser.prototype._finish = function () {
-  if (this.buffer) { this._parseHeader() }
-  this.ss.matches = this.ss.maxMatches
-  const header = this.header
-  this.header = {}
-  this.buffer = ''
-  this.finished = true
-  this.nread = this.npairs = 0
-  this.maxed = false
-  this.emit('header', header)
-}
-
-HeaderParser.prototype._parseHeader = function () {
-  if (this.npairs === this.maxHeaderPairs) { return }
-
-  const lines = this.buffer.split(RE_CRLF)
-  const len = lines.length
-  let m, h
-
-  for (var i = 0; i < len; ++i) { // eslint-disable-line no-var
-    if (lines[i].length === 0) { continue }
-    if (lines[i][0] === '\t' || lines[i][0] === ' ') {
-      // folded header content
-      // RFC2822 says to just remove the CRLF and not the whitespace following
-      // it, so we follow the RFC and include the leading whitespace ...
-      if (h) {
-        this.header[h][this.header[h].length - 1] += lines[i]
-        continue
-      }
-    }
-
-    const posColon = lines[i].indexOf(':')
-    if (
-      posColon === -1 ||
-      posColon === 0
-    ) {
-      return
-    }
-    m = RE_HDR.exec(lines[i])
-    h = m[1].toLowerCase()
-    this.header[h] = this.header[h] || []
-    this.header[h].push((m[2] || ''))
-    if (++this.npairs === this.maxHeaderPairs) { break }
-  }
-}
-
-module.exports = HeaderParser
-
-
-/***/ }),
-
-/***/ 8710:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-
-
-const inherits = (__nccwpck_require__(7261).inherits)
-const ReadableStream = (__nccwpck_require__(4492).Readable)
-
-function PartStream (opts) {
-  ReadableStream.call(this, opts)
-}
-inherits(PartStream, ReadableStream)
-
-PartStream.prototype._read = function (n) {}
-
-module.exports = PartStream
-
-
-/***/ }),
-
-/***/ 8534:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-
-
-/**
- * Copyright Brian White. All rights reserved.
- *
- * @see https://github.com/mscdex/streamsearch
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to
- * deal in the Software without restriction, including without limitation the
- * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
- * sell copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
- *
- * Based heavily on the Streaming Boyer-Moore-Horspool C++ implementation
- * by Hongli Lai at: https://github.com/FooBarWidget/boyer-moore-horspool
- */
-const EventEmitter = (__nccwpck_require__(5673).EventEmitter)
-const inherits = (__nccwpck_require__(7261).inherits)
-
-function SBMH (needle) {
-  if (typeof needle === 'string') {
-    needle = Buffer.from(needle)
-  }
-
-  if (!Buffer.isBuffer(needle)) {
-    throw new TypeError('The needle has to be a String or a Buffer.')
-  }
-
-  const needleLength = needle.length
-
-  if (needleLength === 0) {
-    throw new Error('The needle cannot be an empty String/Buffer.')
-  }
-
-  if (needleLength > 256) {
-    throw new Error('The needle cannot have a length bigger than 256.')
-  }
-
-  this.maxMatches = Infinity
-  this.matches = 0
-
-  this._occ = new Array(256)
-    .fill(needleLength) // Initialize occurrence table.
-  this._lookbehind_size = 0
-  this._needle = needle
-  this._bufpos = 0
-
-  this._lookbehind = Buffer.alloc(needleLength)
-
-  // Populate occurrence table with analysis of the needle,
-  // ignoring last letter.
-  for (var i = 0; i < needleLength - 1; ++i) { // eslint-disable-line no-var
-    this._occ[needle[i]] = needleLength - 1 - i
-  }
-}
-inherits(SBMH, EventEmitter)
-
-SBMH.prototype.reset = function () {
-  this._lookbehind_size = 0
-  this.matches = 0
-  this._bufpos = 0
-}
-
-SBMH.prototype.push = function (chunk, pos) {
-  if (!Buffer.isBuffer(chunk)) {
-    chunk = Buffer.from(chunk, 'binary')
-  }
-  const chlen = chunk.length
-  this._bufpos = pos || 0
-  let r
-  while (r !== chlen && this.matches < this.maxMatches) { r = this._sbmh_feed(chunk) }
-  return r
-}
-
-SBMH.prototype._sbmh_feed = function (data) {
-  const len = data.length
-  const needle = this._needle
-  const needleLength = needle.length
-  const lastNeedleChar = needle[needleLength - 1]
-
-  // Positive: points to a position in `data`
-  //           pos == 3 points to data[3]
-  // Negative: points to a position in the lookbehind buffer
-  //           pos == -2 points to lookbehind[lookbehind_size - 2]
-  let pos = -this._lookbehind_size
-  let ch
-
-  if (pos < 0) {
-    // Lookbehind buffer is not empty. Perform Boyer-Moore-Horspool
-    // search with character lookup code that considers both the
-    // lookbehind buffer and the current round's haystack data.
-    //
-    // Loop until
-    //   there is a match.
-    // or until
-    //   we've moved past the position that requires the
-    //   lookbehind buffer. In this case we switch to the
-    //   optimized loop.
-    // or until
-    //   the character to look at lies outside the haystack.
-    while (pos < 0 && pos <= len - needleLength) {
-      ch = this._sbmh_lookup_char(data, pos + needleLength - 1)
-
-      if (
-        ch === lastNeedleChar &&
-        this._sbmh_memcmp(data, pos, needleLength - 1)
-      ) {
-        this._lookbehind_size = 0
-        ++this.matches
-        this.emit('info', true)
-
-        return (this._bufpos = pos + needleLength)
-      }
-      pos += this._occ[ch]
-    }
-
-    // No match.
-
-    if (pos < 0) {
-      // There's too few data for Boyer-Moore-Horspool to run,
-      // so let's use a different algorithm to skip as much as
-      // we can.
-      // Forward pos until
-      //   the trailing part of lookbehind + data
-      //   looks like the beginning of the needle
-      // or until
-      //   pos == 0
-      while (pos < 0 && !this._sbmh_memcmp(data, pos, len - pos)) { ++pos }
-    }
-
-    if (pos >= 0) {
-      // Discard lookbehind buffer.
-      this.emit('info', false, this._lookbehind, 0, this._lookbehind_size)
-      this._lookbehind_size = 0
-    } else {
-      // Cut off part of the lookbehind buffer that has
-      // been processed and append the entire haystack
-      // into it.
-      const bytesToCutOff = this._lookbehind_size + pos
-      if (bytesToCutOff > 0) {
-        // The cut off data is guaranteed not to contain the needle.
-        this.emit('info', false, this._lookbehind, 0, bytesToCutOff)
-      }
-
-      this._lookbehind.copy(this._lookbehind, 0, bytesToCutOff,
-        this._lookbehind_size - bytesToCutOff)
-      this._lookbehind_size -= bytesToCutOff
-
-      data.copy(this._lookbehind, this._lookbehind_size)
-      this._lookbehind_size += len
-
-      this._bufpos = len
-      return len
-    }
-  }
-
-  pos += (pos >= 0) * this._bufpos
-
-  // Lookbehind buffer is now empty. We only need to check if the
-  // needle is in the haystack.
-  if (data.indexOf(needle, pos) !== -1) {
-    pos = data.indexOf(needle, pos)
-    ++this.matches
-    if (pos > 0) { this.emit('info', true, data, this._bufpos, pos) } else { this.emit('info', true) }
-
-    return (this._bufpos = pos + needleLength)
-  } else {
-    pos = len - needleLength
-  }
-
-  // There was no match. If there's trailing haystack data that we cannot
-  // match yet using the Boyer-Moore-Horspool algorithm (because the trailing
-  // data is less than the needle size) then match using a modified
-  // algorithm that starts matching from the beginning instead of the end.
-  // Whatever trailing data is left after running this algorithm is added to
-  // the lookbehind buffer.
-  while (
-    pos < len &&
-    (
-      data[pos] !== needle[0] ||
-      (
-        (Buffer.compare(
-          data.subarray(pos, pos + len - pos),
-          needle.subarray(0, len - pos)
-        ) !== 0)
-      )
-    )
-  ) {
-    ++pos
-  }
-  if (pos < len) {
-    data.copy(this._lookbehind, 0, pos, pos + (len - pos))
-    this._lookbehind_size = len - pos
-  }
-
-  // Everything until pos is guaranteed not to contain needle data.
-  if (pos > 0) { this.emit('info', false, data, this._bufpos, pos < len ? pos : len) }
-
-  this._bufpos = len
-  return len
-}
-
-SBMH.prototype._sbmh_lookup_char = function (data, pos) {
-  return (pos < 0)
-    ? this._lookbehind[this._lookbehind_size + pos]
-    : data[pos]
-}
-
-SBMH.prototype._sbmh_memcmp = function (data, pos, len) {
-  for (var i = 0; i < len; ++i) { // eslint-disable-line no-var
-    if (this._sbmh_lookup_char(data, pos + i) !== this._needle[i]) { return false }
-  }
-  return true
-}
-
-module.exports = SBMH
-
-
-/***/ }),
-
-/***/ 3438:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-
-
-const WritableStream = (__nccwpck_require__(4492).Writable)
-const { inherits } = __nccwpck_require__(7261)
-const Dicer = __nccwpck_require__(2856)
-
-const MultipartParser = __nccwpck_require__(415)
-const UrlencodedParser = __nccwpck_require__(6780)
-const parseParams = __nccwpck_require__(4426)
-
-function Busboy (opts) {
-  if (!(this instanceof Busboy)) { return new Busboy(opts) }
-
-  if (typeof opts !== 'object') {
-    throw new TypeError('Busboy expected an options-Object.')
-  }
-  if (typeof opts.headers !== 'object') {
-    throw new TypeError('Busboy expected an options-Object with headers-attribute.')
-  }
-  if (typeof opts.headers['content-type'] !== 'string') {
-    throw new TypeError('Missing Content-Type-header.')
-  }
-
-  const {
-    headers,
-    ...streamOptions
-  } = opts
-
-  this.opts = {
-    autoDestroy: false,
-    ...streamOptions
-  }
-  WritableStream.call(this, this.opts)
-
-  this._done = false
-  this._parser = this.getParserByHeaders(headers)
-  this._finished = false
-}
-inherits(Busboy, WritableStream)
-
-Busboy.prototype.emit = function (ev) {
-  if (ev === 'finish') {
-    if (!this._done) {
-      this._parser?.end()
-      return
-    } else if (this._finished) {
-      return
-    }
-    this._finished = true
-  }
-  WritableStream.prototype.emit.apply(this, arguments)
-}
-
-Busboy.prototype.getParserByHeaders = function (headers) {
-  const parsed = parseParams(headers['content-type'])
-
-  const cfg = {
-    defCharset: this.opts.defCharset,
-    fileHwm: this.opts.fileHwm,
-    headers,
-    highWaterMark: this.opts.highWaterMark,
-    isPartAFile: this.opts.isPartAFile,
-    limits: this.opts.limits,
-    parsedConType: parsed,
-    preservePath: this.opts.preservePath
-  }
-
-  if (MultipartParser.detect.test(parsed[0])) {
-    return new MultipartParser(this, cfg)
-  }
-  if (UrlencodedParser.detect.test(parsed[0])) {
-    return new UrlencodedParser(this, cfg)
-  }
-  throw new Error('Unsupported Content-Type.')
-}
-
-Busboy.prototype._write = function (chunk, encoding, cb) {
-  this._parser.write(chunk, cb)
-}
-
-module.exports = Busboy
-module.exports["default"] = Busboy
-module.exports.Busboy = Busboy
-
-module.exports.Dicer = Dicer
-
-
-/***/ }),
-
-/***/ 415:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-
-
-// TODO:
-//  * support 1 nested multipart level
-//    (see second multipart example here:
-//     http://www.w3.org/TR/html401/interact/forms.html#didx-multipartform-data)
-//  * support limits.fieldNameSize
-//     -- this will require modifications to utils.parseParams
-
-const { Readable } = __nccwpck_require__(4492)
-const { inherits } = __nccwpck_require__(7261)
-
-const Dicer = __nccwpck_require__(2856)
-
-const parseParams = __nccwpck_require__(4426)
-const decodeText = __nccwpck_require__(9136)
-const basename = __nccwpck_require__(496)
-const getLimit = __nccwpck_require__(9692)
-
-const RE_BOUNDARY = /^boundary$/i
-const RE_FIELD = /^form-data$/i
-const RE_CHARSET = /^charset$/i
-const RE_FILENAME = /^filename$/i
-const RE_NAME = /^name$/i
-
-Multipart.detect = /^multipart\/form-data/i
-function Multipart (boy, cfg) {
-  let i
-  let len
-  const self = this
-  let boundary
-  const limits = cfg.limits
-  const isPartAFile = cfg.isPartAFile || ((fieldName, contentType, fileName) => (contentType === 'application/octet-stream' || fileName !== undefined))
-  const parsedConType = cfg.parsedConType || []
-  const defCharset = cfg.defCharset || 'utf8'
-  const preservePath = cfg.preservePath
-  const fileOpts = { highWaterMark: cfg.fileHwm }
-
-  for (i = 0, len = parsedConType.length; i < len; ++i) {
-    if (Array.isArray(parsedConType[i]) &&
-      RE_BOUNDARY.test(parsedConType[i][0])) {
-      boundary = parsedConType[i][1]
-      break
-    }
-  }
-
-  function checkFinished () {
-    if (nends === 0 && finished && !boy._done) {
-      finished = false
-      self.end()
-    }
-  }
-
-  if (typeof boundary !== 'string') { throw new Error('Multipart: Boundary not found') }
-
-  const fieldSizeLimit = getLimit(limits, 'fieldSize', 1 * 1024 * 1024)
-  const fileSizeLimit = getLimit(limits, 'fileSize', Infinity)
-  const filesLimit = getLimit(limits, 'files', Infinity)
-  const fieldsLimit = getLimit(limits, 'fields', Infinity)
-  const partsLimit = getLimit(limits, 'parts', Infinity)
-  const headerPairsLimit = getLimit(limits, 'headerPairs', 2000)
-  const headerSizeLimit = getLimit(limits, 'headerSize', 80 * 1024)
-
-  let nfiles = 0
-  let nfields = 0
-  let nends = 0
-  let curFile
-  let curField
-  let finished = false
-
-  this._needDrain = false
-  this._pause = false
-  this._cb = undefined
-  this._nparts = 0
-  this._boy = boy
-
-  const parserCfg = {
-    boundary,
-    maxHeaderPairs: headerPairsLimit,
-    maxHeaderSize: headerSizeLimit,
-    partHwm: fileOpts.highWaterMark,
-    highWaterMark: cfg.highWaterMark
-  }
-
-  this.parser = new Dicer(parserCfg)
-  this.parser.on('drain', function () {
-    self._needDrain = false
-    if (self._cb && !self._pause) {
-      const cb = self._cb
-      self._cb = undefined
-      cb()
-    }
-  }).on('part', function onPart (part) {
-    if (++self._nparts > partsLimit) {
-      self.parser.removeListener('part', onPart)
-      self.parser.on('part', skipPart)
-      boy.hitPartsLimit = true
-      boy.emit('partsLimit')
-      return skipPart(part)
-    }
-
-    // hack because streams2 _always_ doesn't emit 'end' until nextTick, so let
-    // us emit 'end' early since we know the part has ended if we are already
-    // seeing the next part
-    if (curField) {
-      const field = curField
-      field.emit('end')
-      field.removeAllListeners('end')
-    }
-
-    part.on('header', function (header) {
-      let contype
-      let fieldname
-      let parsed
-      let charset
-      let encoding
-      let filename
-      let nsize = 0
-
-      if (header['content-type']) {
-        parsed = parseParams(header['content-type'][0])
-        if (parsed[0]) {
-          contype = parsed[0].toLowerCase()
-          for (i = 0, len = parsed.length; i < len; ++i) {
-            if (RE_CHARSET.test(parsed[i][0])) {
-              charset = parsed[i][1].toLowerCase()
-              break
-            }
-          }
-        }
-      }
-
-      if (contype === undefined) { contype = 'text/plain' }
-      if (charset === undefined) { charset = defCharset }
-
-      if (header['content-disposition']) {
-        parsed = parseParams(header['content-disposition'][0])
-        if (!RE_FIELD.test(parsed[0])) { return skipPart(part) }
-        for (i = 0, len = parsed.length; i < len; ++i) {
-          if (RE_NAME.test(parsed[i][0])) {
-            fieldname = parsed[i][1]
-          } else if (RE_FILENAME.test(parsed[i][0])) {
-            filename = parsed[i][1]
-            if (!preservePath) { filename = basename(filename) }
-          }
-        }
-      } else { return skipPart(part) }
-
-      if (header['content-transfer-encoding']) { encoding = header['content-transfer-encoding'][0].toLowerCase() } else { encoding = '7bit' }
-
-      let onData,
-        onEnd
-
-      if (isPartAFile(fieldname, contype, filename)) {
-        // file/binary field
-        if (nfiles === filesLimit) {
-          if (!boy.hitFilesLimit) {
-            boy.hitFilesLimit = true
-            boy.emit('filesLimit')
-          }
-          return skipPart(part)
-        }
-
-        ++nfiles
-
-        if (!boy._events.file) {
-          self.parser._ignore()
-          return
-        }
-
-        ++nends
-        const file = new FileStream(fileOpts)
-        curFile = file
-        file.on('end', function () {
-          --nends
-          self._pause = false
-          checkFinished()
-          if (self._cb && !self._needDrain) {
-            const cb = self._cb
-            self._cb = undefined
-            cb()
-          }
-        })
-        file._read = function (n) {
-          if (!self._pause) { return }
-          self._pause = false
-          if (self._cb && !self._needDrain) {
-            const cb = self._cb
-            self._cb = undefined
-            cb()
-          }
-        }
-        boy.emit('file', fieldname, file, filename, encoding, contype)
-
-        onData = function (data) {
-          if ((nsize += data.length) > fileSizeLimit) {
-            const extralen = fileSizeLimit - nsize + data.length
-            if (extralen > 0) { file.push(data.slice(0, extralen)) }
-            file.truncated = true
-            file.bytesRead = fileSizeLimit
-            part.removeAllListeners('data')
-            file.emit('limit')
-            return
-          } else if (!file.push(data)) { self._pause = true }
-
-          file.bytesRead = nsize
-        }
-
-        onEnd = function () {
-          curFile = undefined
-          file.push(null)
-        }
-      } else {
-        // non-file field
-        if (nfields === fieldsLimit) {
-          if (!boy.hitFieldsLimit) {
-            boy.hitFieldsLimit = true
-            boy.emit('fieldsLimit')
-          }
-          return skipPart(part)
-        }
-
-        ++nfields
-        ++nends
-        let buffer = ''
-        let truncated = false
-        curField = part
-
-        onData = function (data) {
-          if ((nsize += data.length) > fieldSizeLimit) {
-            const extralen = (fieldSizeLimit - (nsize - data.length))
-            buffer += data.toString('binary', 0, extralen)
-            truncated = true
-            part.removeAllListeners('data')
-          } else { buffer += data.toString('binary') }
-        }
-
-        onEnd = function () {
-          curField = undefined
-          if (buffer.length) { buffer = decodeText(buffer, 'binary', charset) }
-          boy.emit('field', fieldname, buffer, false, truncated, encoding, contype)
-          --nends
-          checkFinished()
-        }
-      }
-
-      /* As of node@2efe4ab761666 (v0.10.29+/v0.11.14+), busboy had become
-         broken. Streams2/streams3 is a huge black box of confusion, but
-         somehow overriding the sync state seems to fix things again (and still
-         seems to work for previous node versions).
-      */
-      part._readableState.sync = false
-
-      part.on('data', onData)
-      part.on('end', onEnd)
-    }).on('error', function (err) {
-      if (curFile) { curFile.emit('error', err) }
-    })
-  }).on('error', function (err) {
-    boy.emit('error', err)
-  }).on('finish', function () {
-    finished = true
-    checkFinished()
-  })
-}
-
-Multipart.prototype.write = function (chunk, cb) {
-  const r = this.parser.write(chunk)
-  if (r && !this._pause) {
-    cb()
-  } else {
-    this._needDrain = !r
-    this._cb = cb
-  }
-}
-
-Multipart.prototype.end = function () {
-  const self = this
-
-  if (self.parser.writable) {
-    self.parser.end()
-  } else if (!self._boy._done) {
-    process.nextTick(function () {
-      self._boy._done = true
-      self._boy.emit('finish')
-    })
-  }
-}
-
-function skipPart (part) {
-  part.resume()
-}
-
-function FileStream (opts) {
-  Readable.call(this, opts)
-
-  this.bytesRead = 0
-
-  this.truncated = false
-}
-
-inherits(FileStream, Readable)
-
-FileStream.prototype._read = function (n) {}
-
-module.exports = Multipart
-
-
-/***/ }),
-
-/***/ 6780:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-
-
-const Decoder = __nccwpck_require__(9730)
-const decodeText = __nccwpck_require__(9136)
-const getLimit = __nccwpck_require__(9692)
-
-const RE_CHARSET = /^charset$/i
-
-UrlEncoded.detect = /^application\/x-www-form-urlencoded/i
-function UrlEncoded (boy, cfg) {
-  const limits = cfg.limits
-  const parsedConType = cfg.parsedConType
-  this.boy = boy
-
-  this.fieldSizeLimit = getLimit(limits, 'fieldSize', 1 * 1024 * 1024)
-  this.fieldNameSizeLimit = getLimit(limits, 'fieldNameSize', 100)
-  this.fieldsLimit = getLimit(limits, 'fields', Infinity)
-
-  let charset
-  for (var i = 0, len = parsedConType.length; i < len; ++i) { // eslint-disable-line no-var
-    if (Array.isArray(parsedConType[i]) &&
-        RE_CHARSET.test(parsedConType[i][0])) {
-      charset = parsedConType[i][1].toLowerCase()
-      break
-    }
-  }
-
-  if (charset === undefined) { charset = cfg.defCharset || 'utf8' }
-
-  this.decoder = new Decoder()
-  this.charset = charset
-  this._fields = 0
-  this._state = 'key'
-  this._checkingBytes = true
-  this._bytesKey = 0
-  this._bytesVal = 0
-  this._key = ''
-  this._val = ''
-  this._keyTrunc = false
-  this._valTrunc = false
-  this._hitLimit = false
-}
-
-UrlEncoded.prototype.write = function (data, cb) {
-  if (this._fields === this.fieldsLimit) {
-    if (!this.boy.hitFieldsLimit) {
-      this.boy.hitFieldsLimit = true
-      this.boy.emit('fieldsLimit')
-    }
-    return cb()
-  }
-
-  let idxeq; let idxamp; let i; let p = 0; const len = data.length
-
-  while (p < len) {
-    if (this._state === 'key') {
-      idxeq = idxamp = undefined
-      for (i = p; i < len; ++i) {
-        if (!this._checkingBytes) { ++p }
-        if (data[i] === 0x3D/* = */) {
-          idxeq = i
-          break
-        } else if (data[i] === 0x26/* & */) {
-          idxamp = i
-          break
-        }
-        if (this._checkingBytes && this._bytesKey === this.fieldNameSizeLimit) {
-          this._hitLimit = true
-          break
-        } else if (this._checkingBytes) { ++this._bytesKey }
-      }
-
-      if (idxeq !== undefined) {
-        // key with assignment
-        if (idxeq > p) { this._key += this.decoder.write(data.toString('binary', p, idxeq)) }
-        this._state = 'val'
-
-        this._hitLimit = false
-        this._checkingBytes = true
-        this._val = ''
-        this._bytesVal = 0
-        this._valTrunc = false
-        this.decoder.reset()
-
-        p = idxeq + 1
-      } else if (idxamp !== undefined) {
-        // key with no assignment
-        ++this._fields
-        let key; const keyTrunc = this._keyTrunc
-        if (idxamp > p) { key = (this._key += this.decoder.write(data.toString('binary', p, idxamp))) } else { key = this._key }
-
-        this._hitLimit = false
-        this._checkingBytes = true
-        this._key = ''
-        this._bytesKey = 0
-        this._keyTrunc = false
-        this.decoder.reset()
-
-        if (key.length) {
-          this.boy.emit('field', decodeText(key, 'binary', this.charset),
-            '',
-            keyTrunc,
-            false)
-        }
-
-        p = idxamp + 1
-        if (this._fields === this.fieldsLimit) { return cb() }
-      } else if (this._hitLimit) {
-        // we may not have hit the actual limit if there are encoded bytes...
-        if (i > p) { this._key += this.decoder.write(data.toString('binary', p, i)) }
-        p = i
-        if ((this._bytesKey = this._key.length) === this.fieldNameSizeLimit) {
-          // yep, we actually did hit the limit
-          this._checkingBytes = false
-          this._keyTrunc = true
-        }
-      } else {
-        if (p < len) { this._key += this.decoder.write(data.toString('binary', p)) }
-        p = len
-      }
-    } else {
-      idxamp = undefined
-      for (i = p; i < len; ++i) {
-        if (!this._checkingBytes) { ++p }
-        if (data[i] === 0x26/* & */) {
-          idxamp = i
-          break
-        }
-        if (this._checkingBytes && this._bytesVal === this.fieldSizeLimit) {
-          this._hitLimit = true
-          break
-        } else if (this._checkingBytes) { ++this._bytesVal }
-      }
-
-      if (idxamp !== undefined) {
-        ++this._fields
-        if (idxamp > p) { this._val += this.decoder.write(data.toString('binary', p, idxamp)) }
-        this.boy.emit('field', decodeText(this._key, 'binary', this.charset),
-          decodeText(this._val, 'binary', this.charset),
-          this._keyTrunc,
-          this._valTrunc)
-        this._state = 'key'
-
-        this._hitLimit = false
-        this._checkingBytes = true
-        this._key = ''
-        this._bytesKey = 0
-        this._keyTrunc = false
-        this.decoder.reset()
-
-        p = idxamp + 1
-        if (this._fields === this.fieldsLimit) { return cb() }
-      } else if (this._hitLimit) {
-        // we may not have hit the actual limit if there are encoded bytes...
-        if (i > p) { this._val += this.decoder.write(data.toString('binary', p, i)) }
-        p = i
-        if ((this._val === '' && this.fieldSizeLimit === 0) ||
-            (this._bytesVal = this._val.length) === this.fieldSizeLimit) {
-          // yep, we actually did hit the limit
-          this._checkingBytes = false
-          this._valTrunc = true
-        }
-      } else {
-        if (p < len) { this._val += this.decoder.write(data.toString('binary', p)) }
-        p = len
-      }
-    }
-  }
-  cb()
-}
-
-UrlEncoded.prototype.end = function () {
-  if (this.boy._done) { return }
-
-  if (this._state === 'key' && this._key.length > 0) {
-    this.boy.emit('field', decodeText(this._key, 'binary', this.charset),
-      '',
-      this._keyTrunc,
-      false)
-  } else if (this._state === 'val') {
-    this.boy.emit('field', decodeText(this._key, 'binary', this.charset),
-      decodeText(this._val, 'binary', this.charset),
-      this._keyTrunc,
-      this._valTrunc)
-  }
-  this.boy._done = true
-  this.boy.emit('finish')
-}
-
-module.exports = UrlEncoded
-
-
-/***/ }),
-
-/***/ 9730:
-/***/ ((module) => {
-
-
-
-const RE_PLUS = /\+/g
-
-const HEX = [
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
-  0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-]
-
-function Decoder () {
-  this.buffer = undefined
-}
-Decoder.prototype.write = function (str) {
-  // Replace '+' with ' ' before decoding
-  str = str.replace(RE_PLUS, ' ')
-  let res = ''
-  let i = 0; let p = 0; const len = str.length
-  for (; i < len; ++i) {
-    if (this.buffer !== undefined) {
-      if (!HEX[str.charCodeAt(i)]) {
-        res += '%' + this.buffer
-        this.buffer = undefined
-        --i // retry character
-      } else {
-        this.buffer += str[i]
-        ++p
-        if (this.buffer.length === 2) {
-          res += String.fromCharCode(parseInt(this.buffer, 16))
-          this.buffer = undefined
-        }
-      }
-    } else if (str[i] === '%') {
-      if (i > p) {
-        res += str.substring(p, i)
-        p = i
-      }
-      this.buffer = ''
-      ++p
-    }
-  }
-  if (p < len && this.buffer === undefined) { res += str.substring(p) }
-  return res
-}
-Decoder.prototype.reset = function () {
-  this.buffer = undefined
-}
-
-module.exports = Decoder
-
-
-/***/ }),
-
-/***/ 496:
-/***/ ((module) => {
-
-
-
-module.exports = function basename (path) {
-  if (typeof path !== 'string') { return '' }
-  for (var i = path.length - 1; i >= 0; --i) { // eslint-disable-line no-var
-    switch (path.charCodeAt(i)) {
-      case 0x2F: // '/'
-      case 0x5C: // '\'
-        path = path.slice(i + 1)
-        return (path === '..' || path === '.' ? '' : path)
-    }
-  }
-  return (path === '..' || path === '.' ? '' : path)
-}
-
-
-/***/ }),
-
-/***/ 9136:
-/***/ ((module) => {
-
-
-
-// Node has always utf-8
-const utf8Decoder = new TextDecoder('utf-8')
-const textDecoders = new Map([
-  ['utf-8', utf8Decoder],
-  ['utf8', utf8Decoder]
-])
-
-function decodeText (text, textEncoding, destEncoding) {
-  if (text) {
-    if (textDecoders.has(destEncoding)) {
-      try {
-        return textDecoders.get(destEncoding).decode(Buffer.from(text, textEncoding))
-      } catch (e) { }
-    } else {
-      try {
-        textDecoders.set(destEncoding, new TextDecoder(destEncoding))
-        return textDecoders.get(destEncoding).decode(Buffer.from(text, textEncoding))
-      } catch (e) { }
-    }
-  }
-  return text
-}
-
-module.exports = decodeText
-
-
-/***/ }),
-
-/***/ 9692:
-/***/ ((module) => {
-
-
-
-module.exports = function getLimit (limits, name, defaultLimit) {
-  if (
-    !limits ||
-    limits[name] === undefined ||
-    limits[name] === null
-  ) { return defaultLimit }
-
-  if (
-    typeof limits[name] !== 'number' ||
-    isNaN(limits[name])
-  ) { throw new TypeError('Limit ' + name + ' is not a valid number') }
-
-  return limits[name]
-}
-
-
-/***/ }),
-
-/***/ 4426:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-
-
-const decodeText = __nccwpck_require__(9136)
-
-const RE_ENCODED = /%([a-fA-F0-9]{2})/g
-
-function encodedReplacer (match, byte) {
-  return String.fromCharCode(parseInt(byte, 16))
-}
-
-function parseParams (str) {
-  const res = []
-  let state = 'key'
-  let charset = ''
-  let inquote = false
-  let escaping = false
-  let p = 0
-  let tmp = ''
-
-  for (var i = 0, len = str.length; i < len; ++i) { // eslint-disable-line no-var
-    const char = str[i]
-    if (char === '\\' && inquote) {
-      if (escaping) { escaping = false } else {
-        escaping = true
-        continue
-      }
-    } else if (char === '"') {
-      if (!escaping) {
-        if (inquote) {
-          inquote = false
-          state = 'key'
-        } else { inquote = true }
-        continue
-      } else { escaping = false }
-    } else {
-      if (escaping && inquote) { tmp += '\\' }
-      escaping = false
-      if ((state === 'charset' || state === 'lang') && char === "'") {
-        if (state === 'charset') {
-          state = 'lang'
-          charset = tmp.substring(1)
-        } else { state = 'value' }
-        tmp = ''
-        continue
-      } else if (state === 'key' &&
-        (char === '*' || char === '=') &&
-        res.length) {
-        if (char === '*') { state = 'charset' } else { state = 'value' }
-        res[p] = [tmp, undefined]
-        tmp = ''
-        continue
-      } else if (!inquote && char === ';') {
-        state = 'key'
-        if (charset) {
-          if (tmp.length) {
-            tmp = decodeText(tmp.replace(RE_ENCODED, encodedReplacer),
-              'binary',
-              charset)
-          }
-          charset = ''
-        } else if (tmp.length) {
-          tmp = decodeText(tmp, 'binary', 'utf8')
-        }
-        if (res[p] === undefined) { res[p] = tmp } else { res[p][1] = tmp }
-        tmp = ''
-        ++p
-        continue
-      } else if (!inquote && (char === ' ' || char === '\t')) { continue }
-    }
-    tmp += char
-  }
-  if (charset && tmp.length) {
-    tmp = decodeText(tmp.replace(RE_ENCODED, encodedReplacer),
-      'binary',
-      charset)
-  } else if (tmp) {
-    tmp = decodeText(tmp, 'binary', 'utf8')
-  }
-
-  if (res[p] === undefined) {
-    if (tmp) { res[p] = tmp }
-  } else { res[p][1] = tmp }
-
-  return res
-}
-
-module.exports = parseParams
 
 
 /***/ }),
@@ -3659,9 +2253,14 @@ var import_graphql = __nccwpck_require__(8467);
 var import_auth_token = __nccwpck_require__(334);
 
 // pkg/dist-src/version.js
-var VERSION = "5.0.1";
+var VERSION = "5.2.0";
 
 // pkg/dist-src/index.js
+var noop = () => {
+};
+var consoleWarn = console.warn.bind(console);
+var consoleError = console.error.bind(console);
+var userAgentTrail = `octokit-core.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`;
 var Octokit = class {
   static {
     this.VERSION = VERSION;
@@ -3722,10 +2321,7 @@ var Octokit = class {
         format: ""
       }
     };
-    requestDefaults.headers["user-agent"] = [
-      options.userAgent,
-      `octokit-core.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`
-    ].filter(Boolean).join(" ");
+    requestDefaults.headers["user-agent"] = options.userAgent ? `${options.userAgent} ${userAgentTrail}` : userAgentTrail;
     if (options.baseUrl) {
       requestDefaults.baseUrl = options.baseUrl;
     }
@@ -3739,12 +2335,10 @@ var Octokit = class {
     this.graphql = (0, import_graphql.withCustomRequest)(this.request).defaults(requestDefaults);
     this.log = Object.assign(
       {
-        debug: () => {
-        },
-        info: () => {
-        },
-        warn: console.warn.bind(console),
-        error: console.error.bind(console)
+        debug: noop,
+        info: noop,
+        warn: consoleWarn,
+        error: consoleError
       },
       options.log
     );
@@ -3781,9 +2375,9 @@ var Octokit = class {
       this.auth = auth;
     }
     const classConstructor = this.constructor;
-    classConstructor.plugins.forEach((plugin) => {
-      Object.assign(this, plugin(this, options));
-    });
+    for (let i = 0; i < classConstructor.plugins.length; ++i) {
+      Object.assign(this, classConstructor.plugins[i](this, options));
+    }
   }
 };
 // Annotate the CommonJS export names for ESM import in node:
@@ -3825,7 +2419,7 @@ module.exports = __toCommonJS(dist_src_exports);
 var import_universal_user_agent = __nccwpck_require__(5030);
 
 // pkg/dist-src/version.js
-var VERSION = "9.0.1";
+var VERSION = "9.0.5";
 
 // pkg/dist-src/defaults.js
 var userAgent = `octokit-endpoint.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`;
@@ -3852,12 +2446,24 @@ function lowercaseKeys(object) {
   }, {});
 }
 
+// pkg/dist-src/util/is-plain-object.js
+function isPlainObject(value) {
+  if (typeof value !== "object" || value === null)
+    return false;
+  if (Object.prototype.toString.call(value) !== "[object Object]")
+    return false;
+  const proto = Object.getPrototypeOf(value);
+  if (proto === null)
+    return true;
+  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
+  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
+}
+
 // pkg/dist-src/util/merge-deep.js
-var import_is_plain_object = __nccwpck_require__(3287);
 function mergeDeep(defaults, options) {
   const result = Object.assign({}, defaults);
   Object.keys(options).forEach((key) => {
-    if ((0, import_is_plain_object.isPlainObject)(options[key])) {
+    if (isPlainObject(options[key])) {
       if (!(key in defaults))
         Object.assign(result, { [key]: options[key] });
       else
@@ -3932,10 +2538,13 @@ function extractUrlVariableNames(url) {
 
 // pkg/dist-src/util/omit.js
 function omit(object, keysToOmit) {
-  return Object.keys(object).filter((option) => !keysToOmit.includes(option)).reduce((obj, key) => {
-    obj[key] = object[key];
-    return obj;
-  }, {});
+  const result = { __proto__: null };
+  for (const key of Object.keys(object)) {
+    if (keysToOmit.indexOf(key) === -1) {
+      result[key] = object[key];
+    }
+  }
+  return result;
 }
 
 // pkg/dist-src/util/url-template.js
@@ -4033,7 +2642,7 @@ function parseUrl(template) {
 }
 function expand(template, context) {
   var operators = ["+", "#", ".", "/", ";", "?", "&"];
-  return template.replace(
+  template = template.replace(
     /\{([^\{\}]+)\}|([^\{\}]+)/g,
     function(_, expression, literal) {
       if (expression) {
@@ -4063,6 +2672,11 @@ function expand(template, context) {
       }
     }
   );
+  if (template === "/") {
+    return template;
+  } else {
+    return template.replace(/\/$/, "");
+  }
 }
 
 // pkg/dist-src/parse.js
@@ -4189,7 +2803,7 @@ var import_request3 = __nccwpck_require__(6234);
 var import_universal_user_agent = __nccwpck_require__(5030);
 
 // pkg/dist-src/version.js
-var VERSION = "7.0.2";
+var VERSION = "7.1.0";
 
 // pkg/dist-src/with-defaults.js
 var import_request2 = __nccwpck_require__(6234);
@@ -4345,7 +2959,7 @@ __export(dist_src_exports, {
 module.exports = __toCommonJS(dist_src_exports);
 
 // pkg/dist-src/version.js
-var VERSION = "9.0.0";
+var VERSION = "9.2.1";
 
 // pkg/dist-src/normalize-paginated-list-response.js
 function normalizePaginatedListResponse(response) {
@@ -4506,6 +3120,8 @@ var paginatingEndpoints = [
   "GET /orgs/{org}/members/{username}/codespaces",
   "GET /orgs/{org}/migrations",
   "GET /orgs/{org}/migrations/{migration_id}/repositories",
+  "GET /orgs/{org}/organization-roles/{role_id}/teams",
+  "GET /orgs/{org}/organization-roles/{role_id}/users",
   "GET /orgs/{org}/outside_collaborators",
   "GET /orgs/{org}/packages",
   "GET /orgs/{org}/packages/{package_type}/{package_name}/versions",
@@ -4514,9 +3130,11 @@ var paginatingEndpoints = [
   "GET /orgs/{org}/personal-access-tokens",
   "GET /orgs/{org}/personal-access-tokens/{pat_id}/repositories",
   "GET /orgs/{org}/projects",
+  "GET /orgs/{org}/properties/values",
   "GET /orgs/{org}/public_members",
   "GET /orgs/{org}/repos",
   "GET /orgs/{org}/rulesets",
+  "GET /orgs/{org}/rulesets/rule-suites",
   "GET /orgs/{org}/secret-scanning/alerts",
   "GET /orgs/{org}/security-advisories",
   "GET /orgs/{org}/teams",
@@ -4608,6 +3226,7 @@ var paginatingEndpoints = [
   "GET /repos/{owner}/{repo}/releases/{release_id}/reactions",
   "GET /repos/{owner}/{repo}/rules/branches/{branch}",
   "GET /repos/{owner}/{repo}/rulesets",
+  "GET /repos/{owner}/{repo}/rulesets/rule-suites",
   "GET /repos/{owner}/{repo}/secret-scanning/alerts",
   "GET /repos/{owner}/{repo}/secret-scanning/alerts/{alert_number}/locations",
   "GET /repos/{owner}/{repo}/security-advisories",
@@ -4737,7 +3356,7 @@ __export(dist_src_exports, {
 module.exports = __toCommonJS(dist_src_exports);
 
 // pkg/dist-src/version.js
-var VERSION = "4.0.0";
+var VERSION = "4.0.1";
 
 // pkg/dist-src/index.js
 function requestLog(octokit) {
@@ -4797,7 +3416,7 @@ __export(dist_src_exports, {
 module.exports = __toCommonJS(dist_src_exports);
 
 // pkg/dist-src/version.js
-var VERSION = "10.0.1";
+var VERSION = "10.4.1";
 
 // pkg/dist-src/generated/endpoints.js
 var Endpoints = {
@@ -4902,6 +3521,9 @@ var Endpoints = {
     enableWorkflow: [
       "PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/enable"
     ],
+    forceCancelWorkflowRun: [
+      "POST /repos/{owner}/{repo}/actions/runs/{run_id}/force-cancel"
+    ],
     generateRunnerJitconfigForOrg: [
       "POST /orgs/{org}/actions/runners/generate-jitconfig"
     ],
@@ -4921,6 +3543,9 @@ var Endpoints = {
       "GET /repos/{owner}/{repo}/actions/permissions/selected-actions"
     ],
     getArtifact: ["GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}"],
+    getCustomOidcSubClaimForRepo: [
+      "GET /repos/{owner}/{repo}/actions/oidc/customization/sub"
+    ],
     getEnvironmentPublicKey: [
       "GET /repositories/{repository_id}/environments/{environment_name}/secrets/public-key"
     ],
@@ -5073,6 +3698,9 @@ var Endpoints = {
     setCustomLabelsForSelfHostedRunnerForRepo: [
       "PUT /repos/{owner}/{repo}/actions/runners/{runner_id}/labels"
     ],
+    setCustomOidcSubClaimForRepo: [
+      "PUT /repos/{owner}/{repo}/actions/oidc/customization/sub"
+    ],
     setGithubActionsDefaultWorkflowPermissionsOrganization: [
       "PUT /orgs/{org}/actions/permissions/workflow"
     ],
@@ -5142,6 +3770,7 @@ var Endpoints = {
     listWatchersForRepo: ["GET /repos/{owner}/{repo}/subscribers"],
     markNotificationsAsRead: ["PUT /notifications"],
     markRepoNotificationsAsRead: ["PUT /repos/{owner}/{repo}/notifications"],
+    markThreadAsDone: ["DELETE /notifications/threads/{thread_id}"],
     markThreadAsRead: ["PATCH /notifications/threads/{thread_id}"],
     setRepoSubscription: ["PUT /repos/{owner}/{repo}/subscription"],
     setThreadSubscription: [
@@ -5311,6 +3940,9 @@ var Endpoints = {
     addSelectedRepoToOrgSecret: [
       "PUT /orgs/{org}/codespaces/secrets/{secret_name}/repositories/{repository_id}"
     ],
+    checkPermissionsForDevcontainer: [
+      "GET /repos/{owner}/{repo}/codespaces/permissions_check"
+    ],
     codespaceMachinesForAuthenticatedUser: [
       "GET /user/codespaces/{codespace_name}/machines"
     ],
@@ -5415,10 +4047,10 @@ var Endpoints = {
     updateForAuthenticatedUser: ["PATCH /user/codespaces/{codespace_name}"]
   },
   copilot: {
-    addCopilotForBusinessSeatsForTeams: [
+    addCopilotSeatsForTeams: [
       "POST /orgs/{org}/copilot/billing/selected_teams"
     ],
-    addCopilotForBusinessSeatsForUsers: [
+    addCopilotSeatsForUsers: [
       "POST /orgs/{org}/copilot/billing/selected_users"
     ],
     cancelCopilotSeatAssignmentForTeams: [
@@ -5428,7 +4060,7 @@ var Endpoints = {
       "DELETE /orgs/{org}/copilot/billing/selected_users"
     ],
     getCopilotOrganizationDetails: ["GET /orgs/{org}/copilot/billing"],
-    getCopilotSeatAssignmentDetailsForUser: [
+    getCopilotSeatDetailsForUser: [
       "GET /orgs/{org}/members/{username}/copilot"
     ],
     listCopilotSeats: ["GET /orgs/{org}/copilot/billing/seats"]
@@ -5641,7 +4273,13 @@ var Endpoints = {
     root: ["GET /"]
   },
   migrations: {
-    cancelImport: ["DELETE /repos/{owner}/{repo}/import"],
+    cancelImport: [
+      "DELETE /repos/{owner}/{repo}/import",
+      {},
+      {
+        deprecated: "octokit.rest.migrations.cancelImport() is deprecated, see https://docs.github.com/rest/migrations/source-imports#cancel-an-import"
+      }
+    ],
     deleteArchiveForAuthenticatedUser: [
       "DELETE /user/migrations/{migration_id}/archive"
     ],
@@ -5654,9 +4292,27 @@ var Endpoints = {
     getArchiveForAuthenticatedUser: [
       "GET /user/migrations/{migration_id}/archive"
     ],
-    getCommitAuthors: ["GET /repos/{owner}/{repo}/import/authors"],
-    getImportStatus: ["GET /repos/{owner}/{repo}/import"],
-    getLargeFiles: ["GET /repos/{owner}/{repo}/import/large_files"],
+    getCommitAuthors: [
+      "GET /repos/{owner}/{repo}/import/authors",
+      {},
+      {
+        deprecated: "octokit.rest.migrations.getCommitAuthors() is deprecated, see https://docs.github.com/rest/migrations/source-imports#get-commit-authors"
+      }
+    ],
+    getImportStatus: [
+      "GET /repos/{owner}/{repo}/import",
+      {},
+      {
+        deprecated: "octokit.rest.migrations.getImportStatus() is deprecated, see https://docs.github.com/rest/migrations/source-imports#get-an-import-status"
+      }
+    ],
+    getLargeFiles: [
+      "GET /repos/{owner}/{repo}/import/large_files",
+      {},
+      {
+        deprecated: "octokit.rest.migrations.getLargeFiles() is deprecated, see https://docs.github.com/rest/migrations/source-imports#get-large-files"
+      }
+    ],
     getStatusForAuthenticatedUser: ["GET /user/migrations/{migration_id}"],
     getStatusForOrg: ["GET /orgs/{org}/migrations/{migration_id}"],
     listForAuthenticatedUser: ["GET /user/migrations"],
@@ -5670,22 +4326,60 @@ var Endpoints = {
       {},
       { renamed: ["migrations", "listReposForAuthenticatedUser"] }
     ],
-    mapCommitAuthor: ["PATCH /repos/{owner}/{repo}/import/authors/{author_id}"],
-    setLfsPreference: ["PATCH /repos/{owner}/{repo}/import/lfs"],
+    mapCommitAuthor: [
+      "PATCH /repos/{owner}/{repo}/import/authors/{author_id}",
+      {},
+      {
+        deprecated: "octokit.rest.migrations.mapCommitAuthor() is deprecated, see https://docs.github.com/rest/migrations/source-imports#map-a-commit-author"
+      }
+    ],
+    setLfsPreference: [
+      "PATCH /repos/{owner}/{repo}/import/lfs",
+      {},
+      {
+        deprecated: "octokit.rest.migrations.setLfsPreference() is deprecated, see https://docs.github.com/rest/migrations/source-imports#update-git-lfs-preference"
+      }
+    ],
     startForAuthenticatedUser: ["POST /user/migrations"],
     startForOrg: ["POST /orgs/{org}/migrations"],
-    startImport: ["PUT /repos/{owner}/{repo}/import"],
+    startImport: [
+      "PUT /repos/{owner}/{repo}/import",
+      {},
+      {
+        deprecated: "octokit.rest.migrations.startImport() is deprecated, see https://docs.github.com/rest/migrations/source-imports#start-an-import"
+      }
+    ],
     unlockRepoForAuthenticatedUser: [
       "DELETE /user/migrations/{migration_id}/repos/{repo_name}/lock"
     ],
     unlockRepoForOrg: [
       "DELETE /orgs/{org}/migrations/{migration_id}/repos/{repo_name}/lock"
     ],
-    updateImport: ["PATCH /repos/{owner}/{repo}/import"]
+    updateImport: [
+      "PATCH /repos/{owner}/{repo}/import",
+      {},
+      {
+        deprecated: "octokit.rest.migrations.updateImport() is deprecated, see https://docs.github.com/rest/migrations/source-imports#update-an-import"
+      }
+    ]
+  },
+  oidc: {
+    getOidcCustomSubTemplateForOrg: [
+      "GET /orgs/{org}/actions/oidc/customization/sub"
+    ],
+    updateOidcCustomSubTemplateForOrg: [
+      "PUT /orgs/{org}/actions/oidc/customization/sub"
+    ]
   },
   orgs: {
     addSecurityManagerTeam: [
       "PUT /orgs/{org}/security-managers/teams/{team_slug}"
+    ],
+    assignTeamToOrgRole: [
+      "PUT /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}"
+    ],
+    assignUserToOrgRole: [
+      "PUT /orgs/{org}/organization-roles/users/{username}/{role_id}"
     ],
     blockUser: ["PUT /orgs/{org}/blocks/{username}"],
     cancelInvitation: ["DELETE /orgs/{org}/invitations/{invitation_id}"],
@@ -5695,16 +4389,32 @@ var Endpoints = {
     convertMemberToOutsideCollaborator: [
       "PUT /orgs/{org}/outside_collaborators/{username}"
     ],
+    createCustomOrganizationRole: ["POST /orgs/{org}/organization-roles"],
     createInvitation: ["POST /orgs/{org}/invitations"],
+    createOrUpdateCustomProperties: ["PATCH /orgs/{org}/properties/schema"],
+    createOrUpdateCustomPropertiesValuesForRepos: [
+      "PATCH /orgs/{org}/properties/values"
+    ],
+    createOrUpdateCustomProperty: [
+      "PUT /orgs/{org}/properties/schema/{custom_property_name}"
+    ],
     createWebhook: ["POST /orgs/{org}/hooks"],
     delete: ["DELETE /orgs/{org}"],
+    deleteCustomOrganizationRole: [
+      "DELETE /orgs/{org}/organization-roles/{role_id}"
+    ],
     deleteWebhook: ["DELETE /orgs/{org}/hooks/{hook_id}"],
     enableOrDisableSecurityProductOnAllOrgRepos: [
       "POST /orgs/{org}/{security_product}/{enablement}"
     ],
     get: ["GET /orgs/{org}"],
+    getAllCustomProperties: ["GET /orgs/{org}/properties/schema"],
+    getCustomProperty: [
+      "GET /orgs/{org}/properties/schema/{custom_property_name}"
+    ],
     getMembershipForAuthenticatedUser: ["GET /user/memberships/orgs/{org}"],
     getMembershipForUser: ["GET /orgs/{org}/memberships/{username}"],
+    getOrgRole: ["GET /orgs/{org}/organization-roles/{role_id}"],
     getWebhook: ["GET /orgs/{org}/hooks/{hook_id}"],
     getWebhookConfigForOrg: ["GET /orgs/{org}/hooks/{hook_id}/config"],
     getWebhookDelivery: [
@@ -5713,12 +4423,19 @@ var Endpoints = {
     list: ["GET /organizations"],
     listAppInstallations: ["GET /orgs/{org}/installations"],
     listBlockedUsers: ["GET /orgs/{org}/blocks"],
+    listCustomPropertiesValuesForRepos: ["GET /orgs/{org}/properties/values"],
     listFailedInvitations: ["GET /orgs/{org}/failed_invitations"],
     listForAuthenticatedUser: ["GET /user/orgs"],
     listForUser: ["GET /users/{username}/orgs"],
     listInvitationTeams: ["GET /orgs/{org}/invitations/{invitation_id}/teams"],
     listMembers: ["GET /orgs/{org}/members"],
     listMembershipsForAuthenticatedUser: ["GET /user/memberships/orgs"],
+    listOrgRoleTeams: ["GET /orgs/{org}/organization-roles/{role_id}/teams"],
+    listOrgRoleUsers: ["GET /orgs/{org}/organization-roles/{role_id}/users"],
+    listOrgRoles: ["GET /orgs/{org}/organization-roles"],
+    listOrganizationFineGrainedPermissions: [
+      "GET /orgs/{org}/organization-fine-grained-permissions"
+    ],
     listOutsideCollaborators: ["GET /orgs/{org}/outside_collaborators"],
     listPatGrantRepositories: [
       "GET /orgs/{org}/personal-access-tokens/{pat_id}/repositories"
@@ -5733,9 +4450,15 @@ var Endpoints = {
     listSecurityManagerTeams: ["GET /orgs/{org}/security-managers"],
     listWebhookDeliveries: ["GET /orgs/{org}/hooks/{hook_id}/deliveries"],
     listWebhooks: ["GET /orgs/{org}/hooks"],
+    patchCustomOrganizationRole: [
+      "PATCH /orgs/{org}/organization-roles/{role_id}"
+    ],
     pingWebhook: ["POST /orgs/{org}/hooks/{hook_id}/pings"],
     redeliverWebhookDelivery: [
       "POST /orgs/{org}/hooks/{hook_id}/deliveries/{delivery_id}/attempts"
+    ],
+    removeCustomProperty: [
+      "DELETE /orgs/{org}/properties/schema/{custom_property_name}"
     ],
     removeMember: ["DELETE /orgs/{org}/members/{username}"],
     removeMembershipForUser: ["DELETE /orgs/{org}/memberships/{username}"],
@@ -5753,6 +4476,18 @@ var Endpoints = {
     ],
     reviewPatGrantRequestsInBulk: [
       "POST /orgs/{org}/personal-access-token-requests"
+    ],
+    revokeAllOrgRolesTeam: [
+      "DELETE /orgs/{org}/organization-roles/teams/{team_slug}"
+    ],
+    revokeAllOrgRolesUser: [
+      "DELETE /orgs/{org}/organization-roles/users/{username}"
+    ],
+    revokeOrgRoleTeam: [
+      "DELETE /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}"
+    ],
+    revokeOrgRoleUser: [
+      "DELETE /orgs/{org}/organization-roles/users/{username}/{role_id}"
     ],
     setMembershipForUser: ["PUT /orgs/{org}/memberships/{username}"],
     setPublicMembershipForAuthenticatedUser: [
@@ -6044,6 +4779,9 @@ var Endpoints = {
       {},
       { mapToData: "users" }
     ],
+    cancelPagesDeployment: [
+      "POST /repos/{owner}/{repo}/pages/deployments/{pages_deployment_id}/cancel"
+    ],
     checkAutomatedSecurityFixes: [
       "GET /repos/{owner}/{repo}/automated-security-fixes"
     ],
@@ -6079,12 +4817,15 @@ var Endpoints = {
     createForAuthenticatedUser: ["POST /user/repos"],
     createFork: ["POST /repos/{owner}/{repo}/forks"],
     createInOrg: ["POST /orgs/{org}/repos"],
+    createOrUpdateCustomPropertiesValues: [
+      "PATCH /repos/{owner}/{repo}/properties/values"
+    ],
     createOrUpdateEnvironment: [
       "PUT /repos/{owner}/{repo}/environments/{environment_name}"
     ],
     createOrUpdateFileContents: ["PUT /repos/{owner}/{repo}/contents/{path}"],
     createOrgRuleset: ["POST /orgs/{org}/rulesets"],
-    createPagesDeployment: ["POST /repos/{owner}/{repo}/pages/deployment"],
+    createPagesDeployment: ["POST /repos/{owner}/{repo}/pages/deployments"],
     createPagesSite: ["POST /repos/{owner}/{repo}/pages"],
     createRelease: ["POST /repos/{owner}/{repo}/releases"],
     createRepoRuleset: ["POST /repos/{owner}/{repo}/rulesets"],
@@ -6217,6 +4958,7 @@ var Endpoints = {
     getCustomDeploymentProtectionRule: [
       "GET /repos/{owner}/{repo}/environments/{environment_name}/deployment_protection_rules/{protection_rule_id}"
     ],
+    getCustomPropertiesValues: ["GET /repos/{owner}/{repo}/properties/values"],
     getDeployKey: ["GET /repos/{owner}/{repo}/keys/{key_id}"],
     getDeployment: ["GET /repos/{owner}/{repo}/deployments/{deployment_id}"],
     getDeploymentBranchPolicy: [
@@ -6230,10 +4972,15 @@ var Endpoints = {
     ],
     getLatestPagesBuild: ["GET /repos/{owner}/{repo}/pages/builds/latest"],
     getLatestRelease: ["GET /repos/{owner}/{repo}/releases/latest"],
+    getOrgRuleSuite: ["GET /orgs/{org}/rulesets/rule-suites/{rule_suite_id}"],
+    getOrgRuleSuites: ["GET /orgs/{org}/rulesets/rule-suites"],
     getOrgRuleset: ["GET /orgs/{org}/rulesets/{ruleset_id}"],
     getOrgRulesets: ["GET /orgs/{org}/rulesets"],
     getPages: ["GET /repos/{owner}/{repo}/pages"],
     getPagesBuild: ["GET /repos/{owner}/{repo}/pages/builds/{build_id}"],
+    getPagesDeployment: [
+      "GET /repos/{owner}/{repo}/pages/deployments/{pages_deployment_id}"
+    ],
     getPagesHealthCheck: ["GET /repos/{owner}/{repo}/pages/health"],
     getParticipationStats: ["GET /repos/{owner}/{repo}/stats/participation"],
     getPullRequestReviewProtection: [
@@ -6245,6 +4992,10 @@ var Endpoints = {
     getRelease: ["GET /repos/{owner}/{repo}/releases/{release_id}"],
     getReleaseAsset: ["GET /repos/{owner}/{repo}/releases/assets/{asset_id}"],
     getReleaseByTag: ["GET /repos/{owner}/{repo}/releases/tags/{tag}"],
+    getRepoRuleSuite: [
+      "GET /repos/{owner}/{repo}/rulesets/rule-suites/{rule_suite_id}"
+    ],
+    getRepoRuleSuites: ["GET /repos/{owner}/{repo}/rulesets/rule-suites"],
     getRepoRuleset: ["GET /repos/{owner}/{repo}/rulesets/{ruleset_id}"],
     getRepoRulesets: ["GET /repos/{owner}/{repo}/rulesets"],
     getStatusChecksProtection: [
@@ -6440,6 +5191,9 @@ var Endpoints = {
     ]
   },
   securityAdvisories: {
+    createFork: [
+      "POST /repos/{owner}/{repo}/security-advisories/{ghsa_id}/forks"
+    ],
     createPrivateVulnerabilityReport: [
       "POST /repos/{owner}/{repo}/security-advisories/reports"
     ],
@@ -6929,10 +5683,22 @@ var import_endpoint = __nccwpck_require__(9440);
 var import_universal_user_agent = __nccwpck_require__(5030);
 
 // pkg/dist-src/version.js
-var VERSION = "8.1.4";
+var VERSION = "8.4.0";
+
+// pkg/dist-src/is-plain-object.js
+function isPlainObject(value) {
+  if (typeof value !== "object" || value === null)
+    return false;
+  if (Object.prototype.toString.call(value) !== "[object Object]")
+    return false;
+  const proto = Object.getPrototypeOf(value);
+  if (proto === null)
+    return true;
+  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
+  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
+}
 
 // pkg/dist-src/fetch-wrapper.js
-var import_is_plain_object = __nccwpck_require__(3287);
 var import_request_error = __nccwpck_require__(537);
 
 // pkg/dist-src/get-buffer-response.js
@@ -6942,10 +5708,10 @@ function getBufferResponse(response) {
 
 // pkg/dist-src/fetch-wrapper.js
 function fetchWrapper(requestOptions) {
-  var _a, _b, _c;
+  var _a, _b, _c, _d;
   const log = requestOptions.request && requestOptions.request.log ? requestOptions.request.log : console;
   const parseSuccessResponseBody = ((_a = requestOptions.request) == null ? void 0 : _a.parseSuccessResponseBody) !== false;
-  if ((0, import_is_plain_object.isPlainObject)(requestOptions.body) || Array.isArray(requestOptions.body)) {
+  if (isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body)) {
     requestOptions.body = JSON.stringify(requestOptions.body);
   }
   let headers = {};
@@ -6963,8 +5729,9 @@ function fetchWrapper(requestOptions) {
   return fetch(requestOptions.url, {
     method: requestOptions.method,
     body: requestOptions.body,
+    redirect: (_c = requestOptions.request) == null ? void 0 : _c.redirect,
     headers: requestOptions.headers,
-    signal: (_c = requestOptions.request) == null ? void 0 : _c.signal,
+    signal: (_d = requestOptions.request) == null ? void 0 : _d.signal,
     // duplex must be set if request.body is ReadableStream or Async Iterables.
     // See https://fetch.spec.whatwg.org/#dom-requestinit-duplex.
     ...requestOptions.body && { duplex: "half" }
@@ -7051,7 +5818,7 @@ function fetchWrapper(requestOptions) {
 async function getResponseData(response) {
   const contentType = response.headers.get("content-type");
   if (/application\/json/.test(contentType)) {
-    return response.json();
+    return response.json().catch(() => response.text()).catch(() => "");
   }
   if (!contentType || /^text\/|charset=utf-8$/.test(contentType)) {
     return response.text();
@@ -7061,11 +5828,17 @@ async function getResponseData(response) {
 function toErrorMessage(data) {
   if (typeof data === "string")
     return data;
+  let suffix;
+  if ("documentation_url" in data) {
+    suffix = ` - ${data.documentation_url}`;
+  } else {
+    suffix = "";
+  }
   if ("message" in data) {
     if (Array.isArray(data.errors)) {
-      return `${data.message}: ${data.errors.map(JSON.stringify).join(", ")}`;
+      return `${data.message}: ${data.errors.map(JSON.stringify).join(", ")}${suffix}`;
     }
-    return data.message;
+    return `${data.message}${suffix}`;
   }
   return `Unknown error: ${JSON.stringify(data)}`;
 }
@@ -7137,11 +5910,11 @@ __export(dist_src_exports, {
 module.exports = __toCommonJS(dist_src_exports);
 var import_core = __nccwpck_require__(6762);
 var import_plugin_request_log = __nccwpck_require__(8883);
-var import_plugin_paginate_rest = __nccwpck_require__(4193);
-var import_plugin_rest_endpoint_methods = __nccwpck_require__(3044);
+var import_plugin_paginate_rest = __nccwpck_require__(606);
+var import_plugin_rest_endpoint_methods = __nccwpck_require__(4923);
 
 // pkg/dist-src/version.js
-var VERSION = "20.0.2";
+var VERSION = "20.1.1";
 
 // pkg/dist-src/index.js
 var Octokit = import_core.Octokit.plugin(
@@ -7151,6 +5924,2528 @@ var Octokit = import_core.Octokit.plugin(
 ).defaults({
   userAgent: `octokit-rest.js/${VERSION}`
 });
+// Annotate the CommonJS export names for ESM import in node:
+0 && (0);
+
+
+/***/ }),
+
+/***/ 606:
+/***/ ((module) => {
+
+
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// pkg/dist-src/index.js
+var dist_src_exports = {};
+__export(dist_src_exports, {
+  composePaginateRest: () => composePaginateRest,
+  isPaginatingEndpoint: () => isPaginatingEndpoint,
+  paginateRest: () => paginateRest,
+  paginatingEndpoints: () => paginatingEndpoints
+});
+module.exports = __toCommonJS(dist_src_exports);
+
+// pkg/dist-src/version.js
+var VERSION = "11.3.1";
+
+// pkg/dist-src/normalize-paginated-list-response.js
+function normalizePaginatedListResponse(response) {
+  if (!response.data) {
+    return {
+      ...response,
+      data: []
+    };
+  }
+  const responseNeedsNormalization = "total_count" in response.data && !("url" in response.data);
+  if (!responseNeedsNormalization)
+    return response;
+  const incompleteResults = response.data.incomplete_results;
+  const repositorySelection = response.data.repository_selection;
+  const totalCount = response.data.total_count;
+  delete response.data.incomplete_results;
+  delete response.data.repository_selection;
+  delete response.data.total_count;
+  const namespaceKey = Object.keys(response.data)[0];
+  const data = response.data[namespaceKey];
+  response.data = data;
+  if (typeof incompleteResults !== "undefined") {
+    response.data.incomplete_results = incompleteResults;
+  }
+  if (typeof repositorySelection !== "undefined") {
+    response.data.repository_selection = repositorySelection;
+  }
+  response.data.total_count = totalCount;
+  return response;
+}
+
+// pkg/dist-src/iterator.js
+function iterator(octokit, route, parameters) {
+  const options = typeof route === "function" ? route.endpoint(parameters) : octokit.request.endpoint(route, parameters);
+  const requestMethod = typeof route === "function" ? route : octokit.request;
+  const method = options.method;
+  const headers = options.headers;
+  let url = options.url;
+  return {
+    [Symbol.asyncIterator]: () => ({
+      async next() {
+        if (!url)
+          return { done: true };
+        try {
+          const response = await requestMethod({ method, url, headers });
+          const normalizedResponse = normalizePaginatedListResponse(response);
+          url = ((normalizedResponse.headers.link || "").match(
+            /<([^>]+)>;\s*rel="next"/
+          ) || [])[1];
+          return { value: normalizedResponse };
+        } catch (error) {
+          if (error.status !== 409)
+            throw error;
+          url = "";
+          return {
+            value: {
+              status: 200,
+              headers: {},
+              data: []
+            }
+          };
+        }
+      }
+    })
+  };
+}
+
+// pkg/dist-src/paginate.js
+function paginate(octokit, route, parameters, mapFn) {
+  if (typeof parameters === "function") {
+    mapFn = parameters;
+    parameters = void 0;
+  }
+  return gather(
+    octokit,
+    [],
+    iterator(octokit, route, parameters)[Symbol.asyncIterator](),
+    mapFn
+  );
+}
+function gather(octokit, results, iterator2, mapFn) {
+  return iterator2.next().then((result) => {
+    if (result.done) {
+      return results;
+    }
+    let earlyExit = false;
+    function done() {
+      earlyExit = true;
+    }
+    results = results.concat(
+      mapFn ? mapFn(result.value, done) : result.value.data
+    );
+    if (earlyExit) {
+      return results;
+    }
+    return gather(octokit, results, iterator2, mapFn);
+  });
+}
+
+// pkg/dist-src/compose-paginate.js
+var composePaginateRest = Object.assign(paginate, {
+  iterator
+});
+
+// pkg/dist-src/generated/paginating-endpoints.js
+var paginatingEndpoints = [
+  "GET /advisories",
+  "GET /app/hook/deliveries",
+  "GET /app/installation-requests",
+  "GET /app/installations",
+  "GET /assignments/{assignment_id}/accepted_assignments",
+  "GET /classrooms",
+  "GET /classrooms/{classroom_id}/assignments",
+  "GET /enterprises/{enterprise}/copilot/usage",
+  "GET /enterprises/{enterprise}/dependabot/alerts",
+  "GET /enterprises/{enterprise}/secret-scanning/alerts",
+  "GET /events",
+  "GET /gists",
+  "GET /gists/public",
+  "GET /gists/starred",
+  "GET /gists/{gist_id}/comments",
+  "GET /gists/{gist_id}/commits",
+  "GET /gists/{gist_id}/forks",
+  "GET /installation/repositories",
+  "GET /issues",
+  "GET /licenses",
+  "GET /marketplace_listing/plans",
+  "GET /marketplace_listing/plans/{plan_id}/accounts",
+  "GET /marketplace_listing/stubbed/plans",
+  "GET /marketplace_listing/stubbed/plans/{plan_id}/accounts",
+  "GET /networks/{owner}/{repo}/events",
+  "GET /notifications",
+  "GET /organizations",
+  "GET /orgs/{org}/actions/cache/usage-by-repository",
+  "GET /orgs/{org}/actions/permissions/repositories",
+  "GET /orgs/{org}/actions/runners",
+  "GET /orgs/{org}/actions/secrets",
+  "GET /orgs/{org}/actions/secrets/{secret_name}/repositories",
+  "GET /orgs/{org}/actions/variables",
+  "GET /orgs/{org}/actions/variables/{name}/repositories",
+  "GET /orgs/{org}/blocks",
+  "GET /orgs/{org}/code-scanning/alerts",
+  "GET /orgs/{org}/codespaces",
+  "GET /orgs/{org}/codespaces/secrets",
+  "GET /orgs/{org}/codespaces/secrets/{secret_name}/repositories",
+  "GET /orgs/{org}/copilot/billing/seats",
+  "GET /orgs/{org}/copilot/usage",
+  "GET /orgs/{org}/dependabot/alerts",
+  "GET /orgs/{org}/dependabot/secrets",
+  "GET /orgs/{org}/dependabot/secrets/{secret_name}/repositories",
+  "GET /orgs/{org}/events",
+  "GET /orgs/{org}/failed_invitations",
+  "GET /orgs/{org}/hooks",
+  "GET /orgs/{org}/hooks/{hook_id}/deliveries",
+  "GET /orgs/{org}/installations",
+  "GET /orgs/{org}/invitations",
+  "GET /orgs/{org}/invitations/{invitation_id}/teams",
+  "GET /orgs/{org}/issues",
+  "GET /orgs/{org}/members",
+  "GET /orgs/{org}/members/{username}/codespaces",
+  "GET /orgs/{org}/migrations",
+  "GET /orgs/{org}/migrations/{migration_id}/repositories",
+  "GET /orgs/{org}/organization-roles/{role_id}/teams",
+  "GET /orgs/{org}/organization-roles/{role_id}/users",
+  "GET /orgs/{org}/outside_collaborators",
+  "GET /orgs/{org}/packages",
+  "GET /orgs/{org}/packages/{package_type}/{package_name}/versions",
+  "GET /orgs/{org}/personal-access-token-requests",
+  "GET /orgs/{org}/personal-access-token-requests/{pat_request_id}/repositories",
+  "GET /orgs/{org}/personal-access-tokens",
+  "GET /orgs/{org}/personal-access-tokens/{pat_id}/repositories",
+  "GET /orgs/{org}/projects",
+  "GET /orgs/{org}/properties/values",
+  "GET /orgs/{org}/public_members",
+  "GET /orgs/{org}/repos",
+  "GET /orgs/{org}/rulesets",
+  "GET /orgs/{org}/rulesets/rule-suites",
+  "GET /orgs/{org}/secret-scanning/alerts",
+  "GET /orgs/{org}/security-advisories",
+  "GET /orgs/{org}/team/{team_slug}/copilot/usage",
+  "GET /orgs/{org}/teams",
+  "GET /orgs/{org}/teams/{team_slug}/discussions",
+  "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments",
+  "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}/reactions",
+  "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/reactions",
+  "GET /orgs/{org}/teams/{team_slug}/invitations",
+  "GET /orgs/{org}/teams/{team_slug}/members",
+  "GET /orgs/{org}/teams/{team_slug}/projects",
+  "GET /orgs/{org}/teams/{team_slug}/repos",
+  "GET /orgs/{org}/teams/{team_slug}/teams",
+  "GET /projects/columns/{column_id}/cards",
+  "GET /projects/{project_id}/collaborators",
+  "GET /projects/{project_id}/columns",
+  "GET /repos/{owner}/{repo}/actions/artifacts",
+  "GET /repos/{owner}/{repo}/actions/caches",
+  "GET /repos/{owner}/{repo}/actions/organization-secrets",
+  "GET /repos/{owner}/{repo}/actions/organization-variables",
+  "GET /repos/{owner}/{repo}/actions/runners",
+  "GET /repos/{owner}/{repo}/actions/runs",
+  "GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts",
+  "GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt_number}/jobs",
+  "GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs",
+  "GET /repos/{owner}/{repo}/actions/secrets",
+  "GET /repos/{owner}/{repo}/actions/variables",
+  "GET /repos/{owner}/{repo}/actions/workflows",
+  "GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs",
+  "GET /repos/{owner}/{repo}/activity",
+  "GET /repos/{owner}/{repo}/assignees",
+  "GET /repos/{owner}/{repo}/branches",
+  "GET /repos/{owner}/{repo}/check-runs/{check_run_id}/annotations",
+  "GET /repos/{owner}/{repo}/check-suites/{check_suite_id}/check-runs",
+  "GET /repos/{owner}/{repo}/code-scanning/alerts",
+  "GET /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}/instances",
+  "GET /repos/{owner}/{repo}/code-scanning/analyses",
+  "GET /repos/{owner}/{repo}/codespaces",
+  "GET /repos/{owner}/{repo}/codespaces/devcontainers",
+  "GET /repos/{owner}/{repo}/codespaces/secrets",
+  "GET /repos/{owner}/{repo}/collaborators",
+  "GET /repos/{owner}/{repo}/comments",
+  "GET /repos/{owner}/{repo}/comments/{comment_id}/reactions",
+  "GET /repos/{owner}/{repo}/commits",
+  "GET /repos/{owner}/{repo}/commits/{commit_sha}/comments",
+  "GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls",
+  "GET /repos/{owner}/{repo}/commits/{ref}/check-runs",
+  "GET /repos/{owner}/{repo}/commits/{ref}/check-suites",
+  "GET /repos/{owner}/{repo}/commits/{ref}/status",
+  "GET /repos/{owner}/{repo}/commits/{ref}/statuses",
+  "GET /repos/{owner}/{repo}/contributors",
+  "GET /repos/{owner}/{repo}/dependabot/alerts",
+  "GET /repos/{owner}/{repo}/dependabot/secrets",
+  "GET /repos/{owner}/{repo}/deployments",
+  "GET /repos/{owner}/{repo}/deployments/{deployment_id}/statuses",
+  "GET /repos/{owner}/{repo}/environments",
+  "GET /repos/{owner}/{repo}/environments/{environment_name}/deployment-branch-policies",
+  "GET /repos/{owner}/{repo}/environments/{environment_name}/deployment_protection_rules/apps",
+  "GET /repos/{owner}/{repo}/environments/{environment_name}/secrets",
+  "GET /repos/{owner}/{repo}/environments/{environment_name}/variables",
+  "GET /repos/{owner}/{repo}/events",
+  "GET /repos/{owner}/{repo}/forks",
+  "GET /repos/{owner}/{repo}/hooks",
+  "GET /repos/{owner}/{repo}/hooks/{hook_id}/deliveries",
+  "GET /repos/{owner}/{repo}/invitations",
+  "GET /repos/{owner}/{repo}/issues",
+  "GET /repos/{owner}/{repo}/issues/comments",
+  "GET /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions",
+  "GET /repos/{owner}/{repo}/issues/events",
+  "GET /repos/{owner}/{repo}/issues/{issue_number}/comments",
+  "GET /repos/{owner}/{repo}/issues/{issue_number}/events",
+  "GET /repos/{owner}/{repo}/issues/{issue_number}/labels",
+  "GET /repos/{owner}/{repo}/issues/{issue_number}/reactions",
+  "GET /repos/{owner}/{repo}/issues/{issue_number}/timeline",
+  "GET /repos/{owner}/{repo}/keys",
+  "GET /repos/{owner}/{repo}/labels",
+  "GET /repos/{owner}/{repo}/milestones",
+  "GET /repos/{owner}/{repo}/milestones/{milestone_number}/labels",
+  "GET /repos/{owner}/{repo}/notifications",
+  "GET /repos/{owner}/{repo}/pages/builds",
+  "GET /repos/{owner}/{repo}/projects",
+  "GET /repos/{owner}/{repo}/pulls",
+  "GET /repos/{owner}/{repo}/pulls/comments",
+  "GET /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions",
+  "GET /repos/{owner}/{repo}/pulls/{pull_number}/comments",
+  "GET /repos/{owner}/{repo}/pulls/{pull_number}/commits",
+  "GET /repos/{owner}/{repo}/pulls/{pull_number}/files",
+  "GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews",
+  "GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}/comments",
+  "GET /repos/{owner}/{repo}/releases",
+  "GET /repos/{owner}/{repo}/releases/{release_id}/assets",
+  "GET /repos/{owner}/{repo}/releases/{release_id}/reactions",
+  "GET /repos/{owner}/{repo}/rules/branches/{branch}",
+  "GET /repos/{owner}/{repo}/rulesets",
+  "GET /repos/{owner}/{repo}/rulesets/rule-suites",
+  "GET /repos/{owner}/{repo}/secret-scanning/alerts",
+  "GET /repos/{owner}/{repo}/secret-scanning/alerts/{alert_number}/locations",
+  "GET /repos/{owner}/{repo}/security-advisories",
+  "GET /repos/{owner}/{repo}/stargazers",
+  "GET /repos/{owner}/{repo}/subscribers",
+  "GET /repos/{owner}/{repo}/tags",
+  "GET /repos/{owner}/{repo}/teams",
+  "GET /repos/{owner}/{repo}/topics",
+  "GET /repositories",
+  "GET /search/code",
+  "GET /search/commits",
+  "GET /search/issues",
+  "GET /search/labels",
+  "GET /search/repositories",
+  "GET /search/topics",
+  "GET /search/users",
+  "GET /teams/{team_id}/discussions",
+  "GET /teams/{team_id}/discussions/{discussion_number}/comments",
+  "GET /teams/{team_id}/discussions/{discussion_number}/comments/{comment_number}/reactions",
+  "GET /teams/{team_id}/discussions/{discussion_number}/reactions",
+  "GET /teams/{team_id}/invitations",
+  "GET /teams/{team_id}/members",
+  "GET /teams/{team_id}/projects",
+  "GET /teams/{team_id}/repos",
+  "GET /teams/{team_id}/teams",
+  "GET /user/blocks",
+  "GET /user/codespaces",
+  "GET /user/codespaces/secrets",
+  "GET /user/emails",
+  "GET /user/followers",
+  "GET /user/following",
+  "GET /user/gpg_keys",
+  "GET /user/installations",
+  "GET /user/installations/{installation_id}/repositories",
+  "GET /user/issues",
+  "GET /user/keys",
+  "GET /user/marketplace_purchases",
+  "GET /user/marketplace_purchases/stubbed",
+  "GET /user/memberships/orgs",
+  "GET /user/migrations",
+  "GET /user/migrations/{migration_id}/repositories",
+  "GET /user/orgs",
+  "GET /user/packages",
+  "GET /user/packages/{package_type}/{package_name}/versions",
+  "GET /user/public_emails",
+  "GET /user/repos",
+  "GET /user/repository_invitations",
+  "GET /user/social_accounts",
+  "GET /user/ssh_signing_keys",
+  "GET /user/starred",
+  "GET /user/subscriptions",
+  "GET /user/teams",
+  "GET /users",
+  "GET /users/{username}/events",
+  "GET /users/{username}/events/orgs/{org}",
+  "GET /users/{username}/events/public",
+  "GET /users/{username}/followers",
+  "GET /users/{username}/following",
+  "GET /users/{username}/gists",
+  "GET /users/{username}/gpg_keys",
+  "GET /users/{username}/keys",
+  "GET /users/{username}/orgs",
+  "GET /users/{username}/packages",
+  "GET /users/{username}/projects",
+  "GET /users/{username}/received_events",
+  "GET /users/{username}/received_events/public",
+  "GET /users/{username}/repos",
+  "GET /users/{username}/social_accounts",
+  "GET /users/{username}/ssh_signing_keys",
+  "GET /users/{username}/starred",
+  "GET /users/{username}/subscriptions"
+];
+
+// pkg/dist-src/paginating-endpoints.js
+function isPaginatingEndpoint(arg) {
+  if (typeof arg === "string") {
+    return paginatingEndpoints.includes(arg);
+  } else {
+    return false;
+  }
+}
+
+// pkg/dist-src/index.js
+function paginateRest(octokit) {
+  return {
+    paginate: Object.assign(paginate.bind(null, octokit), {
+      iterator: iterator.bind(null, octokit)
+    })
+  };
+}
+paginateRest.VERSION = VERSION;
+// Annotate the CommonJS export names for ESM import in node:
+0 && (0);
+
+
+/***/ }),
+
+/***/ 4923:
+/***/ ((module) => {
+
+
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// pkg/dist-src/index.js
+var dist_src_exports = {};
+__export(dist_src_exports, {
+  legacyRestEndpointMethods: () => legacyRestEndpointMethods,
+  restEndpointMethods: () => restEndpointMethods
+});
+module.exports = __toCommonJS(dist_src_exports);
+
+// pkg/dist-src/version.js
+var VERSION = "13.2.2";
+
+// pkg/dist-src/generated/endpoints.js
+var Endpoints = {
+  actions: {
+    addCustomLabelsToSelfHostedRunnerForOrg: [
+      "POST /orgs/{org}/actions/runners/{runner_id}/labels"
+    ],
+    addCustomLabelsToSelfHostedRunnerForRepo: [
+      "POST /repos/{owner}/{repo}/actions/runners/{runner_id}/labels"
+    ],
+    addSelectedRepoToOrgSecret: [
+      "PUT /orgs/{org}/actions/secrets/{secret_name}/repositories/{repository_id}"
+    ],
+    addSelectedRepoToOrgVariable: [
+      "PUT /orgs/{org}/actions/variables/{name}/repositories/{repository_id}"
+    ],
+    approveWorkflowRun: [
+      "POST /repos/{owner}/{repo}/actions/runs/{run_id}/approve"
+    ],
+    cancelWorkflowRun: [
+      "POST /repos/{owner}/{repo}/actions/runs/{run_id}/cancel"
+    ],
+    createEnvironmentVariable: [
+      "POST /repos/{owner}/{repo}/environments/{environment_name}/variables"
+    ],
+    createOrUpdateEnvironmentSecret: [
+      "PUT /repos/{owner}/{repo}/environments/{environment_name}/secrets/{secret_name}"
+    ],
+    createOrUpdateOrgSecret: ["PUT /orgs/{org}/actions/secrets/{secret_name}"],
+    createOrUpdateRepoSecret: [
+      "PUT /repos/{owner}/{repo}/actions/secrets/{secret_name}"
+    ],
+    createOrgVariable: ["POST /orgs/{org}/actions/variables"],
+    createRegistrationTokenForOrg: [
+      "POST /orgs/{org}/actions/runners/registration-token"
+    ],
+    createRegistrationTokenForRepo: [
+      "POST /repos/{owner}/{repo}/actions/runners/registration-token"
+    ],
+    createRemoveTokenForOrg: ["POST /orgs/{org}/actions/runners/remove-token"],
+    createRemoveTokenForRepo: [
+      "POST /repos/{owner}/{repo}/actions/runners/remove-token"
+    ],
+    createRepoVariable: ["POST /repos/{owner}/{repo}/actions/variables"],
+    createWorkflowDispatch: [
+      "POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches"
+    ],
+    deleteActionsCacheById: [
+      "DELETE /repos/{owner}/{repo}/actions/caches/{cache_id}"
+    ],
+    deleteActionsCacheByKey: [
+      "DELETE /repos/{owner}/{repo}/actions/caches{?key,ref}"
+    ],
+    deleteArtifact: [
+      "DELETE /repos/{owner}/{repo}/actions/artifacts/{artifact_id}"
+    ],
+    deleteEnvironmentSecret: [
+      "DELETE /repos/{owner}/{repo}/environments/{environment_name}/secrets/{secret_name}"
+    ],
+    deleteEnvironmentVariable: [
+      "DELETE /repos/{owner}/{repo}/environments/{environment_name}/variables/{name}"
+    ],
+    deleteOrgSecret: ["DELETE /orgs/{org}/actions/secrets/{secret_name}"],
+    deleteOrgVariable: ["DELETE /orgs/{org}/actions/variables/{name}"],
+    deleteRepoSecret: [
+      "DELETE /repos/{owner}/{repo}/actions/secrets/{secret_name}"
+    ],
+    deleteRepoVariable: [
+      "DELETE /repos/{owner}/{repo}/actions/variables/{name}"
+    ],
+    deleteSelfHostedRunnerFromOrg: [
+      "DELETE /orgs/{org}/actions/runners/{runner_id}"
+    ],
+    deleteSelfHostedRunnerFromRepo: [
+      "DELETE /repos/{owner}/{repo}/actions/runners/{runner_id}"
+    ],
+    deleteWorkflowRun: ["DELETE /repos/{owner}/{repo}/actions/runs/{run_id}"],
+    deleteWorkflowRunLogs: [
+      "DELETE /repos/{owner}/{repo}/actions/runs/{run_id}/logs"
+    ],
+    disableSelectedRepositoryGithubActionsOrganization: [
+      "DELETE /orgs/{org}/actions/permissions/repositories/{repository_id}"
+    ],
+    disableWorkflow: [
+      "PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/disable"
+    ],
+    downloadArtifact: [
+      "GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}"
+    ],
+    downloadJobLogsForWorkflowRun: [
+      "GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs"
+    ],
+    downloadWorkflowRunAttemptLogs: [
+      "GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt_number}/logs"
+    ],
+    downloadWorkflowRunLogs: [
+      "GET /repos/{owner}/{repo}/actions/runs/{run_id}/logs"
+    ],
+    enableSelectedRepositoryGithubActionsOrganization: [
+      "PUT /orgs/{org}/actions/permissions/repositories/{repository_id}"
+    ],
+    enableWorkflow: [
+      "PUT /repos/{owner}/{repo}/actions/workflows/{workflow_id}/enable"
+    ],
+    forceCancelWorkflowRun: [
+      "POST /repos/{owner}/{repo}/actions/runs/{run_id}/force-cancel"
+    ],
+    generateRunnerJitconfigForOrg: [
+      "POST /orgs/{org}/actions/runners/generate-jitconfig"
+    ],
+    generateRunnerJitconfigForRepo: [
+      "POST /repos/{owner}/{repo}/actions/runners/generate-jitconfig"
+    ],
+    getActionsCacheList: ["GET /repos/{owner}/{repo}/actions/caches"],
+    getActionsCacheUsage: ["GET /repos/{owner}/{repo}/actions/cache/usage"],
+    getActionsCacheUsageByRepoForOrg: [
+      "GET /orgs/{org}/actions/cache/usage-by-repository"
+    ],
+    getActionsCacheUsageForOrg: ["GET /orgs/{org}/actions/cache/usage"],
+    getAllowedActionsOrganization: [
+      "GET /orgs/{org}/actions/permissions/selected-actions"
+    ],
+    getAllowedActionsRepository: [
+      "GET /repos/{owner}/{repo}/actions/permissions/selected-actions"
+    ],
+    getArtifact: ["GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}"],
+    getCustomOidcSubClaimForRepo: [
+      "GET /repos/{owner}/{repo}/actions/oidc/customization/sub"
+    ],
+    getEnvironmentPublicKey: [
+      "GET /repos/{owner}/{repo}/environments/{environment_name}/secrets/public-key"
+    ],
+    getEnvironmentSecret: [
+      "GET /repos/{owner}/{repo}/environments/{environment_name}/secrets/{secret_name}"
+    ],
+    getEnvironmentVariable: [
+      "GET /repos/{owner}/{repo}/environments/{environment_name}/variables/{name}"
+    ],
+    getGithubActionsDefaultWorkflowPermissionsOrganization: [
+      "GET /orgs/{org}/actions/permissions/workflow"
+    ],
+    getGithubActionsDefaultWorkflowPermissionsRepository: [
+      "GET /repos/{owner}/{repo}/actions/permissions/workflow"
+    ],
+    getGithubActionsPermissionsOrganization: [
+      "GET /orgs/{org}/actions/permissions"
+    ],
+    getGithubActionsPermissionsRepository: [
+      "GET /repos/{owner}/{repo}/actions/permissions"
+    ],
+    getJobForWorkflowRun: ["GET /repos/{owner}/{repo}/actions/jobs/{job_id}"],
+    getOrgPublicKey: ["GET /orgs/{org}/actions/secrets/public-key"],
+    getOrgSecret: ["GET /orgs/{org}/actions/secrets/{secret_name}"],
+    getOrgVariable: ["GET /orgs/{org}/actions/variables/{name}"],
+    getPendingDeploymentsForRun: [
+      "GET /repos/{owner}/{repo}/actions/runs/{run_id}/pending_deployments"
+    ],
+    getRepoPermissions: [
+      "GET /repos/{owner}/{repo}/actions/permissions",
+      {},
+      { renamed: ["actions", "getGithubActionsPermissionsRepository"] }
+    ],
+    getRepoPublicKey: ["GET /repos/{owner}/{repo}/actions/secrets/public-key"],
+    getRepoSecret: ["GET /repos/{owner}/{repo}/actions/secrets/{secret_name}"],
+    getRepoVariable: ["GET /repos/{owner}/{repo}/actions/variables/{name}"],
+    getReviewsForRun: [
+      "GET /repos/{owner}/{repo}/actions/runs/{run_id}/approvals"
+    ],
+    getSelfHostedRunnerForOrg: ["GET /orgs/{org}/actions/runners/{runner_id}"],
+    getSelfHostedRunnerForRepo: [
+      "GET /repos/{owner}/{repo}/actions/runners/{runner_id}"
+    ],
+    getWorkflow: ["GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}"],
+    getWorkflowAccessToRepository: [
+      "GET /repos/{owner}/{repo}/actions/permissions/access"
+    ],
+    getWorkflowRun: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}"],
+    getWorkflowRunAttempt: [
+      "GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt_number}"
+    ],
+    getWorkflowRunUsage: [
+      "GET /repos/{owner}/{repo}/actions/runs/{run_id}/timing"
+    ],
+    getWorkflowUsage: [
+      "GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/timing"
+    ],
+    listArtifactsForRepo: ["GET /repos/{owner}/{repo}/actions/artifacts"],
+    listEnvironmentSecrets: [
+      "GET /repos/{owner}/{repo}/environments/{environment_name}/secrets"
+    ],
+    listEnvironmentVariables: [
+      "GET /repos/{owner}/{repo}/environments/{environment_name}/variables"
+    ],
+    listJobsForWorkflowRun: [
+      "GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs"
+    ],
+    listJobsForWorkflowRunAttempt: [
+      "GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt_number}/jobs"
+    ],
+    listLabelsForSelfHostedRunnerForOrg: [
+      "GET /orgs/{org}/actions/runners/{runner_id}/labels"
+    ],
+    listLabelsForSelfHostedRunnerForRepo: [
+      "GET /repos/{owner}/{repo}/actions/runners/{runner_id}/labels"
+    ],
+    listOrgSecrets: ["GET /orgs/{org}/actions/secrets"],
+    listOrgVariables: ["GET /orgs/{org}/actions/variables"],
+    listRepoOrganizationSecrets: [
+      "GET /repos/{owner}/{repo}/actions/organization-secrets"
+    ],
+    listRepoOrganizationVariables: [
+      "GET /repos/{owner}/{repo}/actions/organization-variables"
+    ],
+    listRepoSecrets: ["GET /repos/{owner}/{repo}/actions/secrets"],
+    listRepoVariables: ["GET /repos/{owner}/{repo}/actions/variables"],
+    listRepoWorkflows: ["GET /repos/{owner}/{repo}/actions/workflows"],
+    listRunnerApplicationsForOrg: ["GET /orgs/{org}/actions/runners/downloads"],
+    listRunnerApplicationsForRepo: [
+      "GET /repos/{owner}/{repo}/actions/runners/downloads"
+    ],
+    listSelectedReposForOrgSecret: [
+      "GET /orgs/{org}/actions/secrets/{secret_name}/repositories"
+    ],
+    listSelectedReposForOrgVariable: [
+      "GET /orgs/{org}/actions/variables/{name}/repositories"
+    ],
+    listSelectedRepositoriesEnabledGithubActionsOrganization: [
+      "GET /orgs/{org}/actions/permissions/repositories"
+    ],
+    listSelfHostedRunnersForOrg: ["GET /orgs/{org}/actions/runners"],
+    listSelfHostedRunnersForRepo: ["GET /repos/{owner}/{repo}/actions/runners"],
+    listWorkflowRunArtifacts: [
+      "GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts"
+    ],
+    listWorkflowRuns: [
+      "GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs"
+    ],
+    listWorkflowRunsForRepo: ["GET /repos/{owner}/{repo}/actions/runs"],
+    reRunJobForWorkflowRun: [
+      "POST /repos/{owner}/{repo}/actions/jobs/{job_id}/rerun"
+    ],
+    reRunWorkflow: ["POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun"],
+    reRunWorkflowFailedJobs: [
+      "POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun-failed-jobs"
+    ],
+    removeAllCustomLabelsFromSelfHostedRunnerForOrg: [
+      "DELETE /orgs/{org}/actions/runners/{runner_id}/labels"
+    ],
+    removeAllCustomLabelsFromSelfHostedRunnerForRepo: [
+      "DELETE /repos/{owner}/{repo}/actions/runners/{runner_id}/labels"
+    ],
+    removeCustomLabelFromSelfHostedRunnerForOrg: [
+      "DELETE /orgs/{org}/actions/runners/{runner_id}/labels/{name}"
+    ],
+    removeCustomLabelFromSelfHostedRunnerForRepo: [
+      "DELETE /repos/{owner}/{repo}/actions/runners/{runner_id}/labels/{name}"
+    ],
+    removeSelectedRepoFromOrgSecret: [
+      "DELETE /orgs/{org}/actions/secrets/{secret_name}/repositories/{repository_id}"
+    ],
+    removeSelectedRepoFromOrgVariable: [
+      "DELETE /orgs/{org}/actions/variables/{name}/repositories/{repository_id}"
+    ],
+    reviewCustomGatesForRun: [
+      "POST /repos/{owner}/{repo}/actions/runs/{run_id}/deployment_protection_rule"
+    ],
+    reviewPendingDeploymentsForRun: [
+      "POST /repos/{owner}/{repo}/actions/runs/{run_id}/pending_deployments"
+    ],
+    setAllowedActionsOrganization: [
+      "PUT /orgs/{org}/actions/permissions/selected-actions"
+    ],
+    setAllowedActionsRepository: [
+      "PUT /repos/{owner}/{repo}/actions/permissions/selected-actions"
+    ],
+    setCustomLabelsForSelfHostedRunnerForOrg: [
+      "PUT /orgs/{org}/actions/runners/{runner_id}/labels"
+    ],
+    setCustomLabelsForSelfHostedRunnerForRepo: [
+      "PUT /repos/{owner}/{repo}/actions/runners/{runner_id}/labels"
+    ],
+    setCustomOidcSubClaimForRepo: [
+      "PUT /repos/{owner}/{repo}/actions/oidc/customization/sub"
+    ],
+    setGithubActionsDefaultWorkflowPermissionsOrganization: [
+      "PUT /orgs/{org}/actions/permissions/workflow"
+    ],
+    setGithubActionsDefaultWorkflowPermissionsRepository: [
+      "PUT /repos/{owner}/{repo}/actions/permissions/workflow"
+    ],
+    setGithubActionsPermissionsOrganization: [
+      "PUT /orgs/{org}/actions/permissions"
+    ],
+    setGithubActionsPermissionsRepository: [
+      "PUT /repos/{owner}/{repo}/actions/permissions"
+    ],
+    setSelectedReposForOrgSecret: [
+      "PUT /orgs/{org}/actions/secrets/{secret_name}/repositories"
+    ],
+    setSelectedReposForOrgVariable: [
+      "PUT /orgs/{org}/actions/variables/{name}/repositories"
+    ],
+    setSelectedRepositoriesEnabledGithubActionsOrganization: [
+      "PUT /orgs/{org}/actions/permissions/repositories"
+    ],
+    setWorkflowAccessToRepository: [
+      "PUT /repos/{owner}/{repo}/actions/permissions/access"
+    ],
+    updateEnvironmentVariable: [
+      "PATCH /repos/{owner}/{repo}/environments/{environment_name}/variables/{name}"
+    ],
+    updateOrgVariable: ["PATCH /orgs/{org}/actions/variables/{name}"],
+    updateRepoVariable: [
+      "PATCH /repos/{owner}/{repo}/actions/variables/{name}"
+    ]
+  },
+  activity: {
+    checkRepoIsStarredByAuthenticatedUser: ["GET /user/starred/{owner}/{repo}"],
+    deleteRepoSubscription: ["DELETE /repos/{owner}/{repo}/subscription"],
+    deleteThreadSubscription: [
+      "DELETE /notifications/threads/{thread_id}/subscription"
+    ],
+    getFeeds: ["GET /feeds"],
+    getRepoSubscription: ["GET /repos/{owner}/{repo}/subscription"],
+    getThread: ["GET /notifications/threads/{thread_id}"],
+    getThreadSubscriptionForAuthenticatedUser: [
+      "GET /notifications/threads/{thread_id}/subscription"
+    ],
+    listEventsForAuthenticatedUser: ["GET /users/{username}/events"],
+    listNotificationsForAuthenticatedUser: ["GET /notifications"],
+    listOrgEventsForAuthenticatedUser: [
+      "GET /users/{username}/events/orgs/{org}"
+    ],
+    listPublicEvents: ["GET /events"],
+    listPublicEventsForRepoNetwork: ["GET /networks/{owner}/{repo}/events"],
+    listPublicEventsForUser: ["GET /users/{username}/events/public"],
+    listPublicOrgEvents: ["GET /orgs/{org}/events"],
+    listReceivedEventsForUser: ["GET /users/{username}/received_events"],
+    listReceivedPublicEventsForUser: [
+      "GET /users/{username}/received_events/public"
+    ],
+    listRepoEvents: ["GET /repos/{owner}/{repo}/events"],
+    listRepoNotificationsForAuthenticatedUser: [
+      "GET /repos/{owner}/{repo}/notifications"
+    ],
+    listReposStarredByAuthenticatedUser: ["GET /user/starred"],
+    listReposStarredByUser: ["GET /users/{username}/starred"],
+    listReposWatchedByUser: ["GET /users/{username}/subscriptions"],
+    listStargazersForRepo: ["GET /repos/{owner}/{repo}/stargazers"],
+    listWatchedReposForAuthenticatedUser: ["GET /user/subscriptions"],
+    listWatchersForRepo: ["GET /repos/{owner}/{repo}/subscribers"],
+    markNotificationsAsRead: ["PUT /notifications"],
+    markRepoNotificationsAsRead: ["PUT /repos/{owner}/{repo}/notifications"],
+    markThreadAsDone: ["DELETE /notifications/threads/{thread_id}"],
+    markThreadAsRead: ["PATCH /notifications/threads/{thread_id}"],
+    setRepoSubscription: ["PUT /repos/{owner}/{repo}/subscription"],
+    setThreadSubscription: [
+      "PUT /notifications/threads/{thread_id}/subscription"
+    ],
+    starRepoForAuthenticatedUser: ["PUT /user/starred/{owner}/{repo}"],
+    unstarRepoForAuthenticatedUser: ["DELETE /user/starred/{owner}/{repo}"]
+  },
+  apps: {
+    addRepoToInstallation: [
+      "PUT /user/installations/{installation_id}/repositories/{repository_id}",
+      {},
+      { renamed: ["apps", "addRepoToInstallationForAuthenticatedUser"] }
+    ],
+    addRepoToInstallationForAuthenticatedUser: [
+      "PUT /user/installations/{installation_id}/repositories/{repository_id}"
+    ],
+    checkToken: ["POST /applications/{client_id}/token"],
+    createFromManifest: ["POST /app-manifests/{code}/conversions"],
+    createInstallationAccessToken: [
+      "POST /app/installations/{installation_id}/access_tokens"
+    ],
+    deleteAuthorization: ["DELETE /applications/{client_id}/grant"],
+    deleteInstallation: ["DELETE /app/installations/{installation_id}"],
+    deleteToken: ["DELETE /applications/{client_id}/token"],
+    getAuthenticated: ["GET /app"],
+    getBySlug: ["GET /apps/{app_slug}"],
+    getInstallation: ["GET /app/installations/{installation_id}"],
+    getOrgInstallation: ["GET /orgs/{org}/installation"],
+    getRepoInstallation: ["GET /repos/{owner}/{repo}/installation"],
+    getSubscriptionPlanForAccount: [
+      "GET /marketplace_listing/accounts/{account_id}"
+    ],
+    getSubscriptionPlanForAccountStubbed: [
+      "GET /marketplace_listing/stubbed/accounts/{account_id}"
+    ],
+    getUserInstallation: ["GET /users/{username}/installation"],
+    getWebhookConfigForApp: ["GET /app/hook/config"],
+    getWebhookDelivery: ["GET /app/hook/deliveries/{delivery_id}"],
+    listAccountsForPlan: ["GET /marketplace_listing/plans/{plan_id}/accounts"],
+    listAccountsForPlanStubbed: [
+      "GET /marketplace_listing/stubbed/plans/{plan_id}/accounts"
+    ],
+    listInstallationReposForAuthenticatedUser: [
+      "GET /user/installations/{installation_id}/repositories"
+    ],
+    listInstallationRequestsForAuthenticatedApp: [
+      "GET /app/installation-requests"
+    ],
+    listInstallations: ["GET /app/installations"],
+    listInstallationsForAuthenticatedUser: ["GET /user/installations"],
+    listPlans: ["GET /marketplace_listing/plans"],
+    listPlansStubbed: ["GET /marketplace_listing/stubbed/plans"],
+    listReposAccessibleToInstallation: ["GET /installation/repositories"],
+    listSubscriptionsForAuthenticatedUser: ["GET /user/marketplace_purchases"],
+    listSubscriptionsForAuthenticatedUserStubbed: [
+      "GET /user/marketplace_purchases/stubbed"
+    ],
+    listWebhookDeliveries: ["GET /app/hook/deliveries"],
+    redeliverWebhookDelivery: [
+      "POST /app/hook/deliveries/{delivery_id}/attempts"
+    ],
+    removeRepoFromInstallation: [
+      "DELETE /user/installations/{installation_id}/repositories/{repository_id}",
+      {},
+      { renamed: ["apps", "removeRepoFromInstallationForAuthenticatedUser"] }
+    ],
+    removeRepoFromInstallationForAuthenticatedUser: [
+      "DELETE /user/installations/{installation_id}/repositories/{repository_id}"
+    ],
+    resetToken: ["PATCH /applications/{client_id}/token"],
+    revokeInstallationAccessToken: ["DELETE /installation/token"],
+    scopeToken: ["POST /applications/{client_id}/token/scoped"],
+    suspendInstallation: ["PUT /app/installations/{installation_id}/suspended"],
+    unsuspendInstallation: [
+      "DELETE /app/installations/{installation_id}/suspended"
+    ],
+    updateWebhookConfigForApp: ["PATCH /app/hook/config"]
+  },
+  billing: {
+    getGithubActionsBillingOrg: ["GET /orgs/{org}/settings/billing/actions"],
+    getGithubActionsBillingUser: [
+      "GET /users/{username}/settings/billing/actions"
+    ],
+    getGithubPackagesBillingOrg: ["GET /orgs/{org}/settings/billing/packages"],
+    getGithubPackagesBillingUser: [
+      "GET /users/{username}/settings/billing/packages"
+    ],
+    getSharedStorageBillingOrg: [
+      "GET /orgs/{org}/settings/billing/shared-storage"
+    ],
+    getSharedStorageBillingUser: [
+      "GET /users/{username}/settings/billing/shared-storage"
+    ]
+  },
+  checks: {
+    create: ["POST /repos/{owner}/{repo}/check-runs"],
+    createSuite: ["POST /repos/{owner}/{repo}/check-suites"],
+    get: ["GET /repos/{owner}/{repo}/check-runs/{check_run_id}"],
+    getSuite: ["GET /repos/{owner}/{repo}/check-suites/{check_suite_id}"],
+    listAnnotations: [
+      "GET /repos/{owner}/{repo}/check-runs/{check_run_id}/annotations"
+    ],
+    listForRef: ["GET /repos/{owner}/{repo}/commits/{ref}/check-runs"],
+    listForSuite: [
+      "GET /repos/{owner}/{repo}/check-suites/{check_suite_id}/check-runs"
+    ],
+    listSuitesForRef: ["GET /repos/{owner}/{repo}/commits/{ref}/check-suites"],
+    rerequestRun: [
+      "POST /repos/{owner}/{repo}/check-runs/{check_run_id}/rerequest"
+    ],
+    rerequestSuite: [
+      "POST /repos/{owner}/{repo}/check-suites/{check_suite_id}/rerequest"
+    ],
+    setSuitesPreferences: [
+      "PATCH /repos/{owner}/{repo}/check-suites/preferences"
+    ],
+    update: ["PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}"]
+  },
+  codeScanning: {
+    deleteAnalysis: [
+      "DELETE /repos/{owner}/{repo}/code-scanning/analyses/{analysis_id}{?confirm_delete}"
+    ],
+    getAlert: [
+      "GET /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}",
+      {},
+      { renamedParameters: { alert_id: "alert_number" } }
+    ],
+    getAnalysis: [
+      "GET /repos/{owner}/{repo}/code-scanning/analyses/{analysis_id}"
+    ],
+    getCodeqlDatabase: [
+      "GET /repos/{owner}/{repo}/code-scanning/codeql/databases/{language}"
+    ],
+    getDefaultSetup: ["GET /repos/{owner}/{repo}/code-scanning/default-setup"],
+    getSarif: ["GET /repos/{owner}/{repo}/code-scanning/sarifs/{sarif_id}"],
+    listAlertInstances: [
+      "GET /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}/instances"
+    ],
+    listAlertsForOrg: ["GET /orgs/{org}/code-scanning/alerts"],
+    listAlertsForRepo: ["GET /repos/{owner}/{repo}/code-scanning/alerts"],
+    listAlertsInstances: [
+      "GET /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}/instances",
+      {},
+      { renamed: ["codeScanning", "listAlertInstances"] }
+    ],
+    listCodeqlDatabases: [
+      "GET /repos/{owner}/{repo}/code-scanning/codeql/databases"
+    ],
+    listRecentAnalyses: ["GET /repos/{owner}/{repo}/code-scanning/analyses"],
+    updateAlert: [
+      "PATCH /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}"
+    ],
+    updateDefaultSetup: [
+      "PATCH /repos/{owner}/{repo}/code-scanning/default-setup"
+    ],
+    uploadSarif: ["POST /repos/{owner}/{repo}/code-scanning/sarifs"]
+  },
+  codesOfConduct: {
+    getAllCodesOfConduct: ["GET /codes_of_conduct"],
+    getConductCode: ["GET /codes_of_conduct/{key}"]
+  },
+  codespaces: {
+    addRepositoryForSecretForAuthenticatedUser: [
+      "PUT /user/codespaces/secrets/{secret_name}/repositories/{repository_id}"
+    ],
+    addSelectedRepoToOrgSecret: [
+      "PUT /orgs/{org}/codespaces/secrets/{secret_name}/repositories/{repository_id}"
+    ],
+    checkPermissionsForDevcontainer: [
+      "GET /repos/{owner}/{repo}/codespaces/permissions_check"
+    ],
+    codespaceMachinesForAuthenticatedUser: [
+      "GET /user/codespaces/{codespace_name}/machines"
+    ],
+    createForAuthenticatedUser: ["POST /user/codespaces"],
+    createOrUpdateOrgSecret: [
+      "PUT /orgs/{org}/codespaces/secrets/{secret_name}"
+    ],
+    createOrUpdateRepoSecret: [
+      "PUT /repos/{owner}/{repo}/codespaces/secrets/{secret_name}"
+    ],
+    createOrUpdateSecretForAuthenticatedUser: [
+      "PUT /user/codespaces/secrets/{secret_name}"
+    ],
+    createWithPrForAuthenticatedUser: [
+      "POST /repos/{owner}/{repo}/pulls/{pull_number}/codespaces"
+    ],
+    createWithRepoForAuthenticatedUser: [
+      "POST /repos/{owner}/{repo}/codespaces"
+    ],
+    deleteForAuthenticatedUser: ["DELETE /user/codespaces/{codespace_name}"],
+    deleteFromOrganization: [
+      "DELETE /orgs/{org}/members/{username}/codespaces/{codespace_name}"
+    ],
+    deleteOrgSecret: ["DELETE /orgs/{org}/codespaces/secrets/{secret_name}"],
+    deleteRepoSecret: [
+      "DELETE /repos/{owner}/{repo}/codespaces/secrets/{secret_name}"
+    ],
+    deleteSecretForAuthenticatedUser: [
+      "DELETE /user/codespaces/secrets/{secret_name}"
+    ],
+    exportForAuthenticatedUser: [
+      "POST /user/codespaces/{codespace_name}/exports"
+    ],
+    getCodespacesForUserInOrg: [
+      "GET /orgs/{org}/members/{username}/codespaces"
+    ],
+    getExportDetailsForAuthenticatedUser: [
+      "GET /user/codespaces/{codespace_name}/exports/{export_id}"
+    ],
+    getForAuthenticatedUser: ["GET /user/codespaces/{codespace_name}"],
+    getOrgPublicKey: ["GET /orgs/{org}/codespaces/secrets/public-key"],
+    getOrgSecret: ["GET /orgs/{org}/codespaces/secrets/{secret_name}"],
+    getPublicKeyForAuthenticatedUser: [
+      "GET /user/codespaces/secrets/public-key"
+    ],
+    getRepoPublicKey: [
+      "GET /repos/{owner}/{repo}/codespaces/secrets/public-key"
+    ],
+    getRepoSecret: [
+      "GET /repos/{owner}/{repo}/codespaces/secrets/{secret_name}"
+    ],
+    getSecretForAuthenticatedUser: [
+      "GET /user/codespaces/secrets/{secret_name}"
+    ],
+    listDevcontainersInRepositoryForAuthenticatedUser: [
+      "GET /repos/{owner}/{repo}/codespaces/devcontainers"
+    ],
+    listForAuthenticatedUser: ["GET /user/codespaces"],
+    listInOrganization: [
+      "GET /orgs/{org}/codespaces",
+      {},
+      { renamedParameters: { org_id: "org" } }
+    ],
+    listInRepositoryForAuthenticatedUser: [
+      "GET /repos/{owner}/{repo}/codespaces"
+    ],
+    listOrgSecrets: ["GET /orgs/{org}/codespaces/secrets"],
+    listRepoSecrets: ["GET /repos/{owner}/{repo}/codespaces/secrets"],
+    listRepositoriesForSecretForAuthenticatedUser: [
+      "GET /user/codespaces/secrets/{secret_name}/repositories"
+    ],
+    listSecretsForAuthenticatedUser: ["GET /user/codespaces/secrets"],
+    listSelectedReposForOrgSecret: [
+      "GET /orgs/{org}/codespaces/secrets/{secret_name}/repositories"
+    ],
+    preFlightWithRepoForAuthenticatedUser: [
+      "GET /repos/{owner}/{repo}/codespaces/new"
+    ],
+    publishForAuthenticatedUser: [
+      "POST /user/codespaces/{codespace_name}/publish"
+    ],
+    removeRepositoryForSecretForAuthenticatedUser: [
+      "DELETE /user/codespaces/secrets/{secret_name}/repositories/{repository_id}"
+    ],
+    removeSelectedRepoFromOrgSecret: [
+      "DELETE /orgs/{org}/codespaces/secrets/{secret_name}/repositories/{repository_id}"
+    ],
+    repoMachinesForAuthenticatedUser: [
+      "GET /repos/{owner}/{repo}/codespaces/machines"
+    ],
+    setRepositoriesForSecretForAuthenticatedUser: [
+      "PUT /user/codespaces/secrets/{secret_name}/repositories"
+    ],
+    setSelectedReposForOrgSecret: [
+      "PUT /orgs/{org}/codespaces/secrets/{secret_name}/repositories"
+    ],
+    startForAuthenticatedUser: ["POST /user/codespaces/{codespace_name}/start"],
+    stopForAuthenticatedUser: ["POST /user/codespaces/{codespace_name}/stop"],
+    stopInOrganization: [
+      "POST /orgs/{org}/members/{username}/codespaces/{codespace_name}/stop"
+    ],
+    updateForAuthenticatedUser: ["PATCH /user/codespaces/{codespace_name}"]
+  },
+  copilot: {
+    addCopilotSeatsForTeams: [
+      "POST /orgs/{org}/copilot/billing/selected_teams"
+    ],
+    addCopilotSeatsForUsers: [
+      "POST /orgs/{org}/copilot/billing/selected_users"
+    ],
+    cancelCopilotSeatAssignmentForTeams: [
+      "DELETE /orgs/{org}/copilot/billing/selected_teams"
+    ],
+    cancelCopilotSeatAssignmentForUsers: [
+      "DELETE /orgs/{org}/copilot/billing/selected_users"
+    ],
+    getCopilotOrganizationDetails: ["GET /orgs/{org}/copilot/billing"],
+    getCopilotSeatDetailsForUser: [
+      "GET /orgs/{org}/members/{username}/copilot"
+    ],
+    listCopilotSeats: ["GET /orgs/{org}/copilot/billing/seats"],
+    usageMetricsForEnterprise: ["GET /enterprises/{enterprise}/copilot/usage"],
+    usageMetricsForOrg: ["GET /orgs/{org}/copilot/usage"],
+    usageMetricsForTeam: ["GET /orgs/{org}/team/{team_slug}/copilot/usage"]
+  },
+  dependabot: {
+    addSelectedRepoToOrgSecret: [
+      "PUT /orgs/{org}/dependabot/secrets/{secret_name}/repositories/{repository_id}"
+    ],
+    createOrUpdateOrgSecret: [
+      "PUT /orgs/{org}/dependabot/secrets/{secret_name}"
+    ],
+    createOrUpdateRepoSecret: [
+      "PUT /repos/{owner}/{repo}/dependabot/secrets/{secret_name}"
+    ],
+    deleteOrgSecret: ["DELETE /orgs/{org}/dependabot/secrets/{secret_name}"],
+    deleteRepoSecret: [
+      "DELETE /repos/{owner}/{repo}/dependabot/secrets/{secret_name}"
+    ],
+    getAlert: ["GET /repos/{owner}/{repo}/dependabot/alerts/{alert_number}"],
+    getOrgPublicKey: ["GET /orgs/{org}/dependabot/secrets/public-key"],
+    getOrgSecret: ["GET /orgs/{org}/dependabot/secrets/{secret_name}"],
+    getRepoPublicKey: [
+      "GET /repos/{owner}/{repo}/dependabot/secrets/public-key"
+    ],
+    getRepoSecret: [
+      "GET /repos/{owner}/{repo}/dependabot/secrets/{secret_name}"
+    ],
+    listAlertsForEnterprise: [
+      "GET /enterprises/{enterprise}/dependabot/alerts"
+    ],
+    listAlertsForOrg: ["GET /orgs/{org}/dependabot/alerts"],
+    listAlertsForRepo: ["GET /repos/{owner}/{repo}/dependabot/alerts"],
+    listOrgSecrets: ["GET /orgs/{org}/dependabot/secrets"],
+    listRepoSecrets: ["GET /repos/{owner}/{repo}/dependabot/secrets"],
+    listSelectedReposForOrgSecret: [
+      "GET /orgs/{org}/dependabot/secrets/{secret_name}/repositories"
+    ],
+    removeSelectedRepoFromOrgSecret: [
+      "DELETE /orgs/{org}/dependabot/secrets/{secret_name}/repositories/{repository_id}"
+    ],
+    setSelectedReposForOrgSecret: [
+      "PUT /orgs/{org}/dependabot/secrets/{secret_name}/repositories"
+    ],
+    updateAlert: [
+      "PATCH /repos/{owner}/{repo}/dependabot/alerts/{alert_number}"
+    ]
+  },
+  dependencyGraph: {
+    createRepositorySnapshot: [
+      "POST /repos/{owner}/{repo}/dependency-graph/snapshots"
+    ],
+    diffRange: [
+      "GET /repos/{owner}/{repo}/dependency-graph/compare/{basehead}"
+    ],
+    exportSbom: ["GET /repos/{owner}/{repo}/dependency-graph/sbom"]
+  },
+  emojis: { get: ["GET /emojis"] },
+  gists: {
+    checkIsStarred: ["GET /gists/{gist_id}/star"],
+    create: ["POST /gists"],
+    createComment: ["POST /gists/{gist_id}/comments"],
+    delete: ["DELETE /gists/{gist_id}"],
+    deleteComment: ["DELETE /gists/{gist_id}/comments/{comment_id}"],
+    fork: ["POST /gists/{gist_id}/forks"],
+    get: ["GET /gists/{gist_id}"],
+    getComment: ["GET /gists/{gist_id}/comments/{comment_id}"],
+    getRevision: ["GET /gists/{gist_id}/{sha}"],
+    list: ["GET /gists"],
+    listComments: ["GET /gists/{gist_id}/comments"],
+    listCommits: ["GET /gists/{gist_id}/commits"],
+    listForUser: ["GET /users/{username}/gists"],
+    listForks: ["GET /gists/{gist_id}/forks"],
+    listPublic: ["GET /gists/public"],
+    listStarred: ["GET /gists/starred"],
+    star: ["PUT /gists/{gist_id}/star"],
+    unstar: ["DELETE /gists/{gist_id}/star"],
+    update: ["PATCH /gists/{gist_id}"],
+    updateComment: ["PATCH /gists/{gist_id}/comments/{comment_id}"]
+  },
+  git: {
+    createBlob: ["POST /repos/{owner}/{repo}/git/blobs"],
+    createCommit: ["POST /repos/{owner}/{repo}/git/commits"],
+    createRef: ["POST /repos/{owner}/{repo}/git/refs"],
+    createTag: ["POST /repos/{owner}/{repo}/git/tags"],
+    createTree: ["POST /repos/{owner}/{repo}/git/trees"],
+    deleteRef: ["DELETE /repos/{owner}/{repo}/git/refs/{ref}"],
+    getBlob: ["GET /repos/{owner}/{repo}/git/blobs/{file_sha}"],
+    getCommit: ["GET /repos/{owner}/{repo}/git/commits/{commit_sha}"],
+    getRef: ["GET /repos/{owner}/{repo}/git/ref/{ref}"],
+    getTag: ["GET /repos/{owner}/{repo}/git/tags/{tag_sha}"],
+    getTree: ["GET /repos/{owner}/{repo}/git/trees/{tree_sha}"],
+    listMatchingRefs: ["GET /repos/{owner}/{repo}/git/matching-refs/{ref}"],
+    updateRef: ["PATCH /repos/{owner}/{repo}/git/refs/{ref}"]
+  },
+  gitignore: {
+    getAllTemplates: ["GET /gitignore/templates"],
+    getTemplate: ["GET /gitignore/templates/{name}"]
+  },
+  interactions: {
+    getRestrictionsForAuthenticatedUser: ["GET /user/interaction-limits"],
+    getRestrictionsForOrg: ["GET /orgs/{org}/interaction-limits"],
+    getRestrictionsForRepo: ["GET /repos/{owner}/{repo}/interaction-limits"],
+    getRestrictionsForYourPublicRepos: [
+      "GET /user/interaction-limits",
+      {},
+      { renamed: ["interactions", "getRestrictionsForAuthenticatedUser"] }
+    ],
+    removeRestrictionsForAuthenticatedUser: ["DELETE /user/interaction-limits"],
+    removeRestrictionsForOrg: ["DELETE /orgs/{org}/interaction-limits"],
+    removeRestrictionsForRepo: [
+      "DELETE /repos/{owner}/{repo}/interaction-limits"
+    ],
+    removeRestrictionsForYourPublicRepos: [
+      "DELETE /user/interaction-limits",
+      {},
+      { renamed: ["interactions", "removeRestrictionsForAuthenticatedUser"] }
+    ],
+    setRestrictionsForAuthenticatedUser: ["PUT /user/interaction-limits"],
+    setRestrictionsForOrg: ["PUT /orgs/{org}/interaction-limits"],
+    setRestrictionsForRepo: ["PUT /repos/{owner}/{repo}/interaction-limits"],
+    setRestrictionsForYourPublicRepos: [
+      "PUT /user/interaction-limits",
+      {},
+      { renamed: ["interactions", "setRestrictionsForAuthenticatedUser"] }
+    ]
+  },
+  issues: {
+    addAssignees: [
+      "POST /repos/{owner}/{repo}/issues/{issue_number}/assignees"
+    ],
+    addLabels: ["POST /repos/{owner}/{repo}/issues/{issue_number}/labels"],
+    checkUserCanBeAssigned: ["GET /repos/{owner}/{repo}/assignees/{assignee}"],
+    checkUserCanBeAssignedToIssue: [
+      "GET /repos/{owner}/{repo}/issues/{issue_number}/assignees/{assignee}"
+    ],
+    create: ["POST /repos/{owner}/{repo}/issues"],
+    createComment: [
+      "POST /repos/{owner}/{repo}/issues/{issue_number}/comments"
+    ],
+    createLabel: ["POST /repos/{owner}/{repo}/labels"],
+    createMilestone: ["POST /repos/{owner}/{repo}/milestones"],
+    deleteComment: [
+      "DELETE /repos/{owner}/{repo}/issues/comments/{comment_id}"
+    ],
+    deleteLabel: ["DELETE /repos/{owner}/{repo}/labels/{name}"],
+    deleteMilestone: [
+      "DELETE /repos/{owner}/{repo}/milestones/{milestone_number}"
+    ],
+    get: ["GET /repos/{owner}/{repo}/issues/{issue_number}"],
+    getComment: ["GET /repos/{owner}/{repo}/issues/comments/{comment_id}"],
+    getEvent: ["GET /repos/{owner}/{repo}/issues/events/{event_id}"],
+    getLabel: ["GET /repos/{owner}/{repo}/labels/{name}"],
+    getMilestone: ["GET /repos/{owner}/{repo}/milestones/{milestone_number}"],
+    list: ["GET /issues"],
+    listAssignees: ["GET /repos/{owner}/{repo}/assignees"],
+    listComments: ["GET /repos/{owner}/{repo}/issues/{issue_number}/comments"],
+    listCommentsForRepo: ["GET /repos/{owner}/{repo}/issues/comments"],
+    listEvents: ["GET /repos/{owner}/{repo}/issues/{issue_number}/events"],
+    listEventsForRepo: ["GET /repos/{owner}/{repo}/issues/events"],
+    listEventsForTimeline: [
+      "GET /repos/{owner}/{repo}/issues/{issue_number}/timeline"
+    ],
+    listForAuthenticatedUser: ["GET /user/issues"],
+    listForOrg: ["GET /orgs/{org}/issues"],
+    listForRepo: ["GET /repos/{owner}/{repo}/issues"],
+    listLabelsForMilestone: [
+      "GET /repos/{owner}/{repo}/milestones/{milestone_number}/labels"
+    ],
+    listLabelsForRepo: ["GET /repos/{owner}/{repo}/labels"],
+    listLabelsOnIssue: [
+      "GET /repos/{owner}/{repo}/issues/{issue_number}/labels"
+    ],
+    listMilestones: ["GET /repos/{owner}/{repo}/milestones"],
+    lock: ["PUT /repos/{owner}/{repo}/issues/{issue_number}/lock"],
+    removeAllLabels: [
+      "DELETE /repos/{owner}/{repo}/issues/{issue_number}/labels"
+    ],
+    removeAssignees: [
+      "DELETE /repos/{owner}/{repo}/issues/{issue_number}/assignees"
+    ],
+    removeLabel: [
+      "DELETE /repos/{owner}/{repo}/issues/{issue_number}/labels/{name}"
+    ],
+    setLabels: ["PUT /repos/{owner}/{repo}/issues/{issue_number}/labels"],
+    unlock: ["DELETE /repos/{owner}/{repo}/issues/{issue_number}/lock"],
+    update: ["PATCH /repos/{owner}/{repo}/issues/{issue_number}"],
+    updateComment: ["PATCH /repos/{owner}/{repo}/issues/comments/{comment_id}"],
+    updateLabel: ["PATCH /repos/{owner}/{repo}/labels/{name}"],
+    updateMilestone: [
+      "PATCH /repos/{owner}/{repo}/milestones/{milestone_number}"
+    ]
+  },
+  licenses: {
+    get: ["GET /licenses/{license}"],
+    getAllCommonlyUsed: ["GET /licenses"],
+    getForRepo: ["GET /repos/{owner}/{repo}/license"]
+  },
+  markdown: {
+    render: ["POST /markdown"],
+    renderRaw: [
+      "POST /markdown/raw",
+      { headers: { "content-type": "text/plain; charset=utf-8" } }
+    ]
+  },
+  meta: {
+    get: ["GET /meta"],
+    getAllVersions: ["GET /versions"],
+    getOctocat: ["GET /octocat"],
+    getZen: ["GET /zen"],
+    root: ["GET /"]
+  },
+  migrations: {
+    deleteArchiveForAuthenticatedUser: [
+      "DELETE /user/migrations/{migration_id}/archive"
+    ],
+    deleteArchiveForOrg: [
+      "DELETE /orgs/{org}/migrations/{migration_id}/archive"
+    ],
+    downloadArchiveForOrg: [
+      "GET /orgs/{org}/migrations/{migration_id}/archive"
+    ],
+    getArchiveForAuthenticatedUser: [
+      "GET /user/migrations/{migration_id}/archive"
+    ],
+    getStatusForAuthenticatedUser: ["GET /user/migrations/{migration_id}"],
+    getStatusForOrg: ["GET /orgs/{org}/migrations/{migration_id}"],
+    listForAuthenticatedUser: ["GET /user/migrations"],
+    listForOrg: ["GET /orgs/{org}/migrations"],
+    listReposForAuthenticatedUser: [
+      "GET /user/migrations/{migration_id}/repositories"
+    ],
+    listReposForOrg: ["GET /orgs/{org}/migrations/{migration_id}/repositories"],
+    listReposForUser: [
+      "GET /user/migrations/{migration_id}/repositories",
+      {},
+      { renamed: ["migrations", "listReposForAuthenticatedUser"] }
+    ],
+    startForAuthenticatedUser: ["POST /user/migrations"],
+    startForOrg: ["POST /orgs/{org}/migrations"],
+    unlockRepoForAuthenticatedUser: [
+      "DELETE /user/migrations/{migration_id}/repos/{repo_name}/lock"
+    ],
+    unlockRepoForOrg: [
+      "DELETE /orgs/{org}/migrations/{migration_id}/repos/{repo_name}/lock"
+    ]
+  },
+  oidc: {
+    getOidcCustomSubTemplateForOrg: [
+      "GET /orgs/{org}/actions/oidc/customization/sub"
+    ],
+    updateOidcCustomSubTemplateForOrg: [
+      "PUT /orgs/{org}/actions/oidc/customization/sub"
+    ]
+  },
+  orgs: {
+    addSecurityManagerTeam: [
+      "PUT /orgs/{org}/security-managers/teams/{team_slug}"
+    ],
+    assignTeamToOrgRole: [
+      "PUT /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}"
+    ],
+    assignUserToOrgRole: [
+      "PUT /orgs/{org}/organization-roles/users/{username}/{role_id}"
+    ],
+    blockUser: ["PUT /orgs/{org}/blocks/{username}"],
+    cancelInvitation: ["DELETE /orgs/{org}/invitations/{invitation_id}"],
+    checkBlockedUser: ["GET /orgs/{org}/blocks/{username}"],
+    checkMembershipForUser: ["GET /orgs/{org}/members/{username}"],
+    checkPublicMembershipForUser: ["GET /orgs/{org}/public_members/{username}"],
+    convertMemberToOutsideCollaborator: [
+      "PUT /orgs/{org}/outside_collaborators/{username}"
+    ],
+    createCustomOrganizationRole: ["POST /orgs/{org}/organization-roles"],
+    createInvitation: ["POST /orgs/{org}/invitations"],
+    createOrUpdateCustomProperties: ["PATCH /orgs/{org}/properties/schema"],
+    createOrUpdateCustomPropertiesValuesForRepos: [
+      "PATCH /orgs/{org}/properties/values"
+    ],
+    createOrUpdateCustomProperty: [
+      "PUT /orgs/{org}/properties/schema/{custom_property_name}"
+    ],
+    createWebhook: ["POST /orgs/{org}/hooks"],
+    delete: ["DELETE /orgs/{org}"],
+    deleteCustomOrganizationRole: [
+      "DELETE /orgs/{org}/organization-roles/{role_id}"
+    ],
+    deleteWebhook: ["DELETE /orgs/{org}/hooks/{hook_id}"],
+    enableOrDisableSecurityProductOnAllOrgRepos: [
+      "POST /orgs/{org}/{security_product}/{enablement}"
+    ],
+    get: ["GET /orgs/{org}"],
+    getAllCustomProperties: ["GET /orgs/{org}/properties/schema"],
+    getCustomProperty: [
+      "GET /orgs/{org}/properties/schema/{custom_property_name}"
+    ],
+    getMembershipForAuthenticatedUser: ["GET /user/memberships/orgs/{org}"],
+    getMembershipForUser: ["GET /orgs/{org}/memberships/{username}"],
+    getOrgRole: ["GET /orgs/{org}/organization-roles/{role_id}"],
+    getWebhook: ["GET /orgs/{org}/hooks/{hook_id}"],
+    getWebhookConfigForOrg: ["GET /orgs/{org}/hooks/{hook_id}/config"],
+    getWebhookDelivery: [
+      "GET /orgs/{org}/hooks/{hook_id}/deliveries/{delivery_id}"
+    ],
+    list: ["GET /organizations"],
+    listAppInstallations: ["GET /orgs/{org}/installations"],
+    listBlockedUsers: ["GET /orgs/{org}/blocks"],
+    listCustomPropertiesValuesForRepos: ["GET /orgs/{org}/properties/values"],
+    listFailedInvitations: ["GET /orgs/{org}/failed_invitations"],
+    listForAuthenticatedUser: ["GET /user/orgs"],
+    listForUser: ["GET /users/{username}/orgs"],
+    listInvitationTeams: ["GET /orgs/{org}/invitations/{invitation_id}/teams"],
+    listMembers: ["GET /orgs/{org}/members"],
+    listMembershipsForAuthenticatedUser: ["GET /user/memberships/orgs"],
+    listOrgRoleTeams: ["GET /orgs/{org}/organization-roles/{role_id}/teams"],
+    listOrgRoleUsers: ["GET /orgs/{org}/organization-roles/{role_id}/users"],
+    listOrgRoles: ["GET /orgs/{org}/organization-roles"],
+    listOrganizationFineGrainedPermissions: [
+      "GET /orgs/{org}/organization-fine-grained-permissions"
+    ],
+    listOutsideCollaborators: ["GET /orgs/{org}/outside_collaborators"],
+    listPatGrantRepositories: [
+      "GET /orgs/{org}/personal-access-tokens/{pat_id}/repositories"
+    ],
+    listPatGrantRequestRepositories: [
+      "GET /orgs/{org}/personal-access-token-requests/{pat_request_id}/repositories"
+    ],
+    listPatGrantRequests: ["GET /orgs/{org}/personal-access-token-requests"],
+    listPatGrants: ["GET /orgs/{org}/personal-access-tokens"],
+    listPendingInvitations: ["GET /orgs/{org}/invitations"],
+    listPublicMembers: ["GET /orgs/{org}/public_members"],
+    listSecurityManagerTeams: ["GET /orgs/{org}/security-managers"],
+    listWebhookDeliveries: ["GET /orgs/{org}/hooks/{hook_id}/deliveries"],
+    listWebhooks: ["GET /orgs/{org}/hooks"],
+    patchCustomOrganizationRole: [
+      "PATCH /orgs/{org}/organization-roles/{role_id}"
+    ],
+    pingWebhook: ["POST /orgs/{org}/hooks/{hook_id}/pings"],
+    redeliverWebhookDelivery: [
+      "POST /orgs/{org}/hooks/{hook_id}/deliveries/{delivery_id}/attempts"
+    ],
+    removeCustomProperty: [
+      "DELETE /orgs/{org}/properties/schema/{custom_property_name}"
+    ],
+    removeMember: ["DELETE /orgs/{org}/members/{username}"],
+    removeMembershipForUser: ["DELETE /orgs/{org}/memberships/{username}"],
+    removeOutsideCollaborator: [
+      "DELETE /orgs/{org}/outside_collaborators/{username}"
+    ],
+    removePublicMembershipForAuthenticatedUser: [
+      "DELETE /orgs/{org}/public_members/{username}"
+    ],
+    removeSecurityManagerTeam: [
+      "DELETE /orgs/{org}/security-managers/teams/{team_slug}"
+    ],
+    reviewPatGrantRequest: [
+      "POST /orgs/{org}/personal-access-token-requests/{pat_request_id}"
+    ],
+    reviewPatGrantRequestsInBulk: [
+      "POST /orgs/{org}/personal-access-token-requests"
+    ],
+    revokeAllOrgRolesTeam: [
+      "DELETE /orgs/{org}/organization-roles/teams/{team_slug}"
+    ],
+    revokeAllOrgRolesUser: [
+      "DELETE /orgs/{org}/organization-roles/users/{username}"
+    ],
+    revokeOrgRoleTeam: [
+      "DELETE /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}"
+    ],
+    revokeOrgRoleUser: [
+      "DELETE /orgs/{org}/organization-roles/users/{username}/{role_id}"
+    ],
+    setMembershipForUser: ["PUT /orgs/{org}/memberships/{username}"],
+    setPublicMembershipForAuthenticatedUser: [
+      "PUT /orgs/{org}/public_members/{username}"
+    ],
+    unblockUser: ["DELETE /orgs/{org}/blocks/{username}"],
+    update: ["PATCH /orgs/{org}"],
+    updateMembershipForAuthenticatedUser: [
+      "PATCH /user/memberships/orgs/{org}"
+    ],
+    updatePatAccess: ["POST /orgs/{org}/personal-access-tokens/{pat_id}"],
+    updatePatAccesses: ["POST /orgs/{org}/personal-access-tokens"],
+    updateWebhook: ["PATCH /orgs/{org}/hooks/{hook_id}"],
+    updateWebhookConfigForOrg: ["PATCH /orgs/{org}/hooks/{hook_id}/config"]
+  },
+  packages: {
+    deletePackageForAuthenticatedUser: [
+      "DELETE /user/packages/{package_type}/{package_name}"
+    ],
+    deletePackageForOrg: [
+      "DELETE /orgs/{org}/packages/{package_type}/{package_name}"
+    ],
+    deletePackageForUser: [
+      "DELETE /users/{username}/packages/{package_type}/{package_name}"
+    ],
+    deletePackageVersionForAuthenticatedUser: [
+      "DELETE /user/packages/{package_type}/{package_name}/versions/{package_version_id}"
+    ],
+    deletePackageVersionForOrg: [
+      "DELETE /orgs/{org}/packages/{package_type}/{package_name}/versions/{package_version_id}"
+    ],
+    deletePackageVersionForUser: [
+      "DELETE /users/{username}/packages/{package_type}/{package_name}/versions/{package_version_id}"
+    ],
+    getAllPackageVersionsForAPackageOwnedByAnOrg: [
+      "GET /orgs/{org}/packages/{package_type}/{package_name}/versions",
+      {},
+      { renamed: ["packages", "getAllPackageVersionsForPackageOwnedByOrg"] }
+    ],
+    getAllPackageVersionsForAPackageOwnedByTheAuthenticatedUser: [
+      "GET /user/packages/{package_type}/{package_name}/versions",
+      {},
+      {
+        renamed: [
+          "packages",
+          "getAllPackageVersionsForPackageOwnedByAuthenticatedUser"
+        ]
+      }
+    ],
+    getAllPackageVersionsForPackageOwnedByAuthenticatedUser: [
+      "GET /user/packages/{package_type}/{package_name}/versions"
+    ],
+    getAllPackageVersionsForPackageOwnedByOrg: [
+      "GET /orgs/{org}/packages/{package_type}/{package_name}/versions"
+    ],
+    getAllPackageVersionsForPackageOwnedByUser: [
+      "GET /users/{username}/packages/{package_type}/{package_name}/versions"
+    ],
+    getPackageForAuthenticatedUser: [
+      "GET /user/packages/{package_type}/{package_name}"
+    ],
+    getPackageForOrganization: [
+      "GET /orgs/{org}/packages/{package_type}/{package_name}"
+    ],
+    getPackageForUser: [
+      "GET /users/{username}/packages/{package_type}/{package_name}"
+    ],
+    getPackageVersionForAuthenticatedUser: [
+      "GET /user/packages/{package_type}/{package_name}/versions/{package_version_id}"
+    ],
+    getPackageVersionForOrganization: [
+      "GET /orgs/{org}/packages/{package_type}/{package_name}/versions/{package_version_id}"
+    ],
+    getPackageVersionForUser: [
+      "GET /users/{username}/packages/{package_type}/{package_name}/versions/{package_version_id}"
+    ],
+    listDockerMigrationConflictingPackagesForAuthenticatedUser: [
+      "GET /user/docker/conflicts"
+    ],
+    listDockerMigrationConflictingPackagesForOrganization: [
+      "GET /orgs/{org}/docker/conflicts"
+    ],
+    listDockerMigrationConflictingPackagesForUser: [
+      "GET /users/{username}/docker/conflicts"
+    ],
+    listPackagesForAuthenticatedUser: ["GET /user/packages"],
+    listPackagesForOrganization: ["GET /orgs/{org}/packages"],
+    listPackagesForUser: ["GET /users/{username}/packages"],
+    restorePackageForAuthenticatedUser: [
+      "POST /user/packages/{package_type}/{package_name}/restore{?token}"
+    ],
+    restorePackageForOrg: [
+      "POST /orgs/{org}/packages/{package_type}/{package_name}/restore{?token}"
+    ],
+    restorePackageForUser: [
+      "POST /users/{username}/packages/{package_type}/{package_name}/restore{?token}"
+    ],
+    restorePackageVersionForAuthenticatedUser: [
+      "POST /user/packages/{package_type}/{package_name}/versions/{package_version_id}/restore"
+    ],
+    restorePackageVersionForOrg: [
+      "POST /orgs/{org}/packages/{package_type}/{package_name}/versions/{package_version_id}/restore"
+    ],
+    restorePackageVersionForUser: [
+      "POST /users/{username}/packages/{package_type}/{package_name}/versions/{package_version_id}/restore"
+    ]
+  },
+  projects: {
+    addCollaborator: ["PUT /projects/{project_id}/collaborators/{username}"],
+    createCard: ["POST /projects/columns/{column_id}/cards"],
+    createColumn: ["POST /projects/{project_id}/columns"],
+    createForAuthenticatedUser: ["POST /user/projects"],
+    createForOrg: ["POST /orgs/{org}/projects"],
+    createForRepo: ["POST /repos/{owner}/{repo}/projects"],
+    delete: ["DELETE /projects/{project_id}"],
+    deleteCard: ["DELETE /projects/columns/cards/{card_id}"],
+    deleteColumn: ["DELETE /projects/columns/{column_id}"],
+    get: ["GET /projects/{project_id}"],
+    getCard: ["GET /projects/columns/cards/{card_id}"],
+    getColumn: ["GET /projects/columns/{column_id}"],
+    getPermissionForUser: [
+      "GET /projects/{project_id}/collaborators/{username}/permission"
+    ],
+    listCards: ["GET /projects/columns/{column_id}/cards"],
+    listCollaborators: ["GET /projects/{project_id}/collaborators"],
+    listColumns: ["GET /projects/{project_id}/columns"],
+    listForOrg: ["GET /orgs/{org}/projects"],
+    listForRepo: ["GET /repos/{owner}/{repo}/projects"],
+    listForUser: ["GET /users/{username}/projects"],
+    moveCard: ["POST /projects/columns/cards/{card_id}/moves"],
+    moveColumn: ["POST /projects/columns/{column_id}/moves"],
+    removeCollaborator: [
+      "DELETE /projects/{project_id}/collaborators/{username}"
+    ],
+    update: ["PATCH /projects/{project_id}"],
+    updateCard: ["PATCH /projects/columns/cards/{card_id}"],
+    updateColumn: ["PATCH /projects/columns/{column_id}"]
+  },
+  pulls: {
+    checkIfMerged: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/merge"],
+    create: ["POST /repos/{owner}/{repo}/pulls"],
+    createReplyForReviewComment: [
+      "POST /repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies"
+    ],
+    createReview: ["POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews"],
+    createReviewComment: [
+      "POST /repos/{owner}/{repo}/pulls/{pull_number}/comments"
+    ],
+    deletePendingReview: [
+      "DELETE /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}"
+    ],
+    deleteReviewComment: [
+      "DELETE /repos/{owner}/{repo}/pulls/comments/{comment_id}"
+    ],
+    dismissReview: [
+      "PUT /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}/dismissals"
+    ],
+    get: ["GET /repos/{owner}/{repo}/pulls/{pull_number}"],
+    getReview: [
+      "GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}"
+    ],
+    getReviewComment: ["GET /repos/{owner}/{repo}/pulls/comments/{comment_id}"],
+    list: ["GET /repos/{owner}/{repo}/pulls"],
+    listCommentsForReview: [
+      "GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}/comments"
+    ],
+    listCommits: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/commits"],
+    listFiles: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/files"],
+    listRequestedReviewers: [
+      "GET /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers"
+    ],
+    listReviewComments: [
+      "GET /repos/{owner}/{repo}/pulls/{pull_number}/comments"
+    ],
+    listReviewCommentsForRepo: ["GET /repos/{owner}/{repo}/pulls/comments"],
+    listReviews: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews"],
+    merge: ["PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge"],
+    removeRequestedReviewers: [
+      "DELETE /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers"
+    ],
+    requestReviewers: [
+      "POST /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers"
+    ],
+    submitReview: [
+      "POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}/events"
+    ],
+    update: ["PATCH /repos/{owner}/{repo}/pulls/{pull_number}"],
+    updateBranch: [
+      "PUT /repos/{owner}/{repo}/pulls/{pull_number}/update-branch"
+    ],
+    updateReview: [
+      "PUT /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}"
+    ],
+    updateReviewComment: [
+      "PATCH /repos/{owner}/{repo}/pulls/comments/{comment_id}"
+    ]
+  },
+  rateLimit: { get: ["GET /rate_limit"] },
+  reactions: {
+    createForCommitComment: [
+      "POST /repos/{owner}/{repo}/comments/{comment_id}/reactions"
+    ],
+    createForIssue: [
+      "POST /repos/{owner}/{repo}/issues/{issue_number}/reactions"
+    ],
+    createForIssueComment: [
+      "POST /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions"
+    ],
+    createForPullRequestReviewComment: [
+      "POST /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions"
+    ],
+    createForRelease: [
+      "POST /repos/{owner}/{repo}/releases/{release_id}/reactions"
+    ],
+    createForTeamDiscussionCommentInOrg: [
+      "POST /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}/reactions"
+    ],
+    createForTeamDiscussionInOrg: [
+      "POST /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/reactions"
+    ],
+    deleteForCommitComment: [
+      "DELETE /repos/{owner}/{repo}/comments/{comment_id}/reactions/{reaction_id}"
+    ],
+    deleteForIssue: [
+      "DELETE /repos/{owner}/{repo}/issues/{issue_number}/reactions/{reaction_id}"
+    ],
+    deleteForIssueComment: [
+      "DELETE /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions/{reaction_id}"
+    ],
+    deleteForPullRequestComment: [
+      "DELETE /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions/{reaction_id}"
+    ],
+    deleteForRelease: [
+      "DELETE /repos/{owner}/{repo}/releases/{release_id}/reactions/{reaction_id}"
+    ],
+    deleteForTeamDiscussion: [
+      "DELETE /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/reactions/{reaction_id}"
+    ],
+    deleteForTeamDiscussionComment: [
+      "DELETE /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}/reactions/{reaction_id}"
+    ],
+    listForCommitComment: [
+      "GET /repos/{owner}/{repo}/comments/{comment_id}/reactions"
+    ],
+    listForIssue: ["GET /repos/{owner}/{repo}/issues/{issue_number}/reactions"],
+    listForIssueComment: [
+      "GET /repos/{owner}/{repo}/issues/comments/{comment_id}/reactions"
+    ],
+    listForPullRequestReviewComment: [
+      "GET /repos/{owner}/{repo}/pulls/comments/{comment_id}/reactions"
+    ],
+    listForRelease: [
+      "GET /repos/{owner}/{repo}/releases/{release_id}/reactions"
+    ],
+    listForTeamDiscussionCommentInOrg: [
+      "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}/reactions"
+    ],
+    listForTeamDiscussionInOrg: [
+      "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/reactions"
+    ]
+  },
+  repos: {
+    acceptInvitation: [
+      "PATCH /user/repository_invitations/{invitation_id}",
+      {},
+      { renamed: ["repos", "acceptInvitationForAuthenticatedUser"] }
+    ],
+    acceptInvitationForAuthenticatedUser: [
+      "PATCH /user/repository_invitations/{invitation_id}"
+    ],
+    addAppAccessRestrictions: [
+      "POST /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/apps",
+      {},
+      { mapToData: "apps" }
+    ],
+    addCollaborator: ["PUT /repos/{owner}/{repo}/collaborators/{username}"],
+    addStatusCheckContexts: [
+      "POST /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts",
+      {},
+      { mapToData: "contexts" }
+    ],
+    addTeamAccessRestrictions: [
+      "POST /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/teams",
+      {},
+      { mapToData: "teams" }
+    ],
+    addUserAccessRestrictions: [
+      "POST /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/users",
+      {},
+      { mapToData: "users" }
+    ],
+    cancelPagesDeployment: [
+      "POST /repos/{owner}/{repo}/pages/deployments/{pages_deployment_id}/cancel"
+    ],
+    checkAutomatedSecurityFixes: [
+      "GET /repos/{owner}/{repo}/automated-security-fixes"
+    ],
+    checkCollaborator: ["GET /repos/{owner}/{repo}/collaborators/{username}"],
+    checkPrivateVulnerabilityReporting: [
+      "GET /repos/{owner}/{repo}/private-vulnerability-reporting"
+    ],
+    checkVulnerabilityAlerts: [
+      "GET /repos/{owner}/{repo}/vulnerability-alerts"
+    ],
+    codeownersErrors: ["GET /repos/{owner}/{repo}/codeowners/errors"],
+    compareCommits: ["GET /repos/{owner}/{repo}/compare/{base}...{head}"],
+    compareCommitsWithBasehead: [
+      "GET /repos/{owner}/{repo}/compare/{basehead}"
+    ],
+    createAutolink: ["POST /repos/{owner}/{repo}/autolinks"],
+    createCommitComment: [
+      "POST /repos/{owner}/{repo}/commits/{commit_sha}/comments"
+    ],
+    createCommitSignatureProtection: [
+      "POST /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures"
+    ],
+    createCommitStatus: ["POST /repos/{owner}/{repo}/statuses/{sha}"],
+    createDeployKey: ["POST /repos/{owner}/{repo}/keys"],
+    createDeployment: ["POST /repos/{owner}/{repo}/deployments"],
+    createDeploymentBranchPolicy: [
+      "POST /repos/{owner}/{repo}/environments/{environment_name}/deployment-branch-policies"
+    ],
+    createDeploymentProtectionRule: [
+      "POST /repos/{owner}/{repo}/environments/{environment_name}/deployment_protection_rules"
+    ],
+    createDeploymentStatus: [
+      "POST /repos/{owner}/{repo}/deployments/{deployment_id}/statuses"
+    ],
+    createDispatchEvent: ["POST /repos/{owner}/{repo}/dispatches"],
+    createForAuthenticatedUser: ["POST /user/repos"],
+    createFork: ["POST /repos/{owner}/{repo}/forks"],
+    createInOrg: ["POST /orgs/{org}/repos"],
+    createOrUpdateCustomPropertiesValues: [
+      "PATCH /repos/{owner}/{repo}/properties/values"
+    ],
+    createOrUpdateEnvironment: [
+      "PUT /repos/{owner}/{repo}/environments/{environment_name}"
+    ],
+    createOrUpdateFileContents: ["PUT /repos/{owner}/{repo}/contents/{path}"],
+    createOrgRuleset: ["POST /orgs/{org}/rulesets"],
+    createPagesDeployment: ["POST /repos/{owner}/{repo}/pages/deployments"],
+    createPagesSite: ["POST /repos/{owner}/{repo}/pages"],
+    createRelease: ["POST /repos/{owner}/{repo}/releases"],
+    createRepoRuleset: ["POST /repos/{owner}/{repo}/rulesets"],
+    createTagProtection: ["POST /repos/{owner}/{repo}/tags/protection"],
+    createUsingTemplate: [
+      "POST /repos/{template_owner}/{template_repo}/generate"
+    ],
+    createWebhook: ["POST /repos/{owner}/{repo}/hooks"],
+    declineInvitation: [
+      "DELETE /user/repository_invitations/{invitation_id}",
+      {},
+      { renamed: ["repos", "declineInvitationForAuthenticatedUser"] }
+    ],
+    declineInvitationForAuthenticatedUser: [
+      "DELETE /user/repository_invitations/{invitation_id}"
+    ],
+    delete: ["DELETE /repos/{owner}/{repo}"],
+    deleteAccessRestrictions: [
+      "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/restrictions"
+    ],
+    deleteAdminBranchProtection: [
+      "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/enforce_admins"
+    ],
+    deleteAnEnvironment: [
+      "DELETE /repos/{owner}/{repo}/environments/{environment_name}"
+    ],
+    deleteAutolink: ["DELETE /repos/{owner}/{repo}/autolinks/{autolink_id}"],
+    deleteBranchProtection: [
+      "DELETE /repos/{owner}/{repo}/branches/{branch}/protection"
+    ],
+    deleteCommitComment: ["DELETE /repos/{owner}/{repo}/comments/{comment_id}"],
+    deleteCommitSignatureProtection: [
+      "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures"
+    ],
+    deleteDeployKey: ["DELETE /repos/{owner}/{repo}/keys/{key_id}"],
+    deleteDeployment: [
+      "DELETE /repos/{owner}/{repo}/deployments/{deployment_id}"
+    ],
+    deleteDeploymentBranchPolicy: [
+      "DELETE /repos/{owner}/{repo}/environments/{environment_name}/deployment-branch-policies/{branch_policy_id}"
+    ],
+    deleteFile: ["DELETE /repos/{owner}/{repo}/contents/{path}"],
+    deleteInvitation: [
+      "DELETE /repos/{owner}/{repo}/invitations/{invitation_id}"
+    ],
+    deleteOrgRuleset: ["DELETE /orgs/{org}/rulesets/{ruleset_id}"],
+    deletePagesSite: ["DELETE /repos/{owner}/{repo}/pages"],
+    deletePullRequestReviewProtection: [
+      "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_pull_request_reviews"
+    ],
+    deleteRelease: ["DELETE /repos/{owner}/{repo}/releases/{release_id}"],
+    deleteReleaseAsset: [
+      "DELETE /repos/{owner}/{repo}/releases/assets/{asset_id}"
+    ],
+    deleteRepoRuleset: ["DELETE /repos/{owner}/{repo}/rulesets/{ruleset_id}"],
+    deleteTagProtection: [
+      "DELETE /repos/{owner}/{repo}/tags/protection/{tag_protection_id}"
+    ],
+    deleteWebhook: ["DELETE /repos/{owner}/{repo}/hooks/{hook_id}"],
+    disableAutomatedSecurityFixes: [
+      "DELETE /repos/{owner}/{repo}/automated-security-fixes"
+    ],
+    disableDeploymentProtectionRule: [
+      "DELETE /repos/{owner}/{repo}/environments/{environment_name}/deployment_protection_rules/{protection_rule_id}"
+    ],
+    disablePrivateVulnerabilityReporting: [
+      "DELETE /repos/{owner}/{repo}/private-vulnerability-reporting"
+    ],
+    disableVulnerabilityAlerts: [
+      "DELETE /repos/{owner}/{repo}/vulnerability-alerts"
+    ],
+    downloadArchive: [
+      "GET /repos/{owner}/{repo}/zipball/{ref}",
+      {},
+      { renamed: ["repos", "downloadZipballArchive"] }
+    ],
+    downloadTarballArchive: ["GET /repos/{owner}/{repo}/tarball/{ref}"],
+    downloadZipballArchive: ["GET /repos/{owner}/{repo}/zipball/{ref}"],
+    enableAutomatedSecurityFixes: [
+      "PUT /repos/{owner}/{repo}/automated-security-fixes"
+    ],
+    enablePrivateVulnerabilityReporting: [
+      "PUT /repos/{owner}/{repo}/private-vulnerability-reporting"
+    ],
+    enableVulnerabilityAlerts: [
+      "PUT /repos/{owner}/{repo}/vulnerability-alerts"
+    ],
+    generateReleaseNotes: [
+      "POST /repos/{owner}/{repo}/releases/generate-notes"
+    ],
+    get: ["GET /repos/{owner}/{repo}"],
+    getAccessRestrictions: [
+      "GET /repos/{owner}/{repo}/branches/{branch}/protection/restrictions"
+    ],
+    getAdminBranchProtection: [
+      "GET /repos/{owner}/{repo}/branches/{branch}/protection/enforce_admins"
+    ],
+    getAllDeploymentProtectionRules: [
+      "GET /repos/{owner}/{repo}/environments/{environment_name}/deployment_protection_rules"
+    ],
+    getAllEnvironments: ["GET /repos/{owner}/{repo}/environments"],
+    getAllStatusCheckContexts: [
+      "GET /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts"
+    ],
+    getAllTopics: ["GET /repos/{owner}/{repo}/topics"],
+    getAppsWithAccessToProtectedBranch: [
+      "GET /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/apps"
+    ],
+    getAutolink: ["GET /repos/{owner}/{repo}/autolinks/{autolink_id}"],
+    getBranch: ["GET /repos/{owner}/{repo}/branches/{branch}"],
+    getBranchProtection: [
+      "GET /repos/{owner}/{repo}/branches/{branch}/protection"
+    ],
+    getBranchRules: ["GET /repos/{owner}/{repo}/rules/branches/{branch}"],
+    getClones: ["GET /repos/{owner}/{repo}/traffic/clones"],
+    getCodeFrequencyStats: ["GET /repos/{owner}/{repo}/stats/code_frequency"],
+    getCollaboratorPermissionLevel: [
+      "GET /repos/{owner}/{repo}/collaborators/{username}/permission"
+    ],
+    getCombinedStatusForRef: ["GET /repos/{owner}/{repo}/commits/{ref}/status"],
+    getCommit: ["GET /repos/{owner}/{repo}/commits/{ref}"],
+    getCommitActivityStats: ["GET /repos/{owner}/{repo}/stats/commit_activity"],
+    getCommitComment: ["GET /repos/{owner}/{repo}/comments/{comment_id}"],
+    getCommitSignatureProtection: [
+      "GET /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures"
+    ],
+    getCommunityProfileMetrics: ["GET /repos/{owner}/{repo}/community/profile"],
+    getContent: ["GET /repos/{owner}/{repo}/contents/{path}"],
+    getContributorsStats: ["GET /repos/{owner}/{repo}/stats/contributors"],
+    getCustomDeploymentProtectionRule: [
+      "GET /repos/{owner}/{repo}/environments/{environment_name}/deployment_protection_rules/{protection_rule_id}"
+    ],
+    getCustomPropertiesValues: ["GET /repos/{owner}/{repo}/properties/values"],
+    getDeployKey: ["GET /repos/{owner}/{repo}/keys/{key_id}"],
+    getDeployment: ["GET /repos/{owner}/{repo}/deployments/{deployment_id}"],
+    getDeploymentBranchPolicy: [
+      "GET /repos/{owner}/{repo}/environments/{environment_name}/deployment-branch-policies/{branch_policy_id}"
+    ],
+    getDeploymentStatus: [
+      "GET /repos/{owner}/{repo}/deployments/{deployment_id}/statuses/{status_id}"
+    ],
+    getEnvironment: [
+      "GET /repos/{owner}/{repo}/environments/{environment_name}"
+    ],
+    getLatestPagesBuild: ["GET /repos/{owner}/{repo}/pages/builds/latest"],
+    getLatestRelease: ["GET /repos/{owner}/{repo}/releases/latest"],
+    getOrgRuleSuite: ["GET /orgs/{org}/rulesets/rule-suites/{rule_suite_id}"],
+    getOrgRuleSuites: ["GET /orgs/{org}/rulesets/rule-suites"],
+    getOrgRuleset: ["GET /orgs/{org}/rulesets/{ruleset_id}"],
+    getOrgRulesets: ["GET /orgs/{org}/rulesets"],
+    getPages: ["GET /repos/{owner}/{repo}/pages"],
+    getPagesBuild: ["GET /repos/{owner}/{repo}/pages/builds/{build_id}"],
+    getPagesDeployment: [
+      "GET /repos/{owner}/{repo}/pages/deployments/{pages_deployment_id}"
+    ],
+    getPagesHealthCheck: ["GET /repos/{owner}/{repo}/pages/health"],
+    getParticipationStats: ["GET /repos/{owner}/{repo}/stats/participation"],
+    getPullRequestReviewProtection: [
+      "GET /repos/{owner}/{repo}/branches/{branch}/protection/required_pull_request_reviews"
+    ],
+    getPunchCardStats: ["GET /repos/{owner}/{repo}/stats/punch_card"],
+    getReadme: ["GET /repos/{owner}/{repo}/readme"],
+    getReadmeInDirectory: ["GET /repos/{owner}/{repo}/readme/{dir}"],
+    getRelease: ["GET /repos/{owner}/{repo}/releases/{release_id}"],
+    getReleaseAsset: ["GET /repos/{owner}/{repo}/releases/assets/{asset_id}"],
+    getReleaseByTag: ["GET /repos/{owner}/{repo}/releases/tags/{tag}"],
+    getRepoRuleSuite: [
+      "GET /repos/{owner}/{repo}/rulesets/rule-suites/{rule_suite_id}"
+    ],
+    getRepoRuleSuites: ["GET /repos/{owner}/{repo}/rulesets/rule-suites"],
+    getRepoRuleset: ["GET /repos/{owner}/{repo}/rulesets/{ruleset_id}"],
+    getRepoRulesets: ["GET /repos/{owner}/{repo}/rulesets"],
+    getStatusChecksProtection: [
+      "GET /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks"
+    ],
+    getTeamsWithAccessToProtectedBranch: [
+      "GET /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/teams"
+    ],
+    getTopPaths: ["GET /repos/{owner}/{repo}/traffic/popular/paths"],
+    getTopReferrers: ["GET /repos/{owner}/{repo}/traffic/popular/referrers"],
+    getUsersWithAccessToProtectedBranch: [
+      "GET /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/users"
+    ],
+    getViews: ["GET /repos/{owner}/{repo}/traffic/views"],
+    getWebhook: ["GET /repos/{owner}/{repo}/hooks/{hook_id}"],
+    getWebhookConfigForRepo: [
+      "GET /repos/{owner}/{repo}/hooks/{hook_id}/config"
+    ],
+    getWebhookDelivery: [
+      "GET /repos/{owner}/{repo}/hooks/{hook_id}/deliveries/{delivery_id}"
+    ],
+    listActivities: ["GET /repos/{owner}/{repo}/activity"],
+    listAutolinks: ["GET /repos/{owner}/{repo}/autolinks"],
+    listBranches: ["GET /repos/{owner}/{repo}/branches"],
+    listBranchesForHeadCommit: [
+      "GET /repos/{owner}/{repo}/commits/{commit_sha}/branches-where-head"
+    ],
+    listCollaborators: ["GET /repos/{owner}/{repo}/collaborators"],
+    listCommentsForCommit: [
+      "GET /repos/{owner}/{repo}/commits/{commit_sha}/comments"
+    ],
+    listCommitCommentsForRepo: ["GET /repos/{owner}/{repo}/comments"],
+    listCommitStatusesForRef: [
+      "GET /repos/{owner}/{repo}/commits/{ref}/statuses"
+    ],
+    listCommits: ["GET /repos/{owner}/{repo}/commits"],
+    listContributors: ["GET /repos/{owner}/{repo}/contributors"],
+    listCustomDeploymentRuleIntegrations: [
+      "GET /repos/{owner}/{repo}/environments/{environment_name}/deployment_protection_rules/apps"
+    ],
+    listDeployKeys: ["GET /repos/{owner}/{repo}/keys"],
+    listDeploymentBranchPolicies: [
+      "GET /repos/{owner}/{repo}/environments/{environment_name}/deployment-branch-policies"
+    ],
+    listDeploymentStatuses: [
+      "GET /repos/{owner}/{repo}/deployments/{deployment_id}/statuses"
+    ],
+    listDeployments: ["GET /repos/{owner}/{repo}/deployments"],
+    listForAuthenticatedUser: ["GET /user/repos"],
+    listForOrg: ["GET /orgs/{org}/repos"],
+    listForUser: ["GET /users/{username}/repos"],
+    listForks: ["GET /repos/{owner}/{repo}/forks"],
+    listInvitations: ["GET /repos/{owner}/{repo}/invitations"],
+    listInvitationsForAuthenticatedUser: ["GET /user/repository_invitations"],
+    listLanguages: ["GET /repos/{owner}/{repo}/languages"],
+    listPagesBuilds: ["GET /repos/{owner}/{repo}/pages/builds"],
+    listPublic: ["GET /repositories"],
+    listPullRequestsAssociatedWithCommit: [
+      "GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls"
+    ],
+    listReleaseAssets: [
+      "GET /repos/{owner}/{repo}/releases/{release_id}/assets"
+    ],
+    listReleases: ["GET /repos/{owner}/{repo}/releases"],
+    listTagProtection: ["GET /repos/{owner}/{repo}/tags/protection"],
+    listTags: ["GET /repos/{owner}/{repo}/tags"],
+    listTeams: ["GET /repos/{owner}/{repo}/teams"],
+    listWebhookDeliveries: [
+      "GET /repos/{owner}/{repo}/hooks/{hook_id}/deliveries"
+    ],
+    listWebhooks: ["GET /repos/{owner}/{repo}/hooks"],
+    merge: ["POST /repos/{owner}/{repo}/merges"],
+    mergeUpstream: ["POST /repos/{owner}/{repo}/merge-upstream"],
+    pingWebhook: ["POST /repos/{owner}/{repo}/hooks/{hook_id}/pings"],
+    redeliverWebhookDelivery: [
+      "POST /repos/{owner}/{repo}/hooks/{hook_id}/deliveries/{delivery_id}/attempts"
+    ],
+    removeAppAccessRestrictions: [
+      "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/apps",
+      {},
+      { mapToData: "apps" }
+    ],
+    removeCollaborator: [
+      "DELETE /repos/{owner}/{repo}/collaborators/{username}"
+    ],
+    removeStatusCheckContexts: [
+      "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts",
+      {},
+      { mapToData: "contexts" }
+    ],
+    removeStatusCheckProtection: [
+      "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks"
+    ],
+    removeTeamAccessRestrictions: [
+      "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/teams",
+      {},
+      { mapToData: "teams" }
+    ],
+    removeUserAccessRestrictions: [
+      "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/users",
+      {},
+      { mapToData: "users" }
+    ],
+    renameBranch: ["POST /repos/{owner}/{repo}/branches/{branch}/rename"],
+    replaceAllTopics: ["PUT /repos/{owner}/{repo}/topics"],
+    requestPagesBuild: ["POST /repos/{owner}/{repo}/pages/builds"],
+    setAdminBranchProtection: [
+      "POST /repos/{owner}/{repo}/branches/{branch}/protection/enforce_admins"
+    ],
+    setAppAccessRestrictions: [
+      "PUT /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/apps",
+      {},
+      { mapToData: "apps" }
+    ],
+    setStatusCheckContexts: [
+      "PUT /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts",
+      {},
+      { mapToData: "contexts" }
+    ],
+    setTeamAccessRestrictions: [
+      "PUT /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/teams",
+      {},
+      { mapToData: "teams" }
+    ],
+    setUserAccessRestrictions: [
+      "PUT /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/users",
+      {},
+      { mapToData: "users" }
+    ],
+    testPushWebhook: ["POST /repos/{owner}/{repo}/hooks/{hook_id}/tests"],
+    transfer: ["POST /repos/{owner}/{repo}/transfer"],
+    update: ["PATCH /repos/{owner}/{repo}"],
+    updateBranchProtection: [
+      "PUT /repos/{owner}/{repo}/branches/{branch}/protection"
+    ],
+    updateCommitComment: ["PATCH /repos/{owner}/{repo}/comments/{comment_id}"],
+    updateDeploymentBranchPolicy: [
+      "PUT /repos/{owner}/{repo}/environments/{environment_name}/deployment-branch-policies/{branch_policy_id}"
+    ],
+    updateInformationAboutPagesSite: ["PUT /repos/{owner}/{repo}/pages"],
+    updateInvitation: [
+      "PATCH /repos/{owner}/{repo}/invitations/{invitation_id}"
+    ],
+    updateOrgRuleset: ["PUT /orgs/{org}/rulesets/{ruleset_id}"],
+    updatePullRequestReviewProtection: [
+      "PATCH /repos/{owner}/{repo}/branches/{branch}/protection/required_pull_request_reviews"
+    ],
+    updateRelease: ["PATCH /repos/{owner}/{repo}/releases/{release_id}"],
+    updateReleaseAsset: [
+      "PATCH /repos/{owner}/{repo}/releases/assets/{asset_id}"
+    ],
+    updateRepoRuleset: ["PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}"],
+    updateStatusCheckPotection: [
+      "PATCH /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks",
+      {},
+      { renamed: ["repos", "updateStatusCheckProtection"] }
+    ],
+    updateStatusCheckProtection: [
+      "PATCH /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks"
+    ],
+    updateWebhook: ["PATCH /repos/{owner}/{repo}/hooks/{hook_id}"],
+    updateWebhookConfigForRepo: [
+      "PATCH /repos/{owner}/{repo}/hooks/{hook_id}/config"
+    ],
+    uploadReleaseAsset: [
+      "POST /repos/{owner}/{repo}/releases/{release_id}/assets{?name,label}",
+      { baseUrl: "https://uploads.github.com" }
+    ]
+  },
+  search: {
+    code: ["GET /search/code"],
+    commits: ["GET /search/commits"],
+    issuesAndPullRequests: ["GET /search/issues"],
+    labels: ["GET /search/labels"],
+    repos: ["GET /search/repositories"],
+    topics: ["GET /search/topics"],
+    users: ["GET /search/users"]
+  },
+  secretScanning: {
+    getAlert: [
+      "GET /repos/{owner}/{repo}/secret-scanning/alerts/{alert_number}"
+    ],
+    listAlertsForEnterprise: [
+      "GET /enterprises/{enterprise}/secret-scanning/alerts"
+    ],
+    listAlertsForOrg: ["GET /orgs/{org}/secret-scanning/alerts"],
+    listAlertsForRepo: ["GET /repos/{owner}/{repo}/secret-scanning/alerts"],
+    listLocationsForAlert: [
+      "GET /repos/{owner}/{repo}/secret-scanning/alerts/{alert_number}/locations"
+    ],
+    updateAlert: [
+      "PATCH /repos/{owner}/{repo}/secret-scanning/alerts/{alert_number}"
+    ]
+  },
+  securityAdvisories: {
+    createFork: [
+      "POST /repos/{owner}/{repo}/security-advisories/{ghsa_id}/forks"
+    ],
+    createPrivateVulnerabilityReport: [
+      "POST /repos/{owner}/{repo}/security-advisories/reports"
+    ],
+    createRepositoryAdvisory: [
+      "POST /repos/{owner}/{repo}/security-advisories"
+    ],
+    createRepositoryAdvisoryCveRequest: [
+      "POST /repos/{owner}/{repo}/security-advisories/{ghsa_id}/cve"
+    ],
+    getGlobalAdvisory: ["GET /advisories/{ghsa_id}"],
+    getRepositoryAdvisory: [
+      "GET /repos/{owner}/{repo}/security-advisories/{ghsa_id}"
+    ],
+    listGlobalAdvisories: ["GET /advisories"],
+    listOrgRepositoryAdvisories: ["GET /orgs/{org}/security-advisories"],
+    listRepositoryAdvisories: ["GET /repos/{owner}/{repo}/security-advisories"],
+    updateRepositoryAdvisory: [
+      "PATCH /repos/{owner}/{repo}/security-advisories/{ghsa_id}"
+    ]
+  },
+  teams: {
+    addOrUpdateMembershipForUserInOrg: [
+      "PUT /orgs/{org}/teams/{team_slug}/memberships/{username}"
+    ],
+    addOrUpdateProjectPermissionsInOrg: [
+      "PUT /orgs/{org}/teams/{team_slug}/projects/{project_id}"
+    ],
+    addOrUpdateRepoPermissionsInOrg: [
+      "PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}"
+    ],
+    checkPermissionsForProjectInOrg: [
+      "GET /orgs/{org}/teams/{team_slug}/projects/{project_id}"
+    ],
+    checkPermissionsForRepoInOrg: [
+      "GET /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}"
+    ],
+    create: ["POST /orgs/{org}/teams"],
+    createDiscussionCommentInOrg: [
+      "POST /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments"
+    ],
+    createDiscussionInOrg: ["POST /orgs/{org}/teams/{team_slug}/discussions"],
+    deleteDiscussionCommentInOrg: [
+      "DELETE /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}"
+    ],
+    deleteDiscussionInOrg: [
+      "DELETE /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}"
+    ],
+    deleteInOrg: ["DELETE /orgs/{org}/teams/{team_slug}"],
+    getByName: ["GET /orgs/{org}/teams/{team_slug}"],
+    getDiscussionCommentInOrg: [
+      "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}"
+    ],
+    getDiscussionInOrg: [
+      "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}"
+    ],
+    getMembershipForUserInOrg: [
+      "GET /orgs/{org}/teams/{team_slug}/memberships/{username}"
+    ],
+    list: ["GET /orgs/{org}/teams"],
+    listChildInOrg: ["GET /orgs/{org}/teams/{team_slug}/teams"],
+    listDiscussionCommentsInOrg: [
+      "GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments"
+    ],
+    listDiscussionsInOrg: ["GET /orgs/{org}/teams/{team_slug}/discussions"],
+    listForAuthenticatedUser: ["GET /user/teams"],
+    listMembersInOrg: ["GET /orgs/{org}/teams/{team_slug}/members"],
+    listPendingInvitationsInOrg: [
+      "GET /orgs/{org}/teams/{team_slug}/invitations"
+    ],
+    listProjectsInOrg: ["GET /orgs/{org}/teams/{team_slug}/projects"],
+    listReposInOrg: ["GET /orgs/{org}/teams/{team_slug}/repos"],
+    removeMembershipForUserInOrg: [
+      "DELETE /orgs/{org}/teams/{team_slug}/memberships/{username}"
+    ],
+    removeProjectInOrg: [
+      "DELETE /orgs/{org}/teams/{team_slug}/projects/{project_id}"
+    ],
+    removeRepoInOrg: [
+      "DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}"
+    ],
+    updateDiscussionCommentInOrg: [
+      "PATCH /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}"
+    ],
+    updateDiscussionInOrg: [
+      "PATCH /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}"
+    ],
+    updateInOrg: ["PATCH /orgs/{org}/teams/{team_slug}"]
+  },
+  users: {
+    addEmailForAuthenticated: [
+      "POST /user/emails",
+      {},
+      { renamed: ["users", "addEmailForAuthenticatedUser"] }
+    ],
+    addEmailForAuthenticatedUser: ["POST /user/emails"],
+    addSocialAccountForAuthenticatedUser: ["POST /user/social_accounts"],
+    block: ["PUT /user/blocks/{username}"],
+    checkBlocked: ["GET /user/blocks/{username}"],
+    checkFollowingForUser: ["GET /users/{username}/following/{target_user}"],
+    checkPersonIsFollowedByAuthenticated: ["GET /user/following/{username}"],
+    createGpgKeyForAuthenticated: [
+      "POST /user/gpg_keys",
+      {},
+      { renamed: ["users", "createGpgKeyForAuthenticatedUser"] }
+    ],
+    createGpgKeyForAuthenticatedUser: ["POST /user/gpg_keys"],
+    createPublicSshKeyForAuthenticated: [
+      "POST /user/keys",
+      {},
+      { renamed: ["users", "createPublicSshKeyForAuthenticatedUser"] }
+    ],
+    createPublicSshKeyForAuthenticatedUser: ["POST /user/keys"],
+    createSshSigningKeyForAuthenticatedUser: ["POST /user/ssh_signing_keys"],
+    deleteEmailForAuthenticated: [
+      "DELETE /user/emails",
+      {},
+      { renamed: ["users", "deleteEmailForAuthenticatedUser"] }
+    ],
+    deleteEmailForAuthenticatedUser: ["DELETE /user/emails"],
+    deleteGpgKeyForAuthenticated: [
+      "DELETE /user/gpg_keys/{gpg_key_id}",
+      {},
+      { renamed: ["users", "deleteGpgKeyForAuthenticatedUser"] }
+    ],
+    deleteGpgKeyForAuthenticatedUser: ["DELETE /user/gpg_keys/{gpg_key_id}"],
+    deletePublicSshKeyForAuthenticated: [
+      "DELETE /user/keys/{key_id}",
+      {},
+      { renamed: ["users", "deletePublicSshKeyForAuthenticatedUser"] }
+    ],
+    deletePublicSshKeyForAuthenticatedUser: ["DELETE /user/keys/{key_id}"],
+    deleteSocialAccountForAuthenticatedUser: ["DELETE /user/social_accounts"],
+    deleteSshSigningKeyForAuthenticatedUser: [
+      "DELETE /user/ssh_signing_keys/{ssh_signing_key_id}"
+    ],
+    follow: ["PUT /user/following/{username}"],
+    getAuthenticated: ["GET /user"],
+    getByUsername: ["GET /users/{username}"],
+    getContextForUser: ["GET /users/{username}/hovercard"],
+    getGpgKeyForAuthenticated: [
+      "GET /user/gpg_keys/{gpg_key_id}",
+      {},
+      { renamed: ["users", "getGpgKeyForAuthenticatedUser"] }
+    ],
+    getGpgKeyForAuthenticatedUser: ["GET /user/gpg_keys/{gpg_key_id}"],
+    getPublicSshKeyForAuthenticated: [
+      "GET /user/keys/{key_id}",
+      {},
+      { renamed: ["users", "getPublicSshKeyForAuthenticatedUser"] }
+    ],
+    getPublicSshKeyForAuthenticatedUser: ["GET /user/keys/{key_id}"],
+    getSshSigningKeyForAuthenticatedUser: [
+      "GET /user/ssh_signing_keys/{ssh_signing_key_id}"
+    ],
+    list: ["GET /users"],
+    listBlockedByAuthenticated: [
+      "GET /user/blocks",
+      {},
+      { renamed: ["users", "listBlockedByAuthenticatedUser"] }
+    ],
+    listBlockedByAuthenticatedUser: ["GET /user/blocks"],
+    listEmailsForAuthenticated: [
+      "GET /user/emails",
+      {},
+      { renamed: ["users", "listEmailsForAuthenticatedUser"] }
+    ],
+    listEmailsForAuthenticatedUser: ["GET /user/emails"],
+    listFollowedByAuthenticated: [
+      "GET /user/following",
+      {},
+      { renamed: ["users", "listFollowedByAuthenticatedUser"] }
+    ],
+    listFollowedByAuthenticatedUser: ["GET /user/following"],
+    listFollowersForAuthenticatedUser: ["GET /user/followers"],
+    listFollowersForUser: ["GET /users/{username}/followers"],
+    listFollowingForUser: ["GET /users/{username}/following"],
+    listGpgKeysForAuthenticated: [
+      "GET /user/gpg_keys",
+      {},
+      { renamed: ["users", "listGpgKeysForAuthenticatedUser"] }
+    ],
+    listGpgKeysForAuthenticatedUser: ["GET /user/gpg_keys"],
+    listGpgKeysForUser: ["GET /users/{username}/gpg_keys"],
+    listPublicEmailsForAuthenticated: [
+      "GET /user/public_emails",
+      {},
+      { renamed: ["users", "listPublicEmailsForAuthenticatedUser"] }
+    ],
+    listPublicEmailsForAuthenticatedUser: ["GET /user/public_emails"],
+    listPublicKeysForUser: ["GET /users/{username}/keys"],
+    listPublicSshKeysForAuthenticated: [
+      "GET /user/keys",
+      {},
+      { renamed: ["users", "listPublicSshKeysForAuthenticatedUser"] }
+    ],
+    listPublicSshKeysForAuthenticatedUser: ["GET /user/keys"],
+    listSocialAccountsForAuthenticatedUser: ["GET /user/social_accounts"],
+    listSocialAccountsForUser: ["GET /users/{username}/social_accounts"],
+    listSshSigningKeysForAuthenticatedUser: ["GET /user/ssh_signing_keys"],
+    listSshSigningKeysForUser: ["GET /users/{username}/ssh_signing_keys"],
+    setPrimaryEmailVisibilityForAuthenticated: [
+      "PATCH /user/email/visibility",
+      {},
+      { renamed: ["users", "setPrimaryEmailVisibilityForAuthenticatedUser"] }
+    ],
+    setPrimaryEmailVisibilityForAuthenticatedUser: [
+      "PATCH /user/email/visibility"
+    ],
+    unblock: ["DELETE /user/blocks/{username}"],
+    unfollow: ["DELETE /user/following/{username}"],
+    updateAuthenticated: ["PATCH /user"]
+  }
+};
+var endpoints_default = Endpoints;
+
+// pkg/dist-src/endpoints-to-methods.js
+var endpointMethodsMap = /* @__PURE__ */ new Map();
+for (const [scope, endpoints] of Object.entries(endpoints_default)) {
+  for (const [methodName, endpoint] of Object.entries(endpoints)) {
+    const [route, defaults, decorations] = endpoint;
+    const [method, url] = route.split(/ /);
+    const endpointDefaults = Object.assign(
+      {
+        method,
+        url
+      },
+      defaults
+    );
+    if (!endpointMethodsMap.has(scope)) {
+      endpointMethodsMap.set(scope, /* @__PURE__ */ new Map());
+    }
+    endpointMethodsMap.get(scope).set(methodName, {
+      scope,
+      methodName,
+      endpointDefaults,
+      decorations
+    });
+  }
+}
+var handler = {
+  has({ scope }, methodName) {
+    return endpointMethodsMap.get(scope).has(methodName);
+  },
+  getOwnPropertyDescriptor(target, methodName) {
+    return {
+      value: this.get(target, methodName),
+      // ensures method is in the cache
+      configurable: true,
+      writable: true,
+      enumerable: true
+    };
+  },
+  defineProperty(target, methodName, descriptor) {
+    Object.defineProperty(target.cache, methodName, descriptor);
+    return true;
+  },
+  deleteProperty(target, methodName) {
+    delete target.cache[methodName];
+    return true;
+  },
+  ownKeys({ scope }) {
+    return [...endpointMethodsMap.get(scope).keys()];
+  },
+  set(target, methodName, value) {
+    return target.cache[methodName] = value;
+  },
+  get({ octokit, scope, cache }, methodName) {
+    if (cache[methodName]) {
+      return cache[methodName];
+    }
+    const method = endpointMethodsMap.get(scope).get(methodName);
+    if (!method) {
+      return void 0;
+    }
+    const { endpointDefaults, decorations } = method;
+    if (decorations) {
+      cache[methodName] = decorate(
+        octokit,
+        scope,
+        methodName,
+        endpointDefaults,
+        decorations
+      );
+    } else {
+      cache[methodName] = octokit.request.defaults(endpointDefaults);
+    }
+    return cache[methodName];
+  }
+};
+function endpointsToMethods(octokit) {
+  const newMethods = {};
+  for (const scope of endpointMethodsMap.keys()) {
+    newMethods[scope] = new Proxy({ octokit, scope, cache: {} }, handler);
+  }
+  return newMethods;
+}
+function decorate(octokit, scope, methodName, defaults, decorations) {
+  const requestWithDefaults = octokit.request.defaults(defaults);
+  function withDecorations(...args) {
+    let options = requestWithDefaults.endpoint.merge(...args);
+    if (decorations.mapToData) {
+      options = Object.assign({}, options, {
+        data: options[decorations.mapToData],
+        [decorations.mapToData]: void 0
+      });
+      return requestWithDefaults(options);
+    }
+    if (decorations.renamed) {
+      const [newScope, newMethodName] = decorations.renamed;
+      octokit.log.warn(
+        `octokit.${scope}.${methodName}() has been renamed to octokit.${newScope}.${newMethodName}()`
+      );
+    }
+    if (decorations.deprecated) {
+      octokit.log.warn(decorations.deprecated);
+    }
+    if (decorations.renamedParameters) {
+      const options2 = requestWithDefaults.endpoint.merge(...args);
+      for (const [name, alias] of Object.entries(
+        decorations.renamedParameters
+      )) {
+        if (name in options2) {
+          octokit.log.warn(
+            `"${name}" parameter is deprecated for "octokit.${scope}.${methodName}()". Use "${alias}" instead`
+          );
+          if (!(alias in options2)) {
+            options2[alias] = options2[name];
+          }
+          delete options2[name];
+        }
+      }
+      return requestWithDefaults(options2);
+    }
+    return requestWithDefaults(...args);
+  }
+  return Object.assign(withDecorations, requestWithDefaults);
+}
+
+// pkg/dist-src/index.js
+function restEndpointMethods(octokit) {
+  const api = endpointsToMethods(octokit);
+  return {
+    rest: api
+  };
+}
+restEndpointMethods.VERSION = VERSION;
+function legacyRestEndpointMethods(octokit) {
+  const api = endpointsToMethods(octokit);
+  return {
+    ...api,
+    rest: api
+  };
+}
+legacyRestEndpointMethods.VERSION = VERSION;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (0);
 
@@ -7831,133 +9126,6 @@ class Deprecation extends Error {
 }
 
 exports.Deprecation = Deprecation;
-
-
-/***/ }),
-
-/***/ 1585:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-
-const {PassThrough: PassThroughStream} = __nccwpck_require__(2781);
-
-module.exports = options => {
-	options = {...options};
-
-	const {array} = options;
-	let {encoding} = options;
-	const isBuffer = encoding === 'buffer';
-	let objectMode = false;
-
-	if (array) {
-		objectMode = !(encoding || isBuffer);
-	} else {
-		encoding = encoding || 'utf8';
-	}
-
-	if (isBuffer) {
-		encoding = null;
-	}
-
-	const stream = new PassThroughStream({objectMode});
-
-	if (encoding) {
-		stream.setEncoding(encoding);
-	}
-
-	let length = 0;
-	const chunks = [];
-
-	stream.on('data', chunk => {
-		chunks.push(chunk);
-
-		if (objectMode) {
-			length = chunks.length;
-		} else {
-			length += chunk.length;
-		}
-	});
-
-	stream.getBufferedValue = () => {
-		if (array) {
-			return chunks;
-		}
-
-		return isBuffer ? Buffer.concat(chunks, length) : chunks.join('');
-	};
-
-	stream.getBufferedLength = () => length;
-
-	return stream;
-};
-
-
-/***/ }),
-
-/***/ 1766:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-
-const {constants: BufferConstants} = __nccwpck_require__(4300);
-const stream = __nccwpck_require__(2781);
-const {promisify} = __nccwpck_require__(3837);
-const bufferStream = __nccwpck_require__(1585);
-
-const streamPipelinePromisified = promisify(stream.pipeline);
-
-class MaxBufferError extends Error {
-	constructor() {
-		super('maxBuffer exceeded');
-		this.name = 'MaxBufferError';
-	}
-}
-
-async function getStream(inputStream, options) {
-	if (!inputStream) {
-		throw new Error('Expected a stream');
-	}
-
-	options = {
-		maxBuffer: Infinity,
-		...options
-	};
-
-	const {maxBuffer} = options;
-	const stream = bufferStream(options);
-
-	await new Promise((resolve, reject) => {
-		const rejectPromise = error => {
-			// Don't retrieve an oversized buffer.
-			if (error && stream.getBufferedLength() <= BufferConstants.MAX_LENGTH) {
-				error.bufferedData = stream.getBufferedValue();
-			}
-
-			reject(error);
-		};
-
-		(async () => {
-			try {
-				await streamPipelinePromisified(inputStream, stream);
-				resolve();
-			} catch (error) {
-				rejectPromise(error);
-			}
-		})();
-
-		stream.on('data', () => {
-			if (stream.getBufferedLength() > maxBuffer) {
-				rejectPromise(new MaxBufferError());
-			}
-		});
-	});
-
-	return stream.getBufferedValue();
-}
-
-module.exports = getStream;
-module.exports.buffer = (stream, options) => getStream(stream, {...options, encoding: 'buffer'});
-module.exports.array = (stream, options) => getStream(stream, {...options, array: true});
-module.exports.MaxBufferError = MaxBufferError;
 
 
 /***/ }),
@@ -9649,6 +10817,25 @@ module.exports = async (input, options, callback) => {
 		options.agent = agent.http;
 	}
 
+	// If we're sending HTTP/1.1, handle any explicitly set H2 headers in the options:
+	if (options.headers) {
+		options.headers = {...options.headers};
+
+		// :authority is equivalent to the HTTP/1.1 host header
+		if (options.headers[':authority']) {
+			if (!options.headers.host) {
+				options.headers.host = options.headers[':authority'];
+			}
+
+			delete options.headers[':authority'];
+		}
+
+		// Remove other HTTP/2 headers as they have their counterparts in the options
+		delete options.headers[':method'];
+		delete options.headers[':scheme'];
+		delete options.headers[':path'];
+	}
+
 	return delayAsyncDestroy(http.request(options, callback));
 };
 
@@ -11035,51 +12222,6 @@ module.exports = (name, value) => {
 
 /***/ }),
 
-/***/ 3287:
-/***/ ((__unused_webpack_module, exports) => {
-
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-
-/*!
- * is-plain-object <https://github.com/jonschlinkert/is-plain-object>
- *
- * Copyright (c) 2014-2017, Jon Schlinkert.
- * Released under the MIT License.
- */
-
-function isObject(o) {
-  return Object.prototype.toString.call(o) === '[object Object]';
-}
-
-function isPlainObject(o) {
-  var ctor,prot;
-
-  if (isObject(o) === false) return false;
-
-  // If has modified constructor
-  ctor = o.constructor;
-  if (ctor === undefined) return true;
-
-  // If has modified prototype
-  prot = ctor.prototype;
-  if (isObject(prot) === false) return false;
-
-  // If constructor does not have an Object-specific method
-  if (prot.hasOwnProperty('isPrototypeOf') === false) {
-    return false;
-  }
-
-  // Most likely a plain Object
-  return true;
-}
-
-exports.isPlainObject = isPlainObject;
-
-
-/***/ }),
-
 /***/ 7126:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -11568,54 +12710,6 @@ class Keyv extends EventEmitter {
 }
 
 module.exports = Keyv;
-
-
-/***/ }),
-
-/***/ 2621:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-
-
-const { PassThrough } = __nccwpck_require__(2781);
-
-module.exports = function (/*streams...*/) {
-  var sources = []
-  var output  = new PassThrough({objectMode: true})
-
-  output.setMaxListeners(0)
-
-  output.add = add
-  output.isEmpty = isEmpty
-
-  output.on('unpipe', remove)
-
-  Array.prototype.slice.call(arguments).forEach(add)
-
-  return output
-
-  function add (source) {
-    if (Array.isArray(source)) {
-      source.forEach(add)
-      return this
-    }
-
-    sources.push(source);
-    source.once('end', remove.bind(null, source))
-    source.once('error', output.emit.bind(output, 'error'))
-    source.pipe(output, {end: false})
-    return this
-  }
-
-  function isEmpty () {
-    return sources.length == 0;
-  }
-
-  function remove (source) {
-    sources = sources.filter(function (it) { return it !== source })
-    if (!sources.length && output.readable) { output.end() }
-  }
-}
 
 
 /***/ }),
@@ -12290,6 +13384,7 @@ const MockAgent = __nccwpck_require__(6771)
 const MockPool = __nccwpck_require__(6193)
 const mockErrors = __nccwpck_require__(888)
 const ProxyAgent = __nccwpck_require__(7858)
+const RetryHandler = __nccwpck_require__(2286)
 const { getGlobalDispatcher, setGlobalDispatcher } = __nccwpck_require__(1892)
 const DecoratorHandler = __nccwpck_require__(6930)
 const RedirectHandler = __nccwpck_require__(2860)
@@ -12311,6 +13406,7 @@ module.exports.Pool = Pool
 module.exports.BalancedPool = BalancedPool
 module.exports.Agent = Agent
 module.exports.ProxyAgent = ProxyAgent
+module.exports.RetryHandler = RetryHandler
 
 module.exports.DecoratorHandler = DecoratorHandler
 module.exports.RedirectHandler = RedirectHandler
@@ -13207,6 +14303,7 @@ function request (opts, callback) {
 }
 
 module.exports = request
+module.exports.RequestHandler = RequestHandler
 
 
 /***/ }),
@@ -13585,6 +14682,8 @@ const kBody = Symbol('kBody')
 const kAbort = Symbol('abort')
 const kContentType = Symbol('kContentType')
 
+const noop = () => {}
+
 module.exports = class BodyReadable extends Readable {
   constructor ({
     resume,
@@ -13718,37 +14817,50 @@ module.exports = class BodyReadable extends Readable {
     return this[kBody]
   }
 
-  async dump (opts) {
+  dump (opts) {
     let limit = opts && Number.isFinite(opts.limit) ? opts.limit : 262144
     const signal = opts && opts.signal
-    const abortFn = () => {
-      this.destroy()
-    }
-    let signalListenerCleanup
+
     if (signal) {
-      if (typeof signal !== 'object' || !('aborted' in signal)) {
-        throw new InvalidArgumentError('signal must be an AbortSignal')
-      }
-      util.throwIfAborted(signal)
-      signalListenerCleanup = util.addAbortListener(signal, abortFn)
-    }
-    try {
-      for await (const chunk of this) {
-        util.throwIfAborted(signal)
-        limit -= Buffer.byteLength(chunk)
-        if (limit < 0) {
-          return
+      try {
+        if (typeof signal !== 'object' || !('aborted' in signal)) {
+          throw new InvalidArgumentError('signal must be an AbortSignal')
         }
-      }
-    } catch {
-      util.throwIfAborted(signal)
-    } finally {
-      if (typeof signalListenerCleanup === 'function') {
-        signalListenerCleanup()
-      } else if (signalListenerCleanup) {
-        signalListenerCleanup[Symbol.dispose]()
+        util.throwIfAborted(signal)
+      } catch (err) {
+        return Promise.reject(err)
       }
     }
+
+    if (this.closed) {
+      return Promise.resolve(null)
+    }
+
+    return new Promise((resolve, reject) => {
+      const signalListenerCleanup = signal
+        ? util.addAbortListener(signal, () => {
+          this.destroy()
+        })
+        : noop
+
+      this
+        .on('close', function () {
+          signalListenerCleanup()
+          if (signal && signal.aborted) {
+            reject(signal.reason || Object.assign(new Error('The operation was aborted'), { name: 'AbortError' }))
+          } else {
+            resolve(null)
+          }
+        })
+        .on('error', noop)
+        .on('data', function (chunk) {
+          limit -= chunk.length
+          if (limit <= 0) {
+            this.destroy()
+          }
+        })
+        .resume()
+    })
   }
 }
 
@@ -15125,12 +16237,12 @@ module.exports = {
 /***/ }),
 
 /***/ 9174:
-/***/ ((module) => {
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
 
 module.exports = {
-  kConstruct: Symbol('constructable')
+  kConstruct: (__nccwpck_require__(2785).kConstruct)
 }
 
 
@@ -16114,11 +17226,9 @@ class Parser {
       socket[kReset] = true
     }
 
-    let pause
-    try {
-      pause = request.onHeaders(statusCode, headers, this.resume, statusText) === false
-    } catch (err) {
-      util.destroy(socket, err)
+    const pause = request.onHeaders(statusCode, headers, this.resume, statusText) === false
+
+    if (request.aborted) {
       return -1
     }
 
@@ -16165,13 +17275,8 @@ class Parser {
 
     this.bytesRead += buf.length
 
-    try {
-      if (request.onData(buf) === false) {
-        return constants.ERROR.PAUSED
-      }
-    } catch (err) {
-      util.destroy(socket, err)
-      return -1
+    if (request.onData(buf) === false) {
+      return constants.ERROR.PAUSED
     }
   }
 
@@ -16212,11 +17317,7 @@ class Parser {
       return -1
     }
 
-    try {
-      request.onComplete(headers)
-    } catch (err) {
-      errorRequest(client, request, err)
-    }
+    request.onComplete(headers)
 
     client[kQueue][client[kRunningIdx]++] = null
 
@@ -16380,7 +17481,7 @@ async function connect (client) {
     const idx = hostname.indexOf(']')
 
     assert(idx !== -1)
-    const ip = hostname.substr(1, idx - 1)
+    const ip = hostname.substring(1, idx)
 
     assert(net.isIP(ip))
     hostname = ip
@@ -16659,23 +17760,7 @@ function _resume (client, sync) {
       return
     }
 
-    if (util.isStream(request.body) && util.bodyLength(request.body) === 0) {
-      request.body
-        .on('data', /* istanbul ignore next */ function () {
-          /* istanbul ignore next */
-          assert(false)
-        })
-        .on('error', function (err) {
-          errorRequest(client, request, err)
-        })
-        .on('end', function () {
-          util.destroy(this)
-        })
-
-      request.body = null
-    }
-
-    if (client[kRunning] > 0 &&
+    if (client[kRunning] > 0 && util.bodyLength(request.body) !== 0 &&
       (util.isStream(request.body) || util.isAsyncIterable(request.body))) {
       // Request with stream or iterator body can error while other requests
       // are inflight and indirectly error those as well.
@@ -16694,6 +17779,11 @@ function _resume (client, sync) {
       client[kQueue].splice(client[kPendingIdx], 1)
     }
   }
+}
+
+// https://www.rfc-editor.org/rfc/rfc7230#section-3.3.2
+function shouldSendContentLength (method) {
+  return method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS' && method !== 'TRACE' && method !== 'CONNECT'
 }
 
 function write (client, request) {
@@ -16724,7 +17814,9 @@ function write (client, request) {
     body.read(0)
   }
 
-  let contentLength = util.bodyLength(body)
+  const bodyLength = util.bodyLength(body)
+
+  let contentLength = bodyLength
 
   if (contentLength === null) {
     contentLength = request.contentLength
@@ -16739,7 +17831,9 @@ function write (client, request) {
     contentLength = null
   }
 
-  if (request.contentLength !== null && request.contentLength !== contentLength) {
+  // https://github.com/nodejs/undici/issues/2046
+  // A user agent may send a Content-Length header with 0 value, this should be allowed.
+  if (shouldSendContentLength(method) && contentLength > 0 && request.contentLength !== null && request.contentLength !== contentLength) {
     if (client[kStrictContentLength]) {
       errorRequest(client, request, new RequestContentLengthMismatchError())
       return false
@@ -16820,7 +17914,7 @@ function write (client, request) {
   }
 
   /* istanbul ignore else: assertion */
-  if (!body) {
+  if (!body || bodyLength === 0) {
     if (contentLength === 0) {
       socket.write(`${header}content-length: 0\r\n\r\n`, 'latin1')
     } else {
@@ -16886,6 +17980,7 @@ function writeH2 (client, session, request) {
     return false
   }
 
+  /** @type {import('node:http2').ClientHttp2Stream} */
   let stream
   const h2State = client[kHTTP2SessionState]
 
@@ -16960,7 +18055,9 @@ function writeH2 (client, session, request) {
     contentLength = null
   }
 
-  if (request.contentLength != null && request.contentLength !== contentLength) {
+  // https://github.com/nodejs/undici/issues/2046
+  // A user agent may send a Content-Length header with 0 value, this should be allowed.
+  if (shouldSendContentLength(method) && contentLength > 0 && request.contentLength != null && request.contentLength !== contentLength) {
     if (client[kStrictContentLength]) {
       errorRequest(client, request, new RequestContentLengthMismatchError())
       return false
@@ -16979,14 +18076,10 @@ function writeH2 (client, session, request) {
   const shouldEndStream = method === 'GET' || method === 'HEAD'
   if (expectContinue) {
     headers[HTTP2_HEADER_EXPECT] = '100-continue'
-    /**
-     * @type {import('node:http2').ClientHttp2Stream}
-     */
     stream = session.request(headers, { endStream: shouldEndStream, signal })
 
     stream.once('continue', writeBodyH2)
   } else {
-    /** @type {import('node:http2').ClientHttp2Stream} */
     stream = session.request(headers, {
       endStream: shouldEndStream,
       signal
@@ -16998,7 +18091,9 @@ function writeH2 (client, session, request) {
   ++h2State.openStreams
 
   stream.once('response', headers => {
-    if (request.onHeaders(Number(headers[HTTP2_HEADER_STATUS]), headers, stream.resume.bind(stream), '') === false) {
+    const { [HTTP2_HEADER_STATUS]: statusCode, ...realHeaders } = headers
+
+    if (request.onHeaders(Number(statusCode), realHeaders, stream.resume.bind(stream), '') === false) {
       stream.pause()
     }
   })
@@ -17008,13 +18103,17 @@ function writeH2 (client, session, request) {
   })
 
   stream.on('data', (chunk) => {
-    if (request.onData(chunk) === false) stream.pause()
+    if (request.onData(chunk) === false) {
+      stream.pause()
+    }
   })
 
   stream.once('close', () => {
     h2State.openStreams -= 1
     // TODO(HTTP/2): unref only if current streams count is 0
-    if (h2State.openStreams === 0) session.unref()
+    if (h2State.openStreams === 0) {
+      session.unref()
+    }
   })
 
   stream.once('error', function (err) {
@@ -17174,7 +18273,11 @@ function writeStream ({ h2stream, body, client, request, socket, contentLength, 
     }
   }
   const onAbort = function () {
-    onFinished(new RequestAbortedError())
+    if (finished) {
+      return
+    }
+    const err = new RequestAbortedError()
+    queueMicrotask(() => onFinished(err))
   }
   const onFinished = function (err) {
     if (finished) {
@@ -18574,6 +19677,131 @@ module.exports = buildConnector
 
 /***/ }),
 
+/***/ 4462:
+/***/ ((module) => {
+
+
+
+/** @type {Record<string, string | undefined>} */
+const headerNameLowerCasedRecord = {}
+
+// https://developer.mozilla.org/docs/Web/HTTP/Headers
+const wellknownHeaderNames = [
+  'Accept',
+  'Accept-Encoding',
+  'Accept-Language',
+  'Accept-Ranges',
+  'Access-Control-Allow-Credentials',
+  'Access-Control-Allow-Headers',
+  'Access-Control-Allow-Methods',
+  'Access-Control-Allow-Origin',
+  'Access-Control-Expose-Headers',
+  'Access-Control-Max-Age',
+  'Access-Control-Request-Headers',
+  'Access-Control-Request-Method',
+  'Age',
+  'Allow',
+  'Alt-Svc',
+  'Alt-Used',
+  'Authorization',
+  'Cache-Control',
+  'Clear-Site-Data',
+  'Connection',
+  'Content-Disposition',
+  'Content-Encoding',
+  'Content-Language',
+  'Content-Length',
+  'Content-Location',
+  'Content-Range',
+  'Content-Security-Policy',
+  'Content-Security-Policy-Report-Only',
+  'Content-Type',
+  'Cookie',
+  'Cross-Origin-Embedder-Policy',
+  'Cross-Origin-Opener-Policy',
+  'Cross-Origin-Resource-Policy',
+  'Date',
+  'Device-Memory',
+  'Downlink',
+  'ECT',
+  'ETag',
+  'Expect',
+  'Expect-CT',
+  'Expires',
+  'Forwarded',
+  'From',
+  'Host',
+  'If-Match',
+  'If-Modified-Since',
+  'If-None-Match',
+  'If-Range',
+  'If-Unmodified-Since',
+  'Keep-Alive',
+  'Last-Modified',
+  'Link',
+  'Location',
+  'Max-Forwards',
+  'Origin',
+  'Permissions-Policy',
+  'Pragma',
+  'Proxy-Authenticate',
+  'Proxy-Authorization',
+  'RTT',
+  'Range',
+  'Referer',
+  'Referrer-Policy',
+  'Refresh',
+  'Retry-After',
+  'Sec-WebSocket-Accept',
+  'Sec-WebSocket-Extensions',
+  'Sec-WebSocket-Key',
+  'Sec-WebSocket-Protocol',
+  'Sec-WebSocket-Version',
+  'Server',
+  'Server-Timing',
+  'Service-Worker-Allowed',
+  'Service-Worker-Navigation-Preload',
+  'Set-Cookie',
+  'SourceMap',
+  'Strict-Transport-Security',
+  'Supports-Loading-Mode',
+  'TE',
+  'Timing-Allow-Origin',
+  'Trailer',
+  'Transfer-Encoding',
+  'Upgrade',
+  'Upgrade-Insecure-Requests',
+  'User-Agent',
+  'Vary',
+  'Via',
+  'WWW-Authenticate',
+  'X-Content-Type-Options',
+  'X-DNS-Prefetch-Control',
+  'X-Frame-Options',
+  'X-Permitted-Cross-Domain-Policies',
+  'X-Powered-By',
+  'X-Requested-With',
+  'X-XSS-Protection'
+]
+
+for (let i = 0; i < wellknownHeaderNames.length; ++i) {
+  const key = wellknownHeaderNames[i]
+  const lowerCasedKey = key.toLowerCase()
+  headerNameLowerCasedRecord[key] = headerNameLowerCasedRecord[lowerCasedKey] =
+    lowerCasedKey
+}
+
+// Note: object prototypes should not be able to be referenced. e.g. `Object#hasOwnProperty`.
+Object.setPrototypeOf(headerNameLowerCasedRecord, null)
+
+module.exports = {
+  wellknownHeaderNames,
+  headerNameLowerCasedRecord
+}
+
+
+/***/ }),
+
 /***/ 8045:
 /***/ ((module) => {
 
@@ -18772,6 +20000,19 @@ class ResponseExceededMaxSizeError extends UndiciError {
   }
 }
 
+class RequestRetryError extends UndiciError {
+  constructor (message, code, { headers, data }) {
+    super(message)
+    Error.captureStackTrace(this, RequestRetryError)
+    this.name = 'RequestRetryError'
+    this.message = message || 'Request retry error'
+    this.code = 'UND_ERR_REQ_RETRY'
+    this.statusCode = code
+    this.data = data
+    this.headers = headers
+  }
+}
+
 module.exports = {
   HTTPParserError,
   UndiciError,
@@ -18791,7 +20032,8 @@ module.exports = {
   NotSupportedError,
   ResponseContentLengthMismatchError,
   BalancedPoolMissingUpstreamError,
-  ResponseExceededMaxSizeError
+  ResponseExceededMaxSizeError,
+  RequestRetryError
 }
 
 
@@ -18914,10 +20156,29 @@ class Request {
 
     this.method = method
 
+    this.abort = null
+
     if (body == null) {
       this.body = null
     } else if (util.isStream(body)) {
       this.body = body
+
+      const rState = this.body._readableState
+      if (!rState || !rState.autoDestroy) {
+        this.endHandler = function autoDestroy () {
+          util.destroy(this)
+        }
+        this.body.on('end', this.endHandler)
+      }
+
+      this.errorHandler = err => {
+        if (this.abort) {
+          this.abort(err)
+        } else {
+          this.error = err
+        }
+      }
+      this.body.on('error', this.errorHandler)
     } else if (util.isBuffer(body)) {
       this.body = body.byteLength ? body : null
     } else if (ArrayBuffer.isView(body)) {
@@ -19013,9 +20274,9 @@ class Request {
   onBodySent (chunk) {
     if (this[kHandler].onBodySent) {
       try {
-        this[kHandler].onBodySent(chunk)
+        return this[kHandler].onBodySent(chunk)
       } catch (err) {
-        this.onError(err)
+        this.abort(err)
       }
     }
   }
@@ -19024,13 +20285,26 @@ class Request {
     if (channels.bodySent.hasSubscribers) {
       channels.bodySent.publish({ request: this })
     }
+
+    if (this[kHandler].onRequestSent) {
+      try {
+        return this[kHandler].onRequestSent()
+      } catch (err) {
+        this.abort(err)
+      }
+    }
   }
 
   onConnect (abort) {
     assert(!this.aborted)
     assert(!this.completed)
 
-    return this[kHandler].onConnect(abort)
+    if (this.error) {
+      abort(this.error)
+    } else {
+      this.abort = abort
+      return this[kHandler].onConnect(abort)
+    }
   }
 
   onHeaders (statusCode, headers, resume, statusText) {
@@ -19041,14 +20315,23 @@ class Request {
       channels.headers.publish({ request: this, response: { statusCode, headers, statusText } })
     }
 
-    return this[kHandler].onHeaders(statusCode, headers, resume, statusText)
+    try {
+      return this[kHandler].onHeaders(statusCode, headers, resume, statusText)
+    } catch (err) {
+      this.abort(err)
+    }
   }
 
   onData (chunk) {
     assert(!this.aborted)
     assert(!this.completed)
 
-    return this[kHandler].onData(chunk)
+    try {
+      return this[kHandler].onData(chunk)
+    } catch (err) {
+      this.abort(err)
+      return false
+    }
   }
 
   onUpgrade (statusCode, headers, socket) {
@@ -19059,16 +20342,26 @@ class Request {
   }
 
   onComplete (trailers) {
+    this.onFinally()
+
     assert(!this.aborted)
 
     this.completed = true
     if (channels.trailers.hasSubscribers) {
       channels.trailers.publish({ request: this, trailers })
     }
-    return this[kHandler].onComplete(trailers)
+
+    try {
+      return this[kHandler].onComplete(trailers)
+    } catch (err) {
+      // TODO (fix): This might be a bad idea?
+      this.onError(err)
+    }
   }
 
   onError (error) {
+    this.onFinally()
+
     if (channels.error.hasSubscribers) {
       channels.error.publish({ request: this, error })
     }
@@ -19077,7 +20370,20 @@ class Request {
       return
     }
     this.aborted = true
+
     return this[kHandler].onError(error)
+  }
+
+  onFinally () {
+    if (this.errorHandler) {
+      this.body.off('error', this.errorHandler)
+      this.errorHandler = null
+    }
+
+    if (this.endHandler) {
+      this.body.off('end', this.endHandler)
+      this.endHandler = null
+    }
   }
 
   // TODO: adjust to support H2
@@ -19301,7 +20607,9 @@ module.exports = {
   kHTTP2BuildRequest: Symbol('http2 build request'),
   kHTTP1BuildRequest: Symbol('http1 build request'),
   kHTTP2CopyHeaders: Symbol('http2 copy headers'),
-  kHTTPConnVersion: Symbol('http connection version')
+  kHTTPConnVersion: Symbol('http connection version'),
+  kRetryHandlerDefaultRetry: Symbol('retry agent default retry'),
+  kConstruct: Symbol('constructable')
 }
 
 
@@ -19321,6 +20629,7 @@ const { InvalidArgumentError } = __nccwpck_require__(8045)
 const { Blob } = __nccwpck_require__(4300)
 const nodeUtil = __nccwpck_require__(3837)
 const { stringify } = __nccwpck_require__(3477)
+const { headerNameLowerCasedRecord } = __nccwpck_require__(4462)
 
 const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(v => Number(v))
 
@@ -19437,13 +20746,13 @@ function getHostname (host) {
     const idx = host.indexOf(']')
 
     assert(idx !== -1)
-    return host.substr(1, idx - 1)
+    return host.substring(1, idx)
   }
 
   const idx = host.indexOf(':')
   if (idx === -1) return host
 
-  return host.substr(0, idx)
+  return host.substring(0, idx)
 }
 
 // IP addresses are not valid server names per RFC6066
@@ -19502,7 +20811,7 @@ function isReadableAborted (stream) {
 }
 
 function destroy (stream, err) {
-  if (!isStream(stream) || isDestroyed(stream)) {
+  if (stream == null || !isStream(stream) || isDestroyed(stream)) {
     return
   }
 
@@ -19530,6 +20839,15 @@ function parseKeepAliveTimeout (val) {
   return m ? parseInt(m[1], 10) * 1000 : null
 }
 
+/**
+ * Retrieves a header name and returns its lowercase value.
+ * @param {string | Buffer} value Header name
+ * @returns {string}
+ */
+function headerNameToString (value) {
+  return headerNameLowerCasedRecord[value] || value.toLowerCase()
+}
+
 function parseHeaders (headers, obj = {}) {
   // For H2 support
   if (!Array.isArray(headers)) return headers
@@ -19540,7 +20858,7 @@ function parseHeaders (headers, obj = {}) {
 
     if (!val) {
       if (Array.isArray(headers[i + 1])) {
-        obj[key] = headers[i + 1]
+        obj[key] = headers[i + 1].map(x => x.toString('utf8'))
       } else {
         obj[key] = headers[i + 1].toString('utf8')
       }
@@ -19743,16 +21061,7 @@ function throwIfAborted (signal) {
   }
 }
 
-let events
 function addAbortListener (signal, listener) {
-  if (typeof Symbol.dispose === 'symbol') {
-    if (!events) {
-      events = __nccwpck_require__(2361)
-    }
-    if (typeof events.addAbortListener === 'function' && 'aborted' in signal) {
-      return events.addAbortListener(signal, listener)
-    }
-  }
   if ('addEventListener' in signal) {
     signal.addEventListener('abort', listener, { once: true })
     return () => signal.removeEventListener('abort', listener)
@@ -19776,6 +21085,21 @@ function toUSVString (val) {
   return `${val}`
 }
 
+// Parsed accordingly to RFC 9110
+// https://www.rfc-editor.org/rfc/rfc9110#field.content-range
+function parseRangeHeader (range) {
+  if (range == null || range === '') return { start: 0, end: null, size: null }
+
+  const m = range ? range.match(/^bytes (\d+)-(\d+)\/(\d+)?$/) : null
+  return m
+    ? {
+        start: parseInt(m[1]),
+        end: m[2] ? parseInt(m[2]) : null,
+        size: m[3] ? parseInt(m[3]) : null
+      }
+    : null
+}
+
 const kEnumerableProperty = Object.create(null)
 kEnumerableProperty.enumerable = true
 
@@ -19795,6 +21119,7 @@ module.exports = {
   isIterable,
   isAsyncIterable,
   isDestroyed,
+  headerNameToString,
   parseRawHeaders,
   parseHeaders,
   parseKeepAliveTimeout,
@@ -19809,9 +21134,11 @@ module.exports = {
   buildURL,
   throwIfAborted,
   addAbortListener,
+  parseRangeHeader,
   nodeMajor,
   nodeMinor,
-  nodeHasAutoSelectFamily: nodeMajor > 18 || (nodeMajor === 18 && nodeMinor >= 13)
+  nodeHasAutoSelectFamily: nodeMajor > 18 || (nodeMajor === 18 && nodeMinor >= 13),
+  safeHTTPMethods: ['GET', 'HEAD', 'OPTIONS', 'TRACE']
 }
 
 
@@ -20047,7 +21374,7 @@ module.exports = Dispatcher
 
 
 
-const Busboy = __nccwpck_require__(3438)
+const Busboy = __nccwpck_require__(727)
 const util = __nccwpck_require__(3983)
 const {
   ReadableStreamFrom,
@@ -20073,6 +21400,8 @@ let ReadableStream = globalThis.ReadableStream
 
 /** @type {globalThis['File']} */
 const File = NativeFile ?? UndiciFile
+const textEncoder = new TextEncoder()
+const textDecoder = new TextDecoder()
 
 // https://fetch.spec.whatwg.org/#concept-bodyinit-extract
 function extractBody (object, keepalive = false) {
@@ -20096,7 +21425,7 @@ function extractBody (object, keepalive = false) {
     stream = new ReadableStream({
       async pull (controller) {
         controller.enqueue(
-          typeof source === 'string' ? new TextEncoder().encode(source) : source
+          typeof source === 'string' ? textEncoder.encode(source) : source
         )
         queueMicrotask(() => readableStreamClose(controller))
       },
@@ -20166,7 +21495,6 @@ function extractBody (object, keepalive = false) {
     // - That the content-length is calculated in advance.
     // - And that all parts are pre-encoded and ready to be sent.
 
-    const enc = new TextEncoder()
     const blobParts = []
     const rn = new Uint8Array([13, 10]) // '\r\n'
     length = 0
@@ -20174,13 +21502,13 @@ function extractBody (object, keepalive = false) {
 
     for (const [name, value] of object) {
       if (typeof value === 'string') {
-        const chunk = enc.encode(prefix +
+        const chunk = textEncoder.encode(prefix +
           `; name="${escape(normalizeLinefeeds(name))}"` +
           `\r\n\r\n${normalizeLinefeeds(value)}\r\n`)
         blobParts.push(chunk)
         length += chunk.byteLength
       } else {
-        const chunk = enc.encode(`${prefix}; name="${escape(normalizeLinefeeds(name))}"` +
+        const chunk = textEncoder.encode(`${prefix}; name="${escape(normalizeLinefeeds(name))}"` +
           (value.name ? `; filename="${escape(value.name)}"` : '') + '\r\n' +
           `Content-Type: ${
             value.type || 'application/octet-stream'
@@ -20194,7 +21522,7 @@ function extractBody (object, keepalive = false) {
       }
     }
 
-    const chunk = enc.encode(`--${boundary}--`)
+    const chunk = textEncoder.encode(`--${boundary}--`)
     blobParts.push(chunk)
     length += chunk.byteLength
     if (hasUnknownSizeValue) {
@@ -20490,14 +21818,16 @@ function bodyMixinMethods (instance) {
           let text = ''
           // application/x-www-form-urlencoded parser will keep the BOM.
           // https://url.spec.whatwg.org/#concept-urlencoded-parser
-          const textDecoder = new TextDecoder('utf-8', { ignoreBOM: true })
+          // Note that streaming decoder is stateful and cannot be reused
+          const streamingDecoder = new TextDecoder('utf-8', { ignoreBOM: true })
+
           for await (const chunk of consumeBody(this[kState].body)) {
             if (!isUint8Array(chunk)) {
               throw new TypeError('Expected Uint8Array chunk')
             }
-            text += textDecoder.decode(chunk, { stream: true })
+            text += streamingDecoder.decode(chunk, { stream: true })
           }
-          text += textDecoder.decode()
+          text += streamingDecoder.decode()
           entries = new URLSearchParams(text)
         } catch (err) {
           // istanbul ignore next: Unclear when new URLSearchParams can fail on a string.
@@ -20612,7 +21942,7 @@ function utf8DecodeBytes (buffer) {
 
   // 3. Process a queue with an instance of UTF-8’s
   //    decoder, ioQueue, output, and "replacement".
-  const output = new TextDecoder().decode(buffer)
+  const output = textDecoder.decode(buffer)
 
   // 4. Return output.
   return output
@@ -20659,10 +21989,12 @@ module.exports = {
 const { MessageChannel, receiveMessageOnPort } = __nccwpck_require__(1267)
 
 const corsSafeListedMethods = ['GET', 'HEAD', 'POST']
+const corsSafeListedMethodsSet = new Set(corsSafeListedMethods)
 
 const nullBodyStatus = [101, 204, 205, 304]
 
 const redirectStatus = [301, 302, 303, 307, 308]
+const redirectStatusSet = new Set(redirectStatus)
 
 // https://fetch.spec.whatwg.org/#block-bad-port
 const badPorts = [
@@ -20673,6 +22005,8 @@ const badPorts = [
   '2049', '3659', '4045', '5060', '5061', '6000', '6566', '6665', '6666', '6667', '6668', '6669', '6697',
   '10080'
 ]
+
+const badPortsSet = new Set(badPorts)
 
 // https://w3c.github.io/webappsec-referrer-policy/#referrer-policies
 const referrerPolicy = [
@@ -20686,10 +22020,12 @@ const referrerPolicy = [
   'strict-origin-when-cross-origin',
   'unsafe-url'
 ]
+const referrerPolicySet = new Set(referrerPolicy)
 
 const requestRedirect = ['follow', 'manual', 'error']
 
 const safeMethods = ['GET', 'HEAD', 'OPTIONS', 'TRACE']
+const safeMethodsSet = new Set(safeMethods)
 
 const requestMode = ['navigate', 'same-origin', 'no-cors', 'cors']
 
@@ -20724,6 +22060,7 @@ const requestDuplex = [
 
 // http://fetch.spec.whatwg.org/#forbidden-method
 const forbiddenMethods = ['CONNECT', 'TRACE', 'TRACK']
+const forbiddenMethodsSet = new Set(forbiddenMethods)
 
 const subresource = [
   'audio',
@@ -20739,6 +22076,7 @@ const subresource = [
   'xslt',
   ''
 ]
+const subresourceSet = new Set(subresource)
 
 /** @type {globalThis['DOMException']} */
 const DOMException = globalThis.DOMException ?? (() => {
@@ -20788,7 +22126,14 @@ module.exports = {
   nullBodyStatus,
   safeMethods,
   badPorts,
-  requestDuplex
+  requestDuplex,
+  subresourceSet,
+  badPortsSet,
+  redirectStatusSet,
+  corsSafeListedMethodsSet,
+  safeMethodsSet,
+  forbiddenMethodsSet,
+  referrerPolicySet
 }
 
 
@@ -20918,17 +22263,14 @@ function dataURLProcessor (dataURL) {
  * @param {boolean} excludeFragment
  */
 function URLSerializer (url, excludeFragment = false) {
-  const href = url.href
-
   if (!excludeFragment) {
-    return href
+    return url.href
   }
 
-  const hash = href.lastIndexOf('#')
-  if (hash === -1) {
-    return href
-  }
-  return href.slice(0, hash)
+  const href = url.href
+  const hashLength = url.hash.length
+
+  return hashLength === 0 ? href : href.substring(0, href.length - hashLength)
 }
 
 // https://infra.spec.whatwg.org/#collect-a-sequence-of-code-points
@@ -21443,6 +22785,7 @@ const { isBlobLike } = __nccwpck_require__(2538)
 const { webidl } = __nccwpck_require__(1744)
 const { parseMIMEType, serializeAMimeType } = __nccwpck_require__(685)
 const { kEnumerableProperty } = __nccwpck_require__(3983)
+const encoder = new TextEncoder()
 
 class File extends Blob {
   constructor (fileBits, fileName, options = {}) {
@@ -21716,7 +23059,7 @@ function processBlobParts (parts, options) {
       }
 
       // 3. Append the result of UTF-8 encoding s to bytes.
-      bytes.push(new TextEncoder().encode(s))
+      bytes.push(encoder.encode(s))
     } else if (
       types.isAnyArrayBuffer(element) ||
       types.isTypedArray(element)
@@ -22107,7 +23450,7 @@ module.exports = {
 
 
 
-const { kHeadersList } = __nccwpck_require__(2785)
+const { kHeadersList, kConstruct } = __nccwpck_require__(2785)
 const { kGuard } = __nccwpck_require__(5861)
 const { kEnumerableProperty } = __nccwpck_require__(3983)
 const {
@@ -22122,6 +23465,13 @@ const kHeadersMap = Symbol('headers map')
 const kHeadersSortedMap = Symbol('headers map sorted')
 
 /**
+ * @param {number} code
+ */
+function isHTTPWhiteSpaceCharCode (code) {
+  return code === 0x00a || code === 0x00d || code === 0x009 || code === 0x020
+}
+
+/**
  * @see https://fetch.spec.whatwg.org/#concept-header-value-normalize
  * @param {string} potentialValue
  */
@@ -22129,12 +23479,12 @@ function headerValueNormalize (potentialValue) {
   //  To normalize a byte sequence potentialValue, remove
   //  any leading and trailing HTTP whitespace bytes from
   //  potentialValue.
+  let i = 0; let j = potentialValue.length
 
-  // Trimming the end with `.replace()` and a RegExp is typically subject to
-  // ReDoS. This is safer and faster.
-  let i = potentialValue.length
-  while (/[\r\n\t ]/.test(potentialValue.charAt(--i)));
-  return potentialValue.slice(0, i + 1).replace(/^[\r\n\t ]+/, '')
+  while (j > i && isHTTPWhiteSpaceCharCode(potentialValue.charCodeAt(j - 1))) --j
+  while (j > i && isHTTPWhiteSpaceCharCode(potentialValue.charCodeAt(i))) ++i
+
+  return i === 0 && j === potentialValue.length ? potentialValue : potentialValue.substring(i, j)
 }
 
 function fill (headers, object) {
@@ -22143,7 +23493,8 @@ function fill (headers, object) {
   // 1. If object is a sequence, then for each header in object:
   // Note: webidl conversion to array has already been done.
   if (Array.isArray(object)) {
-    for (const header of object) {
+    for (let i = 0; i < object.length; ++i) {
+      const header = object[i]
       // 1. If header does not contain exactly two items, then throw a TypeError.
       if (header.length !== 2) {
         throw webidl.errors.exception({
@@ -22153,15 +23504,16 @@ function fill (headers, object) {
       }
 
       // 2. Append (header’s first item, header’s second item) to headers.
-      headers.append(header[0], header[1])
+      appendHeader(headers, header[0], header[1])
     }
   } else if (typeof object === 'object' && object !== null) {
     // Note: null should throw
 
     // 2. Otherwise, object is a record, then for each key → value in object,
     //    append (key, value) to headers
-    for (const [key, value] of Object.entries(object)) {
-      headers.append(key, value)
+    const keys = Object.keys(object)
+    for (let i = 0; i < keys.length; ++i) {
+      appendHeader(headers, keys[i], object[keys[i]])
     }
   } else {
     throw webidl.errors.conversionFailed({
@@ -22172,6 +23524,50 @@ function fill (headers, object) {
   }
 }
 
+/**
+ * @see https://fetch.spec.whatwg.org/#concept-headers-append
+ */
+function appendHeader (headers, name, value) {
+  // 1. Normalize value.
+  value = headerValueNormalize(value)
+
+  // 2. If name is not a header name or value is not a
+  //    header value, then throw a TypeError.
+  if (!isValidHeaderName(name)) {
+    throw webidl.errors.invalidArgument({
+      prefix: 'Headers.append',
+      value: name,
+      type: 'header name'
+    })
+  } else if (!isValidHeaderValue(value)) {
+    throw webidl.errors.invalidArgument({
+      prefix: 'Headers.append',
+      value,
+      type: 'header value'
+    })
+  }
+
+  // 3. If headers’s guard is "immutable", then throw a TypeError.
+  // 4. Otherwise, if headers’s guard is "request" and name is a
+  //    forbidden header name, return.
+  // Note: undici does not implement forbidden header names
+  if (headers[kGuard] === 'immutable') {
+    throw new TypeError('immutable')
+  } else if (headers[kGuard] === 'request-no-cors') {
+    // 5. Otherwise, if headers’s guard is "request-no-cors":
+    // TODO
+  }
+
+  // 6. Otherwise, if headers’s guard is "response" and name is a
+  //    forbidden response-header name, return.
+
+  // 7. Append (name, value) to headers’s header list.
+  return headers[kHeadersList].append(name, value)
+
+  // 8. If headers’s guard is "request-no-cors", then remove
+  //    privileged no-CORS request headers from headers
+}
+
 class HeadersList {
   /** @type {[string, string][]|null} */
   cookies = null
@@ -22180,7 +23576,7 @@ class HeadersList {
     if (init instanceof HeadersList) {
       this[kHeadersMap] = new Map(init[kHeadersMap])
       this[kHeadersSortedMap] = init[kHeadersSortedMap]
-      this.cookies = init.cookies
+      this.cookies = init.cookies === null ? null : [...init.cookies]
     } else {
       this[kHeadersMap] = new Map(init)
       this[kHeadersSortedMap] = null
@@ -22242,7 +23638,7 @@ class HeadersList {
     //    the first such header to value and remove the
     //    others.
     // 2. Otherwise, append header (name, value) to list.
-    return this[kHeadersMap].set(lowercaseName, { name, value })
+    this[kHeadersMap].set(lowercaseName, { name, value })
   }
 
   // https://fetch.spec.whatwg.org/#concept-header-list-delete
@@ -22255,20 +23651,18 @@ class HeadersList {
       this.cookies = null
     }
 
-    return this[kHeadersMap].delete(name)
+    this[kHeadersMap].delete(name)
   }
 
   // https://fetch.spec.whatwg.org/#concept-header-list-get
   get (name) {
-    // 1. If list does not contain name, then return null.
-    if (!this.contains(name)) {
-      return null
-    }
+    const value = this[kHeadersMap].get(name.toLowerCase())
 
+    // 1. If list does not contain name, then return null.
     // 2. Return the values of all headers in list whose name
     //    is a byte-case-insensitive match for name,
     //    separated from each other by 0x2C 0x20, in order.
-    return this[kHeadersMap].get(name.toLowerCase())?.value ?? null
+    return value === undefined ? null : value.value
   }
 
   * [Symbol.iterator] () {
@@ -22294,6 +23688,9 @@ class HeadersList {
 // https://fetch.spec.whatwg.org/#headers-class
 class Headers {
   constructor (init = undefined) {
+    if (init === kConstruct) {
+      return
+    }
     this[kHeadersList] = new HeadersList()
 
     // The new Headers(init) constructor steps are:
@@ -22317,43 +23714,7 @@ class Headers {
     name = webidl.converters.ByteString(name)
     value = webidl.converters.ByteString(value)
 
-    // 1. Normalize value.
-    value = headerValueNormalize(value)
-
-    // 2. If name is not a header name or value is not a
-    //    header value, then throw a TypeError.
-    if (!isValidHeaderName(name)) {
-      throw webidl.errors.invalidArgument({
-        prefix: 'Headers.append',
-        value: name,
-        type: 'header name'
-      })
-    } else if (!isValidHeaderValue(value)) {
-      throw webidl.errors.invalidArgument({
-        prefix: 'Headers.append',
-        value,
-        type: 'header value'
-      })
-    }
-
-    // 3. If headers’s guard is "immutable", then throw a TypeError.
-    // 4. Otherwise, if headers’s guard is "request" and name is a
-    //    forbidden header name, return.
-    // Note: undici does not implement forbidden header names
-    if (this[kGuard] === 'immutable') {
-      throw new TypeError('immutable')
-    } else if (this[kGuard] === 'request-no-cors') {
-      // 5. Otherwise, if headers’s guard is "request-no-cors":
-      // TODO
-    }
-
-    // 6. Otherwise, if headers’s guard is "response" and name is a
-    //    forbidden response-header name, return.
-
-    // 7. Append (name, value) to headers’s header list.
-    // 8. If headers’s guard is "request-no-cors", then remove
-    //    privileged no-CORS request headers from headers
-    return this[kHeadersList].append(name, value)
+    return appendHeader(this, name, value)
   }
 
   // https://fetch.spec.whatwg.org/#dom-headers-delete
@@ -22398,7 +23759,7 @@ class Headers {
     // 7. Delete name from this’s header list.
     // 8. If this’s guard is "request-no-cors", then remove
     //    privileged no-CORS request headers from this.
-    return this[kHeadersList].delete(name)
+    this[kHeadersList].delete(name)
   }
 
   // https://fetch.spec.whatwg.org/#dom-headers-get
@@ -22491,7 +23852,7 @@ class Headers {
     // 7. Set (name, value) in this’s header list.
     // 8. If this’s guard is "request-no-cors", then remove
     //    privileged no-CORS request headers from this
-    return this[kHeadersList].set(name, value)
+    this[kHeadersList].set(name, value)
   }
 
   // https://fetch.spec.whatwg.org/#dom-headers-getsetcookie
@@ -22527,7 +23888,8 @@ class Headers {
     const cookies = this[kHeadersList].cookies
 
     // 3. For each name of names:
-    for (const [name, value] of names) {
+    for (let i = 0; i < names.length; ++i) {
+      const [name, value] = names[i]
       // 1. If name is `set-cookie`, then:
       if (name === 'set-cookie') {
         // 1. Let values be a list of all values of headers in list whose name
@@ -22535,8 +23897,8 @@ class Headers {
 
         // 2. For each value of values:
         // 1. Append (name, value) to headers.
-        for (const value of cookies) {
-          headers.push([name, value])
+        for (let j = 0; j < cookies.length; ++j) {
+          headers.push([name, cookies[j]])
         }
       } else {
         // 2. Otherwise:
@@ -22560,6 +23922,12 @@ class Headers {
   keys () {
     webidl.brandCheck(this, Headers)
 
+    if (this[kGuard] === 'immutable') {
+      const value = this[kHeadersSortedMap]
+      return makeIterator(() => value, 'Headers',
+        'key')
+    }
+
     return makeIterator(
       () => [...this[kHeadersSortedMap].values()],
       'Headers',
@@ -22570,6 +23938,12 @@ class Headers {
   values () {
     webidl.brandCheck(this, Headers)
 
+    if (this[kGuard] === 'immutable') {
+      const value = this[kHeadersSortedMap]
+      return makeIterator(() => value, 'Headers',
+        'value')
+    }
+
     return makeIterator(
       () => [...this[kHeadersSortedMap].values()],
       'Headers',
@@ -22579,6 +23953,12 @@ class Headers {
 
   entries () {
     webidl.brandCheck(this, Headers)
+
+    if (this[kGuard] === 'immutable') {
+      const value = this[kHeadersSortedMap]
+      return makeIterator(() => value, 'Headers',
+        'key+value')
+    }
 
     return makeIterator(
       () => [...this[kHeadersSortedMap].values()],
@@ -22710,11 +24090,11 @@ const { kState, kHeaders, kGuard, kRealm } = __nccwpck_require__(5861)
 const assert = __nccwpck_require__(9491)
 const { safelyExtractBody } = __nccwpck_require__(1472)
 const {
-  redirectStatus,
+  redirectStatusSet,
   nullBodyStatus,
-  safeMethods,
+  safeMethodsSet,
   requestBodyHeader,
-  subresource,
+  subresourceSet,
   DOMException
 } = __nccwpck_require__(1037)
 const { kHeadersList } = __nccwpck_require__(2785)
@@ -22726,6 +24106,7 @@ const { TransformStream } = __nccwpck_require__(5356)
 const { getGlobalDispatcher } = __nccwpck_require__(1892)
 const { webidl } = __nccwpck_require__(1744)
 const { STATUS_CODES } = __nccwpck_require__(3685)
+const GET_OR_HEAD = ['GET', 'HEAD']
 
 /** @type {import('buffer').resolveObjectURL} */
 let resolveObjectURL
@@ -22949,7 +24330,7 @@ function finalizeAndReportTiming (response, initiatorType = 'other') {
   }
 
   // 8. If response’s timing allow passed flag is not set, then:
-  if (!timingInfo.timingAllowPassed) {
+  if (!response.timingAllowPassed) {
     //  1. Set timingInfo to a the result of creating an opaque timing info for timingInfo.
     timingInfo = createOpaqueTimingInfo({
       startTime: timingInfo.startTime
@@ -23173,7 +24554,7 @@ function fetching ({
   }
 
   // 15. If request is a subresource request, then:
-  if (subresource.includes(request.destination)) {
+  if (subresourceSet.has(request.destination)) {
     // TODO
   }
 
@@ -23727,7 +25108,7 @@ async function httpFetch (fetchParams) {
   }
 
   // 8. If actualResponse’s status is a redirect status, then:
-  if (redirectStatus.includes(actualResponse.status)) {
+  if (redirectStatusSet.has(actualResponse.status)) {
     // 1. If actualResponse’s status is not 303, request’s body is not null,
     // and the connection uses HTTP/2, then user agents may, and are even
     // encouraged to, transmit an RST_STREAM frame.
@@ -23845,7 +25226,7 @@ function httpRedirectFetch (fetchParams, response) {
   if (
     ([301, 302].includes(actualResponse.status) && request.method === 'POST') ||
     (actualResponse.status === 303 &&
-      !['GET', 'HEAD'].includes(request.method))
+      !GET_OR_HEAD.includes(request.method))
   ) {
     // then:
     // 1. Set request’s method to `GET` and request’s body to null.
@@ -23865,6 +25246,9 @@ function httpRedirectFetch (fetchParams, response) {
   if (!sameOrigin(requestCurrentURL(request), locationURL)) {
     // https://fetch.spec.whatwg.org/#cors-non-wildcard-request-header-name
     request.headersList.delete('authorization')
+
+    // https://fetch.spec.whatwg.org/#authentication-entries
+    request.headersList.delete('proxy-authorization', true)
 
     // "Cookie" and "Host" are forbidden request-headers, which undici doesn't implement.
     request.headersList.delete('cookie')
@@ -24129,7 +25513,7 @@ async function httpNetworkOrCacheFetch (
     // responses in httpCache, as per the "Invalidation" chapter of HTTP
     // Caching, and set storedResponse to null. [HTTP-CACHING]
     if (
-      !safeMethods.includes(httpRequest.method) &&
+      !safeMethodsSet.has(httpRequest.method) &&
       forwardResponse.status >= 200 &&
       forwardResponse.status <= 399
     ) {
@@ -24620,7 +26004,7 @@ async function httpNetworkFetch (
         path: url.pathname + url.search,
         origin: url.origin,
         method: request.method,
-        body: fetchParams.controller.dispatcher.isMockActive ? request.body && request.body.source : body,
+        body: fetchParams.controller.dispatcher.isMockActive ? request.body && (request.body.source || request.body.stream) : body,
         headers: request.headersList.entries,
         maxRedirections: 0,
         upgrade: request.mode === 'websocket' ? 'websocket' : undefined
@@ -24665,7 +26049,7 @@ async function httpNetworkFetch (
                 location = val
               }
 
-              headers.append(key, val)
+              headers[kHeadersList].append(key, val)
             }
           } else {
             const keys = Object.keys(headersList)
@@ -24679,7 +26063,7 @@ async function httpNetworkFetch (
                 location = val
               }
 
-              headers.append(key, val)
+              headers[kHeadersList].append(key, val)
             }
           }
 
@@ -24689,7 +26073,7 @@ async function httpNetworkFetch (
 
           const willFollow = request.redirect === 'follow' &&
             location &&
-            redirectStatus.includes(status)
+            redirectStatusSet.has(status)
 
           // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding
           if (request.method !== 'HEAD' && request.method !== 'CONNECT' && !nullBodyStatus.includes(status) && !willFollow) {
@@ -24783,7 +26167,7 @@ async function httpNetworkFetch (
             const key = headersList[n + 0].toString('latin1')
             const val = headersList[n + 1].toString('latin1')
 
-            headers.append(key, val)
+            headers[kHeadersList].append(key, val)
           }
 
           resolve({
@@ -24825,11 +26209,12 @@ const {
   isValidHTTPToken,
   sameOrigin,
   normalizeMethod,
-  makePolicyContainer
+  makePolicyContainer,
+  normalizeMethodRecord
 } = __nccwpck_require__(2538)
 const {
-  forbiddenMethods,
-  corsSafeListedMethods,
+  forbiddenMethodsSet,
+  corsSafeListedMethodsSet,
   referrerPolicy,
   requestRedirect,
   requestMode,
@@ -24842,13 +26227,12 @@ const { kHeaders, kSignal, kState, kGuard, kRealm } = __nccwpck_require__(5861)
 const { webidl } = __nccwpck_require__(1744)
 const { getGlobalOrigin } = __nccwpck_require__(1246)
 const { URLSerializer } = __nccwpck_require__(685)
-const { kHeadersList } = __nccwpck_require__(2785)
+const { kHeadersList, kConstruct } = __nccwpck_require__(2785)
 const assert = __nccwpck_require__(9491)
 const { getMaxListeners, setMaxListeners, getEventListeners, defaultMaxListeners } = __nccwpck_require__(2361)
 
 let TransformStream = globalThis.TransformStream
 
-const kInit = Symbol('init')
 const kAbortController = Symbol('abortController')
 
 const requestFinalizer = new FinalizationRegistry(({ signal, abort }) => {
@@ -24859,7 +26243,7 @@ const requestFinalizer = new FinalizationRegistry(({ signal, abort }) => {
 class Request {
   // https://fetch.spec.whatwg.org/#dom-request
   constructor (input, init = {}) {
-    if (input === kInit) {
+    if (input === kConstruct) {
       return
     }
 
@@ -24998,8 +26382,10 @@ class Request {
       urlList: [...request.urlList]
     })
 
+    const initHasKey = Object.keys(init).length !== 0
+
     // 13. If init is not empty, then:
-    if (Object.keys(init).length > 0) {
+    if (initHasKey) {
       // 1. If request’s mode is "navigate", then set it to "same-origin".
       if (request.mode === 'navigate') {
         request.mode = 'same-origin'
@@ -25114,7 +26500,7 @@ class Request {
     }
 
     // 23. If init["integrity"] exists, then set request’s integrity metadata to it.
-    if (init.integrity !== undefined && init.integrity != null) {
+    if (init.integrity != null) {
       request.integrity = String(init.integrity)
     }
 
@@ -25130,16 +26516,16 @@ class Request {
 
       // 2. If method is not a method or method is a forbidden method, then
       // throw a TypeError.
-      if (!isValidHTTPToken(init.method)) {
-        throw TypeError(`'${init.method}' is not a valid HTTP method.`)
+      if (!isValidHTTPToken(method)) {
+        throw new TypeError(`'${method}' is not a valid HTTP method.`)
       }
 
-      if (forbiddenMethods.indexOf(method.toUpperCase()) !== -1) {
-        throw TypeError(`'${init.method}' HTTP method is unsupported.`)
+      if (forbiddenMethodsSet.has(method.toUpperCase())) {
+        throw new TypeError(`'${method}' HTTP method is unsupported.`)
       }
 
       // 3. Normalize method.
-      method = normalizeMethod(init.method)
+      method = normalizeMethodRecord[method] ?? normalizeMethod(method)
 
       // 4. Set request’s method to method.
       request.method = method
@@ -25210,7 +26596,7 @@ class Request {
     // 30. Set this’s headers to a new Headers object with this’s relevant
     // Realm, whose header list is request’s header list and guard is
     // "request".
-    this[kHeaders] = new Headers()
+    this[kHeaders] = new Headers(kConstruct)
     this[kHeaders][kHeadersList] = request.headersList
     this[kHeaders][kGuard] = 'request'
     this[kHeaders][kRealm] = this[kRealm]
@@ -25219,7 +26605,7 @@ class Request {
     if (mode === 'no-cors') {
       // 1. If this’s request’s method is not a CORS-safelisted method,
       // then throw a TypeError.
-      if (!corsSafeListedMethods.includes(request.method)) {
+      if (!corsSafeListedMethodsSet.has(request.method)) {
         throw new TypeError(
           `'${request.method} is unsupported in no-cors mode.`
         )
@@ -25230,25 +26616,25 @@ class Request {
     }
 
     // 32. If init is not empty, then:
-    if (Object.keys(init).length !== 0) {
+    if (initHasKey) {
+      /** @type {HeadersList} */
+      const headersList = this[kHeaders][kHeadersList]
       // 1. Let headers be a copy of this’s headers and its associated header
       // list.
-      let headers = new Headers(this[kHeaders])
-
       // 2. If init["headers"] exists, then set headers to init["headers"].
-      if (init.headers !== undefined) {
-        headers = init.headers
-      }
+      const headers = init.headers !== undefined ? init.headers : new HeadersList(headersList)
 
       // 3. Empty this’s headers’s header list.
-      this[kHeaders][kHeadersList].clear()
+      headersList.clear()
 
       // 4. If headers is a Headers object, then for each header in its header
       // list, append header’s name/header’s value to this’s headers.
-      if (headers.constructor.name === 'Headers') {
+      if (headers instanceof HeadersList) {
         for (const [key, val] of headers) {
-          this[kHeaders].append(key, val)
+          headersList.append(key, val)
         }
+        // Note: Copy the `set-cookie` meta-data.
+        headersList.cookies = headers.cookies
       } else {
         // 5. Otherwise, fill this’s headers with headers.
         fillHeaders(this[kHeaders], headers)
@@ -25537,10 +26923,10 @@ class Request {
 
     // 3. Let clonedRequestObject be the result of creating a Request object,
     // given clonedRequest, this’s headers’s guard, and this’s relevant Realm.
-    const clonedRequestObject = new Request(kInit)
+    const clonedRequestObject = new Request(kConstruct)
     clonedRequestObject[kState] = clonedRequest
     clonedRequestObject[kRealm] = this[kRealm]
-    clonedRequestObject[kHeaders] = new Headers()
+    clonedRequestObject[kHeaders] = new Headers(kConstruct)
     clonedRequestObject[kHeaders][kHeadersList] = clonedRequest.headersList
     clonedRequestObject[kHeaders][kGuard] = this[kHeaders][kGuard]
     clonedRequestObject[kHeaders][kRealm] = this[kHeaders][kRealm]
@@ -25780,7 +27166,7 @@ const {
   isomorphicEncode
 } = __nccwpck_require__(2538)
 const {
-  redirectStatus,
+  redirectStatusSet,
   nullBodyStatus,
   DOMException
 } = __nccwpck_require__(1037)
@@ -25789,11 +27175,12 @@ const { webidl } = __nccwpck_require__(1744)
 const { FormData } = __nccwpck_require__(2015)
 const { getGlobalOrigin } = __nccwpck_require__(1246)
 const { URLSerializer } = __nccwpck_require__(685)
-const { kHeadersList } = __nccwpck_require__(2785)
+const { kHeadersList, kConstruct } = __nccwpck_require__(2785)
 const assert = __nccwpck_require__(9491)
 const { types } = __nccwpck_require__(3837)
 
 const ReadableStream = globalThis.ReadableStream || (__nccwpck_require__(5356).ReadableStream)
+const textEncoder = new TextEncoder('utf-8')
 
 // https://fetch.spec.whatwg.org/#response-class
 class Response {
@@ -25823,7 +27210,7 @@ class Response {
     }
 
     // 1. Let bytes the result of running serialize a JavaScript value to JSON bytes on data.
-    const bytes = new TextEncoder('utf-8').encode(
+    const bytes = textEncoder.encode(
       serializeJavascriptValueToJSONString(data)
     )
 
@@ -25868,7 +27255,7 @@ class Response {
     }
 
     // 3. If status is not a redirect status, then throw a RangeError.
-    if (!redirectStatus.includes(status)) {
+    if (!redirectStatusSet.has(status)) {
       throw new RangeError('Invalid status code ' + status)
     }
 
@@ -25909,7 +27296,7 @@ class Response {
     // 2. Set this’s headers to a new Headers object with this’s relevant
     // Realm, whose header list is this’s response’s header list and guard
     // is "response".
-    this[kHeaders] = new Headers()
+    this[kHeaders] = new Headers(kConstruct)
     this[kHeaders][kGuard] = 'response'
     this[kHeaders][kHeadersList] = this[kState].headersList
     this[kHeaders][kRealm] = this[kRealm]
@@ -26279,11 +27666,7 @@ webidl.converters.XMLHttpRequestBodyInit = function (V) {
     return webidl.converters.Blob(V, { strict: false })
   }
 
-  if (
-    types.isAnyArrayBuffer(V) ||
-    types.isTypedArray(V) ||
-    types.isDataView(V)
-  ) {
+  if (types.isArrayBuffer(V) || types.isTypedArray(V) || types.isDataView(V)) {
     return webidl.converters.BufferSource(V)
   }
 
@@ -26364,12 +27747,14 @@ module.exports = {
 
 
 
-const { redirectStatus, badPorts, referrerPolicy: referrerPolicyTokens } = __nccwpck_require__(1037)
+const { redirectStatusSet, referrerPolicySet: referrerPolicyTokens, badPortsSet } = __nccwpck_require__(1037)
 const { getGlobalOrigin } = __nccwpck_require__(1246)
 const { performance } = __nccwpck_require__(4074)
 const { isBlobLike, toUSVString, ReadableStreamFrom } = __nccwpck_require__(3983)
 const assert = __nccwpck_require__(9491)
 const { isUint8Array } = __nccwpck_require__(9830)
+
+let supportedHashes = []
 
 // https://nodejs.org/api/crypto.html#determining-if-crypto-support-is-unavailable
 /** @type {import('crypto')|undefined} */
@@ -26377,8 +27762,10 @@ let crypto
 
 try {
   crypto = __nccwpck_require__(6113)
+  const possibleRelevantHashes = ['sha256', 'sha384', 'sha512']
+  supportedHashes = crypto.getHashes().filter((hash) => possibleRelevantHashes.includes(hash))
+/* c8 ignore next 3 */
 } catch {
-
 }
 
 function responseURL (response) {
@@ -26393,7 +27780,7 @@ function responseURL (response) {
 // https://fetch.spec.whatwg.org/#concept-response-location-url
 function responseLocationURL (response, requestFragment) {
   // 1. If response’s status is not a redirect status, then return null.
-  if (!redirectStatus.includes(response.status)) {
+  if (!redirectStatusSet.has(response.status)) {
     return null
   }
 
@@ -26428,7 +27815,7 @@ function requestBadPort (request) {
 
   // 2. If url’s scheme is an HTTP(S) scheme and url’s port is a bad port,
   // then return blocked.
-  if (urlIsHttpHttpsScheme(url) && badPorts.includes(url.port)) {
+  if (urlIsHttpHttpsScheme(url) && badPortsSet.has(url.port)) {
     return 'blocked'
   }
 
@@ -26467,52 +27854,57 @@ function isValidReasonPhrase (statusText) {
   return true
 }
 
-function isTokenChar (c) {
-  return !(
-    c >= 0x7f ||
-    c <= 0x20 ||
-    c === '(' ||
-    c === ')' ||
-    c === '<' ||
-    c === '>' ||
-    c === '@' ||
-    c === ',' ||
-    c === ';' ||
-    c === ':' ||
-    c === '\\' ||
-    c === '"' ||
-    c === '/' ||
-    c === '[' ||
-    c === ']' ||
-    c === '?' ||
-    c === '=' ||
-    c === '{' ||
-    c === '}'
-  )
+/**
+ * @see https://tools.ietf.org/html/rfc7230#section-3.2.6
+ * @param {number} c
+ */
+function isTokenCharCode (c) {
+  switch (c) {
+    case 0x22:
+    case 0x28:
+    case 0x29:
+    case 0x2c:
+    case 0x2f:
+    case 0x3a:
+    case 0x3b:
+    case 0x3c:
+    case 0x3d:
+    case 0x3e:
+    case 0x3f:
+    case 0x40:
+    case 0x5b:
+    case 0x5c:
+    case 0x5d:
+    case 0x7b:
+    case 0x7d:
+      // DQUOTE and "(),/:;<=>?@[\]{}"
+      return false
+    default:
+      // VCHAR %x21-7E
+      return c >= 0x21 && c <= 0x7e
+  }
 }
 
-// See RFC 7230, Section 3.2.6.
-// https://github.com/chromium/chromium/blob/d7da0240cae77824d1eda25745c4022757499131/third_party/blink/renderer/platform/network/http_parsers.cc#L321
+/**
+ * @param {string} characters
+ */
 function isValidHTTPToken (characters) {
-  if (!characters || typeof characters !== 'string') {
+  if (characters.length === 0) {
     return false
   }
   for (let i = 0; i < characters.length; ++i) {
-    const c = characters.charCodeAt(i)
-    if (c > 0x7f || !isTokenChar(c)) {
+    if (!isTokenCharCode(characters.charCodeAt(i))) {
       return false
     }
   }
   return true
 }
 
-// https://fetch.spec.whatwg.org/#header-name
-// https://github.com/chromium/chromium/blob/b3d37e6f94f87d59e44662d6078f6a12de845d17/net/http/http_util.cc#L342
+/**
+ * @see https://fetch.spec.whatwg.org/#header-name
+ * @param {string} potentialValue
+ */
 function isValidHeaderName (potentialValue) {
-  if (potentialValue.length === 0) {
-    return false
-  }
-
   return isValidHTTPToken(potentialValue)
 }
 
@@ -26570,7 +27962,7 @@ function setRequestReferrerPolicyOnRedirect (request, actualResponse) {
     // The left-most policy is the fallback.
     for (let i = policyHeader.length; i !== 0; i--) {
       const token = policyHeader[i - 1].trim()
-      if (referrerPolicyTokens.includes(token)) {
+      if (referrerPolicyTokens.has(token)) {
         policy = token
         break
       }
@@ -26901,66 +28293,56 @@ function bytesMatch (bytes, metadataList) {
     return true
   }
 
-  // 3. If parsedMetadata is the empty set, return true.
+  // 3. If response is not eligible for integrity validation, return false.
+  // TODO
+
+  // 4. If parsedMetadata is the empty set, return true.
   if (parsedMetadata.length === 0) {
     return true
   }
 
-  // 4. Let metadata be the result of getting the strongest
+  // 5. Let metadata be the result of getting the strongest
   //    metadata from parsedMetadata.
-  const list = parsedMetadata.sort((c, d) => d.algo.localeCompare(c.algo))
-  // get the strongest algorithm
-  const strongest = list[0].algo
-  // get all entries that use the strongest algorithm; ignore weaker
-  const metadata = list.filter((item) => item.algo === strongest)
+  const strongest = getStrongestMetadata(parsedMetadata)
+  const metadata = filterMetadataListByAlgorithm(parsedMetadata, strongest)
 
-  // 5. For each item in metadata:
+  // 6. For each item in metadata:
   for (const item of metadata) {
     // 1. Let algorithm be the alg component of item.
     const algorithm = item.algo
 
     // 2. Let expectedValue be the val component of item.
-    let expectedValue = item.hash
+    const expectedValue = item.hash
 
     // See https://github.com/web-platform-tests/wpt/commit/e4c5cc7a5e48093220528dfdd1c4012dc3837a0e
     // "be liberal with padding". This is annoying, and it's not even in the spec.
 
-    if (expectedValue.endsWith('==')) {
-      expectedValue = expectedValue.slice(0, -2)
-    }
-
     // 3. Let actualValue be the result of applying algorithm to bytes.
     let actualValue = crypto.createHash(algorithm).update(bytes).digest('base64')
 
-    if (actualValue.endsWith('==')) {
-      actualValue = actualValue.slice(0, -2)
+    if (actualValue[actualValue.length - 1] === '=') {
+      if (actualValue[actualValue.length - 2] === '=') {
+        actualValue = actualValue.slice(0, -2)
+      } else {
+        actualValue = actualValue.slice(0, -1)
+      }
     }
 
     // 4. If actualValue is a case-sensitive match for expectedValue,
     //    return true.
-    if (actualValue === expectedValue) {
-      return true
-    }
-
-    let actualBase64URL = crypto.createHash(algorithm).update(bytes).digest('base64url')
-
-    if (actualBase64URL.endsWith('==')) {
-      actualBase64URL = actualBase64URL.slice(0, -2)
-    }
-
-    if (actualBase64URL === expectedValue) {
+    if (compareBase64Mixed(actualValue, expectedValue)) {
       return true
     }
   }
 
-  // 6. Return false.
+  // 7. Return false.
   return false
 }
 
 // https://w3c.github.io/webappsec-subresource-integrity/#grammardef-hash-with-options
 // https://www.w3.org/TR/CSP2/#source-list-syntax
 // https://www.rfc-editor.org/rfc/rfc5234#appendix-B.1
-const parseHashWithOptions = /((?<algo>sha256|sha384|sha512)-(?<hash>[A-z0-9+/]{1}.*={0,2}))( +[\x21-\x7e]?)?/i
+const parseHashWithOptions = /(?<algo>sha256|sha384|sha512)-((?<hash>[A-Za-z0-9+/]+|[A-Za-z0-9_-]+)={0,2}(?:\s|$)( +[!-~]*)?)?/i
 
 /**
  * @see https://w3c.github.io/webappsec-subresource-integrity/#parse-metadata
@@ -26974,8 +28356,6 @@ function parseMetadata (metadata) {
   // 2. Let empty be equal to true.
   let empty = true
 
-  const supportedHashes = crypto.getHashes()
-
   // 3. For each token returned by splitting metadata on spaces:
   for (const token of metadata.split(' ')) {
     // 1. Set empty to false.
@@ -26985,7 +28365,11 @@ function parseMetadata (metadata) {
     const parsedToken = parseHashWithOptions.exec(token)
 
     // 3. If token does not parse, continue to the next token.
-    if (parsedToken === null || parsedToken.groups === undefined) {
+    if (
+      parsedToken === null ||
+      parsedToken.groups === undefined ||
+      parsedToken.groups.algo === undefined
+    ) {
       // Note: Chromium blocks the request at this point, but Firefox
       // gives a warning that an invalid integrity was given. The
       // correct behavior is to ignore these, and subsequently not
@@ -26994,11 +28378,11 @@ function parseMetadata (metadata) {
     }
 
     // 4. Let algorithm be the hash-algo component of token.
-    const algorithm = parsedToken.groups.algo
+    const algorithm = parsedToken.groups.algo.toLowerCase()
 
     // 5. If algorithm is a hash function recognized by the user
     //    agent, add the parsed token to result.
-    if (supportedHashes.includes(algorithm.toLowerCase())) {
+    if (supportedHashes.includes(algorithm)) {
       result.push(parsedToken.groups)
     }
   }
@@ -27009,6 +28393,82 @@ function parseMetadata (metadata) {
   }
 
   return result
+}
+
+/**
+ * @param {{ algo: 'sha256' | 'sha384' | 'sha512' }[]} metadataList
+ */
+function getStrongestMetadata (metadataList) {
+  // Let algorithm be the algo component of the first item in metadataList.
+  // Can be sha256
+  let algorithm = metadataList[0].algo
+  // If the algorithm is sha512, then it is the strongest
+  // and we can return immediately
+  if (algorithm[3] === '5') {
+    return algorithm
+  }
+
+  for (let i = 1; i < metadataList.length; ++i) {
+    const metadata = metadataList[i]
+    // If the algorithm is sha512, then it is the strongest
+    // and we can break the loop immediately
+    if (metadata.algo[3] === '5') {
+      algorithm = 'sha512'
+      break
+    // If the algorithm is sha384, then a potential sha256 or sha384 is ignored
+    } else if (algorithm[3] === '3') {
+      continue
+    // algorithm is sha256, check if algorithm is sha384 and if so, set it as
+    // the strongest
+    } else if (metadata.algo[3] === '3') {
+      algorithm = 'sha384'
+    }
+  }
+  return algorithm
+}
+
+function filterMetadataListByAlgorithm (metadataList, algorithm) {
+  if (metadataList.length === 1) {
+    return metadataList
+  }
+
+  let pos = 0
+  for (let i = 0; i < metadataList.length; ++i) {
+    if (metadataList[i].algo === algorithm) {
+      metadataList[pos++] = metadataList[i]
+    }
+  }
+
+  metadataList.length = pos
+
+  return metadataList
+}
+
+/**
+ * Compares two base64 strings, allowing for base64url
+ * in the second string.
+ *
+* @param {string} actualValue always base64
+ * @param {string} expectedValue base64 or base64url
+ * @returns {boolean}
+ */
+function compareBase64Mixed (actualValue, expectedValue) {
+  if (actualValue.length !== expectedValue.length) {
+    return false
+  }
+  for (let i = 0; i < actualValue.length; ++i) {
+    if (actualValue[i] !== expectedValue[i]) {
+      if (
+        (actualValue[i] === '+' && expectedValue[i] === '-') ||
+        (actualValue[i] === '/' && expectedValue[i] === '_')
+      ) {
+        continue
+      }
+      return false
+    }
+  }
+
+  return true
 }
 
 // https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-request
@@ -27057,11 +28517,30 @@ function isCancelled (fetchParams) {
     fetchParams.controller.state === 'terminated'
 }
 
-// https://fetch.spec.whatwg.org/#concept-method-normalize
+const normalizeMethodRecord = {
+  delete: 'DELETE',
+  DELETE: 'DELETE',
+  get: 'GET',
+  GET: 'GET',
+  head: 'HEAD',
+  HEAD: 'HEAD',
+  options: 'OPTIONS',
+  OPTIONS: 'OPTIONS',
+  post: 'POST',
+  POST: 'POST',
+  put: 'PUT',
+  PUT: 'PUT'
+}
+
+// Note: object prototypes should not be able to be referenced. e.g. `Object#hasOwnProperty`.
+Object.setPrototypeOf(normalizeMethodRecord, null)
+
+/**
+ * @see https://fetch.spec.whatwg.org/#concept-method-normalize
+ * @param {string} method
+ */
 function normalizeMethod (method) {
-  return /^(DELETE|GET|HEAD|OPTIONS|POST|PUT)$/i.test(method)
-    ? method.toUpperCase()
-    : method
+  return normalizeMethodRecord[method.toLowerCase()] ?? method
 }
 
 // https://infra.spec.whatwg.org/#serialize-a-javascript-value-to-a-json-string
@@ -27406,7 +28885,9 @@ module.exports = {
   urlIsLocal,
   urlHasHttpsScheme,
   urlIsHttpHttpsScheme,
-  readAllBytes
+  readAllBytes,
+  normalizeMethodRecord,
+  parseMetadata
 }
 
 
@@ -27844,12 +29325,10 @@ webidl.converters.ByteString = function (V) {
   // 2. If the value of any element of x is greater than
   //    255, then throw a TypeError.
   for (let index = 0; index < x.length; index++) {
-    const charCode = x.charCodeAt(index)
-
-    if (charCode > 255) {
+    if (x.charCodeAt(index) > 255) {
       throw new TypeError(
         'Cannot convert argument to a ByteString because the character at ' +
-        `index ${index} has a value of ${charCode} which is greater than 255.`
+        `index ${index} has a value of ${x.charCodeAt(index)} which is greater than 255.`
       )
     }
   }
@@ -29486,12 +30965,17 @@ function parseLocation (statusCode, headers) {
 
 // https://tools.ietf.org/html/rfc7231#section-6.4.4
 function shouldRemoveHeader (header, removeContent, unknownOrigin) {
-  return (
-    (header.length === 4 && header.toString().toLowerCase() === 'host') ||
-    (removeContent && header.toString().toLowerCase().indexOf('content-') === 0) ||
-    (unknownOrigin && header.length === 13 && header.toString().toLowerCase() === 'authorization') ||
-    (unknownOrigin && header.length === 6 && header.toString().toLowerCase() === 'cookie')
-  )
+  if (header.length === 4) {
+    return util.headerNameToString(header) === 'host'
+  }
+  if (removeContent && util.headerNameToString(header).startsWith('content-')) {
+    return true
+  }
+  if (unknownOrigin && (header.length === 13 || header.length === 6 || header.length === 19)) {
+    const name = util.headerNameToString(header)
+    return name === 'authorization' || name === 'cookie' || name === 'proxy-authorization'
+  }
+  return false
 }
 
 // https://tools.ietf.org/html/rfc7231#section-6.4
@@ -29516,6 +31000,349 @@ function cleanRequestHeaders (headers, removeContent, unknownOrigin) {
 }
 
 module.exports = RedirectHandler
+
+
+/***/ }),
+
+/***/ 2286:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const assert = __nccwpck_require__(9491)
+
+const { kRetryHandlerDefaultRetry } = __nccwpck_require__(2785)
+const { RequestRetryError } = __nccwpck_require__(8045)
+const { isDisturbed, parseHeaders, parseRangeHeader } = __nccwpck_require__(3983)
+
+function calculateRetryAfterHeader (retryAfter) {
+  const current = Date.now()
+  const diff = new Date(retryAfter).getTime() - current
+
+  return diff
+}
+
+class RetryHandler {
+  constructor (opts, handlers) {
+    const { retryOptions, ...dispatchOpts } = opts
+    const {
+      // Retry scoped
+      retry: retryFn,
+      maxRetries,
+      maxTimeout,
+      minTimeout,
+      timeoutFactor,
+      // Response scoped
+      methods,
+      errorCodes,
+      retryAfter,
+      statusCodes
+    } = retryOptions ?? {}
+
+    this.dispatch = handlers.dispatch
+    this.handler = handlers.handler
+    this.opts = dispatchOpts
+    this.abort = null
+    this.aborted = false
+    this.retryOpts = {
+      retry: retryFn ?? RetryHandler[kRetryHandlerDefaultRetry],
+      retryAfter: retryAfter ?? true,
+      maxTimeout: maxTimeout ?? 30 * 1000, // 30s,
+      timeout: minTimeout ?? 500, // .5s
+      timeoutFactor: timeoutFactor ?? 2,
+      maxRetries: maxRetries ?? 5,
+      // What errors we should retry
+      methods: methods ?? ['GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE', 'TRACE'],
+      // Indicates which errors to retry
+      statusCodes: statusCodes ?? [500, 502, 503, 504, 429],
+      // List of errors to retry
+      errorCodes: errorCodes ?? [
+        'ECONNRESET',
+        'ECONNREFUSED',
+        'ENOTFOUND',
+        'ENETDOWN',
+        'ENETUNREACH',
+        'EHOSTDOWN',
+        'EHOSTUNREACH',
+        'EPIPE'
+      ]
+    }
+
+    this.retryCount = 0
+    this.start = 0
+    this.end = null
+    this.etag = null
+    this.resume = null
+
+    // Handle possible onConnect duplication
+    this.handler.onConnect(reason => {
+      this.aborted = true
+      if (this.abort) {
+        this.abort(reason)
+      } else {
+        this.reason = reason
+      }
+    })
+  }
+
+  onRequestSent () {
+    if (this.handler.onRequestSent) {
+      this.handler.onRequestSent()
+    }
+  }
+
+  onUpgrade (statusCode, headers, socket) {
+    if (this.handler.onUpgrade) {
+      this.handler.onUpgrade(statusCode, headers, socket)
+    }
+  }
+
+  onConnect (abort) {
+    if (this.aborted) {
+      abort(this.reason)
+    } else {
+      this.abort = abort
+    }
+  }
+
+  onBodySent (chunk) {
+    if (this.handler.onBodySent) return this.handler.onBodySent(chunk)
+  }
+
+  static [kRetryHandlerDefaultRetry] (err, { state, opts }, cb) {
+    const { statusCode, code, headers } = err
+    const { method, retryOptions } = opts
+    const {
+      maxRetries,
+      timeout,
+      maxTimeout,
+      timeoutFactor,
+      statusCodes,
+      errorCodes,
+      methods
+    } = retryOptions
+    let { counter, currentTimeout } = state
+
+    currentTimeout =
+      currentTimeout != null && currentTimeout > 0 ? currentTimeout : timeout
+
+    // Any code that is not a Undici's originated and allowed to retry
+    if (
+      code &&
+      code !== 'UND_ERR_REQ_RETRY' &&
+      code !== 'UND_ERR_SOCKET' &&
+      !errorCodes.includes(code)
+    ) {
+      cb(err)
+      return
+    }
+
+    // If a set of method are provided and the current method is not in the list
+    if (Array.isArray(methods) && !methods.includes(method)) {
+      cb(err)
+      return
+    }
+
+    // If a set of status code are provided and the current status code is not in the list
+    if (
+      statusCode != null &&
+      Array.isArray(statusCodes) &&
+      !statusCodes.includes(statusCode)
+    ) {
+      cb(err)
+      return
+    }
+
+    // If we reached the max number of retries
+    if (counter > maxRetries) {
+      cb(err)
+      return
+    }
+
+    let retryAfterHeader = headers != null && headers['retry-after']
+    if (retryAfterHeader) {
+      retryAfterHeader = Number(retryAfterHeader)
+      retryAfterHeader = isNaN(retryAfterHeader)
+        ? calculateRetryAfterHeader(retryAfterHeader)
+        : retryAfterHeader * 1e3 // Retry-After is in seconds
+    }
+
+    const retryTimeout =
+      retryAfterHeader > 0
+        ? Math.min(retryAfterHeader, maxTimeout)
+        : Math.min(currentTimeout * timeoutFactor ** counter, maxTimeout)
+
+    state.currentTimeout = retryTimeout
+
+    setTimeout(() => cb(null), retryTimeout)
+  }
+
+  onHeaders (statusCode, rawHeaders, resume, statusMessage) {
+    const headers = parseHeaders(rawHeaders)
+
+    this.retryCount += 1
+
+    if (statusCode >= 300) {
+      this.abort(
+        new RequestRetryError('Request failed', statusCode, {
+          headers,
+          count: this.retryCount
+        })
+      )
+      return false
+    }
+
+    // Checkpoint for resume from where we left it
+    if (this.resume != null) {
+      this.resume = null
+
+      if (statusCode !== 206) {
+        return true
+      }
+
+      const contentRange = parseRangeHeader(headers['content-range'])
+      // If no content range
+      if (!contentRange) {
+        this.abort(
+          new RequestRetryError('Content-Range mismatch', statusCode, {
+            headers,
+            count: this.retryCount
+          })
+        )
+        return false
+      }
+
+      // Let's start with a weak etag check
+      if (this.etag != null && this.etag !== headers.etag) {
+        this.abort(
+          new RequestRetryError('ETag mismatch', statusCode, {
+            headers,
+            count: this.retryCount
+          })
+        )
+        return false
+      }
+
+      const { start, size, end = size } = contentRange
+
+      assert(this.start === start, 'content-range mismatch')
+      assert(this.end == null || this.end === end, 'content-range mismatch')
+
+      this.resume = resume
+      return true
+    }
+
+    if (this.end == null) {
+      if (statusCode === 206) {
+        // First time we receive 206
+        const range = parseRangeHeader(headers['content-range'])
+
+        if (range == null) {
+          return this.handler.onHeaders(
+            statusCode,
+            rawHeaders,
+            resume,
+            statusMessage
+          )
+        }
+
+        const { start, size, end = size } = range
+
+        assert(
+          start != null && Number.isFinite(start) && this.start !== start,
+          'content-range mismatch'
+        )
+        assert(Number.isFinite(start))
+        assert(
+          end != null && Number.isFinite(end) && this.end !== end,
+          'invalid content-length'
+        )
+
+        this.start = start
+        this.end = end
+      }
+
+      // We make our best to checkpoint the body for further range headers
+      if (this.end == null) {
+        const contentLength = headers['content-length']
+        this.end = contentLength != null ? Number(contentLength) : null
+      }
+
+      assert(Number.isFinite(this.start))
+      assert(
+        this.end == null || Number.isFinite(this.end),
+        'invalid content-length'
+      )
+
+      this.resume = resume
+      this.etag = headers.etag != null ? headers.etag : null
+
+      return this.handler.onHeaders(
+        statusCode,
+        rawHeaders,
+        resume,
+        statusMessage
+      )
+    }
+
+    const err = new RequestRetryError('Request failed', statusCode, {
+      headers,
+      count: this.retryCount
+    })
+
+    this.abort(err)
+
+    return false
+  }
+
+  onData (chunk) {
+    this.start += chunk.length
+
+    return this.handler.onData(chunk)
+  }
+
+  onComplete (rawTrailers) {
+    this.retryCount = 0
+    return this.handler.onComplete(rawTrailers)
+  }
+
+  onError (err) {
+    if (this.aborted || isDisturbed(this.opts.body)) {
+      return this.handler.onError(err)
+    }
+
+    this.retryOpts.retry(
+      err,
+      {
+        state: { counter: this.retryCount++, currentTimeout: this.retryAfter },
+        opts: { retryOptions: this.retryOpts, ...this.opts }
+      },
+      onRetry.bind(this)
+    )
+
+    function onRetry (err) {
+      if (err != null || this.aborted || isDisturbed(this.opts.body)) {
+        return this.handler.onError(err)
+      }
+
+      if (this.start !== 0) {
+        this.opts = {
+          ...this.opts,
+          headers: {
+            ...this.opts.headers,
+            range: `bytes=${this.start}-${this.end ?? ''}`
+          }
+        }
+      }
+
+      try {
+        this.dispatch(this.opts, this)
+      } catch (err) {
+        this.handler.onError(err)
+      }
+    }
+  }
+}
+
+module.exports = RetryHandler
 
 
 /***/ }),
@@ -31315,7 +33142,7 @@ class Pool extends PoolBase {
         maxCachedSessions,
         allowH2,
         socketPath,
-        timeout: connectTimeout == null ? 10e3 : connectTimeout,
+        timeout: connectTimeout,
         ...(util.nodeHasAutoSelectFamily && autoSelectFamily ? { autoSelectFamily, autoSelectFamilyAttemptTimeout } : undefined),
         ...connect
       })
@@ -31424,6 +33251,9 @@ class ProxyAgent extends DispatcherBase {
     this[kProxyTls] = opts.proxyTls
     this[kProxyHeaders] = opts.headers || {}
 
+    const resolvedUrl = new URL(opts.uri)
+    const { origin, port, host, username, password } = resolvedUrl
+
     if (opts.auth && opts.token) {
       throw new InvalidArgumentError('opts.auth cannot be used in combination with opts.token')
     } else if (opts.auth) {
@@ -31431,10 +33261,9 @@ class ProxyAgent extends DispatcherBase {
       this[kProxyHeaders]['proxy-authorization'] = `Basic ${opts.auth}`
     } else if (opts.token) {
       this[kProxyHeaders]['proxy-authorization'] = opts.token
+    } else if (username && password) {
+      this[kProxyHeaders]['proxy-authorization'] = `Basic ${Buffer.from(`${decodeURIComponent(username)}:${decodeURIComponent(password)}`).toString('base64')}`
     }
-
-    const resolvedUrl = new URL(opts.uri)
-    const { origin, port, host } = resolvedUrl
 
     const connect = buildConnector({ ...opts.proxyTls })
     this[kConnectEndpoint] = buildConnector({ ...opts.requestTls })
@@ -31459,7 +33288,7 @@ class ProxyAgent extends DispatcherBase {
           })
           if (statusCode !== 200) {
             socket.on('error', () => {}).destroy()
-            callback(new RequestAbortedError('Proxy response !== 200 when HTTP Tunneling'))
+            callback(new RequestAbortedError(`Proxy response (${statusCode}) !== 200 when HTTP Tunneling`))
           }
           if (opts.protocol !== 'https:') {
             callback(null, socket)
@@ -33635,7 +35464,7 @@ function getUserAgent() {
     return navigator.userAgent;
   }
 
-  if (typeof process === "object" && "version" in process) {
+  if (typeof process === "object" && process.version !== undefined) {
     return `Node.js/${process.version.substr(1)} (${process.platform}; ${process.arch})`;
   }
 
@@ -34652,6 +36481,1619 @@ module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("worker_threa
 
 module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("zlib");
 
+/***/ }),
+
+/***/ 2960:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+
+
+const WritableStream = (__nccwpck_require__(4492).Writable)
+const inherits = (__nccwpck_require__(7261).inherits)
+
+const StreamSearch = __nccwpck_require__(1142)
+
+const PartStream = __nccwpck_require__(1620)
+const HeaderParser = __nccwpck_require__(2032)
+
+const DASH = 45
+const B_ONEDASH = Buffer.from('-')
+const B_CRLF = Buffer.from('\r\n')
+const EMPTY_FN = function () {}
+
+function Dicer (cfg) {
+  if (!(this instanceof Dicer)) { return new Dicer(cfg) }
+  WritableStream.call(this, cfg)
+
+  if (!cfg || (!cfg.headerFirst && typeof cfg.boundary !== 'string')) { throw new TypeError('Boundary required') }
+
+  if (typeof cfg.boundary === 'string') { this.setBoundary(cfg.boundary) } else { this._bparser = undefined }
+
+  this._headerFirst = cfg.headerFirst
+
+  this._dashes = 0
+  this._parts = 0
+  this._finished = false
+  this._realFinish = false
+  this._isPreamble = true
+  this._justMatched = false
+  this._firstWrite = true
+  this._inHeader = true
+  this._part = undefined
+  this._cb = undefined
+  this._ignoreData = false
+  this._partOpts = { highWaterMark: cfg.partHwm }
+  this._pause = false
+
+  const self = this
+  this._hparser = new HeaderParser(cfg)
+  this._hparser.on('header', function (header) {
+    self._inHeader = false
+    self._part.emit('header', header)
+  })
+}
+inherits(Dicer, WritableStream)
+
+Dicer.prototype.emit = function (ev) {
+  if (ev === 'finish' && !this._realFinish) {
+    if (!this._finished) {
+      const self = this
+      process.nextTick(function () {
+        self.emit('error', new Error('Unexpected end of multipart data'))
+        if (self._part && !self._ignoreData) {
+          const type = (self._isPreamble ? 'Preamble' : 'Part')
+          self._part.emit('error', new Error(type + ' terminated early due to unexpected end of multipart data'))
+          self._part.push(null)
+          process.nextTick(function () {
+            self._realFinish = true
+            self.emit('finish')
+            self._realFinish = false
+          })
+          return
+        }
+        self._realFinish = true
+        self.emit('finish')
+        self._realFinish = false
+      })
+    }
+  } else { WritableStream.prototype.emit.apply(this, arguments) }
+}
+
+Dicer.prototype._write = function (data, encoding, cb) {
+  // ignore unexpected data (e.g. extra trailer data after finished)
+  if (!this._hparser && !this._bparser) { return cb() }
+
+  if (this._headerFirst && this._isPreamble) {
+    if (!this._part) {
+      this._part = new PartStream(this._partOpts)
+      if (this.listenerCount('preamble') !== 0) { this.emit('preamble', this._part) } else { this._ignore() }
+    }
+    const r = this._hparser.push(data)
+    if (!this._inHeader && r !== undefined && r < data.length) { data = data.slice(r) } else { return cb() }
+  }
+
+  // allows for "easier" testing
+  if (this._firstWrite) {
+    this._bparser.push(B_CRLF)
+    this._firstWrite = false
+  }
+
+  this._bparser.push(data)
+
+  if (this._pause) { this._cb = cb } else { cb() }
+}
+
+Dicer.prototype.reset = function () {
+  this._part = undefined
+  this._bparser = undefined
+  this._hparser = undefined
+}
+
+Dicer.prototype.setBoundary = function (boundary) {
+  const self = this
+  this._bparser = new StreamSearch('\r\n--' + boundary)
+  this._bparser.on('info', function (isMatch, data, start, end) {
+    self._oninfo(isMatch, data, start, end)
+  })
+}
+
+Dicer.prototype._ignore = function () {
+  if (this._part && !this._ignoreData) {
+    this._ignoreData = true
+    this._part.on('error', EMPTY_FN)
+    // we must perform some kind of read on the stream even though we are
+    // ignoring the data, otherwise node's Readable stream will not emit 'end'
+    // after pushing null to the stream
+    this._part.resume()
+  }
+}
+
+Dicer.prototype._oninfo = function (isMatch, data, start, end) {
+  let buf; const self = this; let i = 0; let r; let shouldWriteMore = true
+
+  if (!this._part && this._justMatched && data) {
+    while (this._dashes < 2 && (start + i) < end) {
+      if (data[start + i] === DASH) {
+        ++i
+        ++this._dashes
+      } else {
+        if (this._dashes) { buf = B_ONEDASH }
+        this._dashes = 0
+        break
+      }
+    }
+    if (this._dashes === 2) {
+      if ((start + i) < end && this.listenerCount('trailer') !== 0) { this.emit('trailer', data.slice(start + i, end)) }
+      this.reset()
+      this._finished = true
+      // no more parts will be added
+      if (self._parts === 0) {
+        self._realFinish = true
+        self.emit('finish')
+        self._realFinish = false
+      }
+    }
+    if (this._dashes) { return }
+  }
+  if (this._justMatched) { this._justMatched = false }
+  if (!this._part) {
+    this._part = new PartStream(this._partOpts)
+    this._part._read = function (n) {
+      self._unpause()
+    }
+    if (this._isPreamble && this.listenerCount('preamble') !== 0) {
+      this.emit('preamble', this._part)
+    } else if (this._isPreamble !== true && this.listenerCount('part') !== 0) {
+      this.emit('part', this._part)
+    } else {
+      this._ignore()
+    }
+    if (!this._isPreamble) { this._inHeader = true }
+  }
+  if (data && start < end && !this._ignoreData) {
+    if (this._isPreamble || !this._inHeader) {
+      if (buf) { shouldWriteMore = this._part.push(buf) }
+      shouldWriteMore = this._part.push(data.slice(start, end))
+      if (!shouldWriteMore) { this._pause = true }
+    } else if (!this._isPreamble && this._inHeader) {
+      if (buf) { this._hparser.push(buf) }
+      r = this._hparser.push(data.slice(start, end))
+      if (!this._inHeader && r !== undefined && r < end) { this._oninfo(false, data, start + r, end) }
+    }
+  }
+  if (isMatch) {
+    this._hparser.reset()
+    if (this._isPreamble) { this._isPreamble = false } else {
+      if (start !== end) {
+        ++this._parts
+        this._part.on('end', function () {
+          if (--self._parts === 0) {
+            if (self._finished) {
+              self._realFinish = true
+              self.emit('finish')
+              self._realFinish = false
+            } else {
+              self._unpause()
+            }
+          }
+        })
+      }
+    }
+    this._part.push(null)
+    this._part = undefined
+    this._ignoreData = false
+    this._justMatched = true
+    this._dashes = 0
+  }
+}
+
+Dicer.prototype._unpause = function () {
+  if (!this._pause) { return }
+
+  this._pause = false
+  if (this._cb) {
+    const cb = this._cb
+    this._cb = undefined
+    cb()
+  }
+}
+
+module.exports = Dicer
+
+
+/***/ }),
+
+/***/ 2032:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+
+
+const EventEmitter = (__nccwpck_require__(5673).EventEmitter)
+const inherits = (__nccwpck_require__(7261).inherits)
+const getLimit = __nccwpck_require__(1467)
+
+const StreamSearch = __nccwpck_require__(1142)
+
+const B_DCRLF = Buffer.from('\r\n\r\n')
+const RE_CRLF = /\r\n/g
+const RE_HDR = /^([^:]+):[ \t]?([\x00-\xFF]+)?$/ // eslint-disable-line no-control-regex
+
+function HeaderParser (cfg) {
+  EventEmitter.call(this)
+
+  cfg = cfg || {}
+  const self = this
+  this.nread = 0
+  this.maxed = false
+  this.npairs = 0
+  this.maxHeaderPairs = getLimit(cfg, 'maxHeaderPairs', 2000)
+  this.maxHeaderSize = getLimit(cfg, 'maxHeaderSize', 80 * 1024)
+  this.buffer = ''
+  this.header = {}
+  this.finished = false
+  this.ss = new StreamSearch(B_DCRLF)
+  this.ss.on('info', function (isMatch, data, start, end) {
+    if (data && !self.maxed) {
+      if (self.nread + end - start >= self.maxHeaderSize) {
+        end = self.maxHeaderSize - self.nread + start
+        self.nread = self.maxHeaderSize
+        self.maxed = true
+      } else { self.nread += (end - start) }
+
+      self.buffer += data.toString('binary', start, end)
+    }
+    if (isMatch) { self._finish() }
+  })
+}
+inherits(HeaderParser, EventEmitter)
+
+HeaderParser.prototype.push = function (data) {
+  const r = this.ss.push(data)
+  if (this.finished) { return r }
+}
+
+HeaderParser.prototype.reset = function () {
+  this.finished = false
+  this.buffer = ''
+  this.header = {}
+  this.ss.reset()
+}
+
+HeaderParser.prototype._finish = function () {
+  if (this.buffer) { this._parseHeader() }
+  this.ss.matches = this.ss.maxMatches
+  const header = this.header
+  this.header = {}
+  this.buffer = ''
+  this.finished = true
+  this.nread = this.npairs = 0
+  this.maxed = false
+  this.emit('header', header)
+}
+
+HeaderParser.prototype._parseHeader = function () {
+  if (this.npairs === this.maxHeaderPairs) { return }
+
+  const lines = this.buffer.split(RE_CRLF)
+  const len = lines.length
+  let m, h
+
+  for (var i = 0; i < len; ++i) { // eslint-disable-line no-var
+    if (lines[i].length === 0) { continue }
+    if (lines[i][0] === '\t' || lines[i][0] === ' ') {
+      // folded header content
+      // RFC2822 says to just remove the CRLF and not the whitespace following
+      // it, so we follow the RFC and include the leading whitespace ...
+      if (h) {
+        this.header[h][this.header[h].length - 1] += lines[i]
+        continue
+      }
+    }
+
+    const posColon = lines[i].indexOf(':')
+    if (
+      posColon === -1 ||
+      posColon === 0
+    ) {
+      return
+    }
+    m = RE_HDR.exec(lines[i])
+    h = m[1].toLowerCase()
+    this.header[h] = this.header[h] || []
+    this.header[h].push((m[2] || ''))
+    if (++this.npairs === this.maxHeaderPairs) { break }
+  }
+}
+
+module.exports = HeaderParser
+
+
+/***/ }),
+
+/***/ 1620:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+
+
+const inherits = (__nccwpck_require__(7261).inherits)
+const ReadableStream = (__nccwpck_require__(4492).Readable)
+
+function PartStream (opts) {
+  ReadableStream.call(this, opts)
+}
+inherits(PartStream, ReadableStream)
+
+PartStream.prototype._read = function (n) {}
+
+module.exports = PartStream
+
+
+/***/ }),
+
+/***/ 1142:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+
+
+/**
+ * Copyright Brian White. All rights reserved.
+ *
+ * @see https://github.com/mscdex/streamsearch
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * Based heavily on the Streaming Boyer-Moore-Horspool C++ implementation
+ * by Hongli Lai at: https://github.com/FooBarWidget/boyer-moore-horspool
+ */
+const EventEmitter = (__nccwpck_require__(5673).EventEmitter)
+const inherits = (__nccwpck_require__(7261).inherits)
+
+function SBMH (needle) {
+  if (typeof needle === 'string') {
+    needle = Buffer.from(needle)
+  }
+
+  if (!Buffer.isBuffer(needle)) {
+    throw new TypeError('The needle has to be a String or a Buffer.')
+  }
+
+  const needleLength = needle.length
+
+  if (needleLength === 0) {
+    throw new Error('The needle cannot be an empty String/Buffer.')
+  }
+
+  if (needleLength > 256) {
+    throw new Error('The needle cannot have a length bigger than 256.')
+  }
+
+  this.maxMatches = Infinity
+  this.matches = 0
+
+  this._occ = new Array(256)
+    .fill(needleLength) // Initialize occurrence table.
+  this._lookbehind_size = 0
+  this._needle = needle
+  this._bufpos = 0
+
+  this._lookbehind = Buffer.alloc(needleLength)
+
+  // Populate occurrence table with analysis of the needle,
+  // ignoring last letter.
+  for (var i = 0; i < needleLength - 1; ++i) { // eslint-disable-line no-var
+    this._occ[needle[i]] = needleLength - 1 - i
+  }
+}
+inherits(SBMH, EventEmitter)
+
+SBMH.prototype.reset = function () {
+  this._lookbehind_size = 0
+  this.matches = 0
+  this._bufpos = 0
+}
+
+SBMH.prototype.push = function (chunk, pos) {
+  if (!Buffer.isBuffer(chunk)) {
+    chunk = Buffer.from(chunk, 'binary')
+  }
+  const chlen = chunk.length
+  this._bufpos = pos || 0
+  let r
+  while (r !== chlen && this.matches < this.maxMatches) { r = this._sbmh_feed(chunk) }
+  return r
+}
+
+SBMH.prototype._sbmh_feed = function (data) {
+  const len = data.length
+  const needle = this._needle
+  const needleLength = needle.length
+  const lastNeedleChar = needle[needleLength - 1]
+
+  // Positive: points to a position in `data`
+  //           pos == 3 points to data[3]
+  // Negative: points to a position in the lookbehind buffer
+  //           pos == -2 points to lookbehind[lookbehind_size - 2]
+  let pos = -this._lookbehind_size
+  let ch
+
+  if (pos < 0) {
+    // Lookbehind buffer is not empty. Perform Boyer-Moore-Horspool
+    // search with character lookup code that considers both the
+    // lookbehind buffer and the current round's haystack data.
+    //
+    // Loop until
+    //   there is a match.
+    // or until
+    //   we've moved past the position that requires the
+    //   lookbehind buffer. In this case we switch to the
+    //   optimized loop.
+    // or until
+    //   the character to look at lies outside the haystack.
+    while (pos < 0 && pos <= len - needleLength) {
+      ch = this._sbmh_lookup_char(data, pos + needleLength - 1)
+
+      if (
+        ch === lastNeedleChar &&
+        this._sbmh_memcmp(data, pos, needleLength - 1)
+      ) {
+        this._lookbehind_size = 0
+        ++this.matches
+        this.emit('info', true)
+
+        return (this._bufpos = pos + needleLength)
+      }
+      pos += this._occ[ch]
+    }
+
+    // No match.
+
+    if (pos < 0) {
+      // There's too few data for Boyer-Moore-Horspool to run,
+      // so let's use a different algorithm to skip as much as
+      // we can.
+      // Forward pos until
+      //   the trailing part of lookbehind + data
+      //   looks like the beginning of the needle
+      // or until
+      //   pos == 0
+      while (pos < 0 && !this._sbmh_memcmp(data, pos, len - pos)) { ++pos }
+    }
+
+    if (pos >= 0) {
+      // Discard lookbehind buffer.
+      this.emit('info', false, this._lookbehind, 0, this._lookbehind_size)
+      this._lookbehind_size = 0
+    } else {
+      // Cut off part of the lookbehind buffer that has
+      // been processed and append the entire haystack
+      // into it.
+      const bytesToCutOff = this._lookbehind_size + pos
+      if (bytesToCutOff > 0) {
+        // The cut off data is guaranteed not to contain the needle.
+        this.emit('info', false, this._lookbehind, 0, bytesToCutOff)
+      }
+
+      this._lookbehind.copy(this._lookbehind, 0, bytesToCutOff,
+        this._lookbehind_size - bytesToCutOff)
+      this._lookbehind_size -= bytesToCutOff
+
+      data.copy(this._lookbehind, this._lookbehind_size)
+      this._lookbehind_size += len
+
+      this._bufpos = len
+      return len
+    }
+  }
+
+  pos += (pos >= 0) * this._bufpos
+
+  // Lookbehind buffer is now empty. We only need to check if the
+  // needle is in the haystack.
+  if (data.indexOf(needle, pos) !== -1) {
+    pos = data.indexOf(needle, pos)
+    ++this.matches
+    if (pos > 0) { this.emit('info', true, data, this._bufpos, pos) } else { this.emit('info', true) }
+
+    return (this._bufpos = pos + needleLength)
+  } else {
+    pos = len - needleLength
+  }
+
+  // There was no match. If there's trailing haystack data that we cannot
+  // match yet using the Boyer-Moore-Horspool algorithm (because the trailing
+  // data is less than the needle size) then match using a modified
+  // algorithm that starts matching from the beginning instead of the end.
+  // Whatever trailing data is left after running this algorithm is added to
+  // the lookbehind buffer.
+  while (
+    pos < len &&
+    (
+      data[pos] !== needle[0] ||
+      (
+        (Buffer.compare(
+          data.subarray(pos, pos + len - pos),
+          needle.subarray(0, len - pos)
+        ) !== 0)
+      )
+    )
+  ) {
+    ++pos
+  }
+  if (pos < len) {
+    data.copy(this._lookbehind, 0, pos, pos + (len - pos))
+    this._lookbehind_size = len - pos
+  }
+
+  // Everything until pos is guaranteed not to contain needle data.
+  if (pos > 0) { this.emit('info', false, data, this._bufpos, pos < len ? pos : len) }
+
+  this._bufpos = len
+  return len
+}
+
+SBMH.prototype._sbmh_lookup_char = function (data, pos) {
+  return (pos < 0)
+    ? this._lookbehind[this._lookbehind_size + pos]
+    : data[pos]
+}
+
+SBMH.prototype._sbmh_memcmp = function (data, pos, len) {
+  for (var i = 0; i < len; ++i) { // eslint-disable-line no-var
+    if (this._sbmh_lookup_char(data, pos + i) !== this._needle[i]) { return false }
+  }
+  return true
+}
+
+module.exports = SBMH
+
+
+/***/ }),
+
+/***/ 727:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+
+
+const WritableStream = (__nccwpck_require__(4492).Writable)
+const { inherits } = __nccwpck_require__(7261)
+const Dicer = __nccwpck_require__(2960)
+
+const MultipartParser = __nccwpck_require__(2183)
+const UrlencodedParser = __nccwpck_require__(8306)
+const parseParams = __nccwpck_require__(1854)
+
+function Busboy (opts) {
+  if (!(this instanceof Busboy)) { return new Busboy(opts) }
+
+  if (typeof opts !== 'object') {
+    throw new TypeError('Busboy expected an options-Object.')
+  }
+  if (typeof opts.headers !== 'object') {
+    throw new TypeError('Busboy expected an options-Object with headers-attribute.')
+  }
+  if (typeof opts.headers['content-type'] !== 'string') {
+    throw new TypeError('Missing Content-Type-header.')
+  }
+
+  const {
+    headers,
+    ...streamOptions
+  } = opts
+
+  this.opts = {
+    autoDestroy: false,
+    ...streamOptions
+  }
+  WritableStream.call(this, this.opts)
+
+  this._done = false
+  this._parser = this.getParserByHeaders(headers)
+  this._finished = false
+}
+inherits(Busboy, WritableStream)
+
+Busboy.prototype.emit = function (ev) {
+  if (ev === 'finish') {
+    if (!this._done) {
+      this._parser?.end()
+      return
+    } else if (this._finished) {
+      return
+    }
+    this._finished = true
+  }
+  WritableStream.prototype.emit.apply(this, arguments)
+}
+
+Busboy.prototype.getParserByHeaders = function (headers) {
+  const parsed = parseParams(headers['content-type'])
+
+  const cfg = {
+    defCharset: this.opts.defCharset,
+    fileHwm: this.opts.fileHwm,
+    headers,
+    highWaterMark: this.opts.highWaterMark,
+    isPartAFile: this.opts.isPartAFile,
+    limits: this.opts.limits,
+    parsedConType: parsed,
+    preservePath: this.opts.preservePath
+  }
+
+  if (MultipartParser.detect.test(parsed[0])) {
+    return new MultipartParser(this, cfg)
+  }
+  if (UrlencodedParser.detect.test(parsed[0])) {
+    return new UrlencodedParser(this, cfg)
+  }
+  throw new Error('Unsupported Content-Type.')
+}
+
+Busboy.prototype._write = function (chunk, encoding, cb) {
+  this._parser.write(chunk, cb)
+}
+
+module.exports = Busboy
+module.exports["default"] = Busboy
+module.exports.Busboy = Busboy
+
+module.exports.Dicer = Dicer
+
+
+/***/ }),
+
+/***/ 2183:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+
+
+// TODO:
+//  * support 1 nested multipart level
+//    (see second multipart example here:
+//     http://www.w3.org/TR/html401/interact/forms.html#didx-multipartform-data)
+//  * support limits.fieldNameSize
+//     -- this will require modifications to utils.parseParams
+
+const { Readable } = __nccwpck_require__(4492)
+const { inherits } = __nccwpck_require__(7261)
+
+const Dicer = __nccwpck_require__(2960)
+
+const parseParams = __nccwpck_require__(1854)
+const decodeText = __nccwpck_require__(4619)
+const basename = __nccwpck_require__(8647)
+const getLimit = __nccwpck_require__(1467)
+
+const RE_BOUNDARY = /^boundary$/i
+const RE_FIELD = /^form-data$/i
+const RE_CHARSET = /^charset$/i
+const RE_FILENAME = /^filename$/i
+const RE_NAME = /^name$/i
+
+Multipart.detect = /^multipart\/form-data/i
+function Multipart (boy, cfg) {
+  let i
+  let len
+  const self = this
+  let boundary
+  const limits = cfg.limits
+  const isPartAFile = cfg.isPartAFile || ((fieldName, contentType, fileName) => (contentType === 'application/octet-stream' || fileName !== undefined))
+  const parsedConType = cfg.parsedConType || []
+  const defCharset = cfg.defCharset || 'utf8'
+  const preservePath = cfg.preservePath
+  const fileOpts = { highWaterMark: cfg.fileHwm }
+
+  for (i = 0, len = parsedConType.length; i < len; ++i) {
+    if (Array.isArray(parsedConType[i]) &&
+      RE_BOUNDARY.test(parsedConType[i][0])) {
+      boundary = parsedConType[i][1]
+      break
+    }
+  }
+
+  function checkFinished () {
+    if (nends === 0 && finished && !boy._done) {
+      finished = false
+      self.end()
+    }
+  }
+
+  if (typeof boundary !== 'string') { throw new Error('Multipart: Boundary not found') }
+
+  const fieldSizeLimit = getLimit(limits, 'fieldSize', 1 * 1024 * 1024)
+  const fileSizeLimit = getLimit(limits, 'fileSize', Infinity)
+  const filesLimit = getLimit(limits, 'files', Infinity)
+  const fieldsLimit = getLimit(limits, 'fields', Infinity)
+  const partsLimit = getLimit(limits, 'parts', Infinity)
+  const headerPairsLimit = getLimit(limits, 'headerPairs', 2000)
+  const headerSizeLimit = getLimit(limits, 'headerSize', 80 * 1024)
+
+  let nfiles = 0
+  let nfields = 0
+  let nends = 0
+  let curFile
+  let curField
+  let finished = false
+
+  this._needDrain = false
+  this._pause = false
+  this._cb = undefined
+  this._nparts = 0
+  this._boy = boy
+
+  const parserCfg = {
+    boundary,
+    maxHeaderPairs: headerPairsLimit,
+    maxHeaderSize: headerSizeLimit,
+    partHwm: fileOpts.highWaterMark,
+    highWaterMark: cfg.highWaterMark
+  }
+
+  this.parser = new Dicer(parserCfg)
+  this.parser.on('drain', function () {
+    self._needDrain = false
+    if (self._cb && !self._pause) {
+      const cb = self._cb
+      self._cb = undefined
+      cb()
+    }
+  }).on('part', function onPart (part) {
+    if (++self._nparts > partsLimit) {
+      self.parser.removeListener('part', onPart)
+      self.parser.on('part', skipPart)
+      boy.hitPartsLimit = true
+      boy.emit('partsLimit')
+      return skipPart(part)
+    }
+
+    // hack because streams2 _always_ doesn't emit 'end' until nextTick, so let
+    // us emit 'end' early since we know the part has ended if we are already
+    // seeing the next part
+    if (curField) {
+      const field = curField
+      field.emit('end')
+      field.removeAllListeners('end')
+    }
+
+    part.on('header', function (header) {
+      let contype
+      let fieldname
+      let parsed
+      let charset
+      let encoding
+      let filename
+      let nsize = 0
+
+      if (header['content-type']) {
+        parsed = parseParams(header['content-type'][0])
+        if (parsed[0]) {
+          contype = parsed[0].toLowerCase()
+          for (i = 0, len = parsed.length; i < len; ++i) {
+            if (RE_CHARSET.test(parsed[i][0])) {
+              charset = parsed[i][1].toLowerCase()
+              break
+            }
+          }
+        }
+      }
+
+      if (contype === undefined) { contype = 'text/plain' }
+      if (charset === undefined) { charset = defCharset }
+
+      if (header['content-disposition']) {
+        parsed = parseParams(header['content-disposition'][0])
+        if (!RE_FIELD.test(parsed[0])) { return skipPart(part) }
+        for (i = 0, len = parsed.length; i < len; ++i) {
+          if (RE_NAME.test(parsed[i][0])) {
+            fieldname = parsed[i][1]
+          } else if (RE_FILENAME.test(parsed[i][0])) {
+            filename = parsed[i][1]
+            if (!preservePath) { filename = basename(filename) }
+          }
+        }
+      } else { return skipPart(part) }
+
+      if (header['content-transfer-encoding']) { encoding = header['content-transfer-encoding'][0].toLowerCase() } else { encoding = '7bit' }
+
+      let onData,
+        onEnd
+
+      if (isPartAFile(fieldname, contype, filename)) {
+        // file/binary field
+        if (nfiles === filesLimit) {
+          if (!boy.hitFilesLimit) {
+            boy.hitFilesLimit = true
+            boy.emit('filesLimit')
+          }
+          return skipPart(part)
+        }
+
+        ++nfiles
+
+        if (boy.listenerCount('file') === 0) {
+          self.parser._ignore()
+          return
+        }
+
+        ++nends
+        const file = new FileStream(fileOpts)
+        curFile = file
+        file.on('end', function () {
+          --nends
+          self._pause = false
+          checkFinished()
+          if (self._cb && !self._needDrain) {
+            const cb = self._cb
+            self._cb = undefined
+            cb()
+          }
+        })
+        file._read = function (n) {
+          if (!self._pause) { return }
+          self._pause = false
+          if (self._cb && !self._needDrain) {
+            const cb = self._cb
+            self._cb = undefined
+            cb()
+          }
+        }
+        boy.emit('file', fieldname, file, filename, encoding, contype)
+
+        onData = function (data) {
+          if ((nsize += data.length) > fileSizeLimit) {
+            const extralen = fileSizeLimit - nsize + data.length
+            if (extralen > 0) { file.push(data.slice(0, extralen)) }
+            file.truncated = true
+            file.bytesRead = fileSizeLimit
+            part.removeAllListeners('data')
+            file.emit('limit')
+            return
+          } else if (!file.push(data)) { self._pause = true }
+
+          file.bytesRead = nsize
+        }
+
+        onEnd = function () {
+          curFile = undefined
+          file.push(null)
+        }
+      } else {
+        // non-file field
+        if (nfields === fieldsLimit) {
+          if (!boy.hitFieldsLimit) {
+            boy.hitFieldsLimit = true
+            boy.emit('fieldsLimit')
+          }
+          return skipPart(part)
+        }
+
+        ++nfields
+        ++nends
+        let buffer = ''
+        let truncated = false
+        curField = part
+
+        onData = function (data) {
+          if ((nsize += data.length) > fieldSizeLimit) {
+            const extralen = (fieldSizeLimit - (nsize - data.length))
+            buffer += data.toString('binary', 0, extralen)
+            truncated = true
+            part.removeAllListeners('data')
+          } else { buffer += data.toString('binary') }
+        }
+
+        onEnd = function () {
+          curField = undefined
+          if (buffer.length) { buffer = decodeText(buffer, 'binary', charset) }
+          boy.emit('field', fieldname, buffer, false, truncated, encoding, contype)
+          --nends
+          checkFinished()
+        }
+      }
+
+      /* As of node@2efe4ab761666 (v0.10.29+/v0.11.14+), busboy had become
+         broken. Streams2/streams3 is a huge black box of confusion, but
+         somehow overriding the sync state seems to fix things again (and still
+         seems to work for previous node versions).
+      */
+      part._readableState.sync = false
+
+      part.on('data', onData)
+      part.on('end', onEnd)
+    }).on('error', function (err) {
+      if (curFile) { curFile.emit('error', err) }
+    })
+  }).on('error', function (err) {
+    boy.emit('error', err)
+  }).on('finish', function () {
+    finished = true
+    checkFinished()
+  })
+}
+
+Multipart.prototype.write = function (chunk, cb) {
+  const r = this.parser.write(chunk)
+  if (r && !this._pause) {
+    cb()
+  } else {
+    this._needDrain = !r
+    this._cb = cb
+  }
+}
+
+Multipart.prototype.end = function () {
+  const self = this
+
+  if (self.parser.writable) {
+    self.parser.end()
+  } else if (!self._boy._done) {
+    process.nextTick(function () {
+      self._boy._done = true
+      self._boy.emit('finish')
+    })
+  }
+}
+
+function skipPart (part) {
+  part.resume()
+}
+
+function FileStream (opts) {
+  Readable.call(this, opts)
+
+  this.bytesRead = 0
+
+  this.truncated = false
+}
+
+inherits(FileStream, Readable)
+
+FileStream.prototype._read = function (n) {}
+
+module.exports = Multipart
+
+
+/***/ }),
+
+/***/ 8306:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+
+
+const Decoder = __nccwpck_require__(7100)
+const decodeText = __nccwpck_require__(4619)
+const getLimit = __nccwpck_require__(1467)
+
+const RE_CHARSET = /^charset$/i
+
+UrlEncoded.detect = /^application\/x-www-form-urlencoded/i
+function UrlEncoded (boy, cfg) {
+  const limits = cfg.limits
+  const parsedConType = cfg.parsedConType
+  this.boy = boy
+
+  this.fieldSizeLimit = getLimit(limits, 'fieldSize', 1 * 1024 * 1024)
+  this.fieldNameSizeLimit = getLimit(limits, 'fieldNameSize', 100)
+  this.fieldsLimit = getLimit(limits, 'fields', Infinity)
+
+  let charset
+  for (var i = 0, len = parsedConType.length; i < len; ++i) { // eslint-disable-line no-var
+    if (Array.isArray(parsedConType[i]) &&
+        RE_CHARSET.test(parsedConType[i][0])) {
+      charset = parsedConType[i][1].toLowerCase()
+      break
+    }
+  }
+
+  if (charset === undefined) { charset = cfg.defCharset || 'utf8' }
+
+  this.decoder = new Decoder()
+  this.charset = charset
+  this._fields = 0
+  this._state = 'key'
+  this._checkingBytes = true
+  this._bytesKey = 0
+  this._bytesVal = 0
+  this._key = ''
+  this._val = ''
+  this._keyTrunc = false
+  this._valTrunc = false
+  this._hitLimit = false
+}
+
+UrlEncoded.prototype.write = function (data, cb) {
+  if (this._fields === this.fieldsLimit) {
+    if (!this.boy.hitFieldsLimit) {
+      this.boy.hitFieldsLimit = true
+      this.boy.emit('fieldsLimit')
+    }
+    return cb()
+  }
+
+  let idxeq; let idxamp; let i; let p = 0; const len = data.length
+
+  while (p < len) {
+    if (this._state === 'key') {
+      idxeq = idxamp = undefined
+      for (i = p; i < len; ++i) {
+        if (!this._checkingBytes) { ++p }
+        if (data[i] === 0x3D/* = */) {
+          idxeq = i
+          break
+        } else if (data[i] === 0x26/* & */) {
+          idxamp = i
+          break
+        }
+        if (this._checkingBytes && this._bytesKey === this.fieldNameSizeLimit) {
+          this._hitLimit = true
+          break
+        } else if (this._checkingBytes) { ++this._bytesKey }
+      }
+
+      if (idxeq !== undefined) {
+        // key with assignment
+        if (idxeq > p) { this._key += this.decoder.write(data.toString('binary', p, idxeq)) }
+        this._state = 'val'
+
+        this._hitLimit = false
+        this._checkingBytes = true
+        this._val = ''
+        this._bytesVal = 0
+        this._valTrunc = false
+        this.decoder.reset()
+
+        p = idxeq + 1
+      } else if (idxamp !== undefined) {
+        // key with no assignment
+        ++this._fields
+        let key; const keyTrunc = this._keyTrunc
+        if (idxamp > p) { key = (this._key += this.decoder.write(data.toString('binary', p, idxamp))) } else { key = this._key }
+
+        this._hitLimit = false
+        this._checkingBytes = true
+        this._key = ''
+        this._bytesKey = 0
+        this._keyTrunc = false
+        this.decoder.reset()
+
+        if (key.length) {
+          this.boy.emit('field', decodeText(key, 'binary', this.charset),
+            '',
+            keyTrunc,
+            false)
+        }
+
+        p = idxamp + 1
+        if (this._fields === this.fieldsLimit) { return cb() }
+      } else if (this._hitLimit) {
+        // we may not have hit the actual limit if there are encoded bytes...
+        if (i > p) { this._key += this.decoder.write(data.toString('binary', p, i)) }
+        p = i
+        if ((this._bytesKey = this._key.length) === this.fieldNameSizeLimit) {
+          // yep, we actually did hit the limit
+          this._checkingBytes = false
+          this._keyTrunc = true
+        }
+      } else {
+        if (p < len) { this._key += this.decoder.write(data.toString('binary', p)) }
+        p = len
+      }
+    } else {
+      idxamp = undefined
+      for (i = p; i < len; ++i) {
+        if (!this._checkingBytes) { ++p }
+        if (data[i] === 0x26/* & */) {
+          idxamp = i
+          break
+        }
+        if (this._checkingBytes && this._bytesVal === this.fieldSizeLimit) {
+          this._hitLimit = true
+          break
+        } else if (this._checkingBytes) { ++this._bytesVal }
+      }
+
+      if (idxamp !== undefined) {
+        ++this._fields
+        if (idxamp > p) { this._val += this.decoder.write(data.toString('binary', p, idxamp)) }
+        this.boy.emit('field', decodeText(this._key, 'binary', this.charset),
+          decodeText(this._val, 'binary', this.charset),
+          this._keyTrunc,
+          this._valTrunc)
+        this._state = 'key'
+
+        this._hitLimit = false
+        this._checkingBytes = true
+        this._key = ''
+        this._bytesKey = 0
+        this._keyTrunc = false
+        this.decoder.reset()
+
+        p = idxamp + 1
+        if (this._fields === this.fieldsLimit) { return cb() }
+      } else if (this._hitLimit) {
+        // we may not have hit the actual limit if there are encoded bytes...
+        if (i > p) { this._val += this.decoder.write(data.toString('binary', p, i)) }
+        p = i
+        if ((this._val === '' && this.fieldSizeLimit === 0) ||
+            (this._bytesVal = this._val.length) === this.fieldSizeLimit) {
+          // yep, we actually did hit the limit
+          this._checkingBytes = false
+          this._valTrunc = true
+        }
+      } else {
+        if (p < len) { this._val += this.decoder.write(data.toString('binary', p)) }
+        p = len
+      }
+    }
+  }
+  cb()
+}
+
+UrlEncoded.prototype.end = function () {
+  if (this.boy._done) { return }
+
+  if (this._state === 'key' && this._key.length > 0) {
+    this.boy.emit('field', decodeText(this._key, 'binary', this.charset),
+      '',
+      this._keyTrunc,
+      false)
+  } else if (this._state === 'val') {
+    this.boy.emit('field', decodeText(this._key, 'binary', this.charset),
+      decodeText(this._val, 'binary', this.charset),
+      this._keyTrunc,
+      this._valTrunc)
+  }
+  this.boy._done = true
+  this.boy.emit('finish')
+}
+
+module.exports = UrlEncoded
+
+
+/***/ }),
+
+/***/ 7100:
+/***/ ((module) => {
+
+
+
+const RE_PLUS = /\+/g
+
+const HEX = [
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
+  0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+]
+
+function Decoder () {
+  this.buffer = undefined
+}
+Decoder.prototype.write = function (str) {
+  // Replace '+' with ' ' before decoding
+  str = str.replace(RE_PLUS, ' ')
+  let res = ''
+  let i = 0; let p = 0; const len = str.length
+  for (; i < len; ++i) {
+    if (this.buffer !== undefined) {
+      if (!HEX[str.charCodeAt(i)]) {
+        res += '%' + this.buffer
+        this.buffer = undefined
+        --i // retry character
+      } else {
+        this.buffer += str[i]
+        ++p
+        if (this.buffer.length === 2) {
+          res += String.fromCharCode(parseInt(this.buffer, 16))
+          this.buffer = undefined
+        }
+      }
+    } else if (str[i] === '%') {
+      if (i > p) {
+        res += str.substring(p, i)
+        p = i
+      }
+      this.buffer = ''
+      ++p
+    }
+  }
+  if (p < len && this.buffer === undefined) { res += str.substring(p) }
+  return res
+}
+Decoder.prototype.reset = function () {
+  this.buffer = undefined
+}
+
+module.exports = Decoder
+
+
+/***/ }),
+
+/***/ 8647:
+/***/ ((module) => {
+
+
+
+module.exports = function basename (path) {
+  if (typeof path !== 'string') { return '' }
+  for (var i = path.length - 1; i >= 0; --i) { // eslint-disable-line no-var
+    switch (path.charCodeAt(i)) {
+      case 0x2F: // '/'
+      case 0x5C: // '\'
+        path = path.slice(i + 1)
+        return (path === '..' || path === '.' ? '' : path)
+    }
+  }
+  return (path === '..' || path === '.' ? '' : path)
+}
+
+
+/***/ }),
+
+/***/ 4619:
+/***/ (function(module) {
+
+
+
+// Node has always utf-8
+const utf8Decoder = new TextDecoder('utf-8')
+const textDecoders = new Map([
+  ['utf-8', utf8Decoder],
+  ['utf8', utf8Decoder]
+])
+
+function getDecoder (charset) {
+  let lc
+  while (true) {
+    switch (charset) {
+      case 'utf-8':
+      case 'utf8':
+        return decoders.utf8
+      case 'latin1':
+      case 'ascii': // TODO: Make these a separate, strict decoder?
+      case 'us-ascii':
+      case 'iso-8859-1':
+      case 'iso8859-1':
+      case 'iso88591':
+      case 'iso_8859-1':
+      case 'windows-1252':
+      case 'iso_8859-1:1987':
+      case 'cp1252':
+      case 'x-cp1252':
+        return decoders.latin1
+      case 'utf16le':
+      case 'utf-16le':
+      case 'ucs2':
+      case 'ucs-2':
+        return decoders.utf16le
+      case 'base64':
+        return decoders.base64
+      default:
+        if (lc === undefined) {
+          lc = true
+          charset = charset.toLowerCase()
+          continue
+        }
+        return decoders.other.bind(charset)
+    }
+  }
+}
+
+const decoders = {
+  utf8: (data, sourceEncoding) => {
+    if (data.length === 0) {
+      return ''
+    }
+    if (typeof data === 'string') {
+      data = Buffer.from(data, sourceEncoding)
+    }
+    return data.utf8Slice(0, data.length)
+  },
+
+  latin1: (data, sourceEncoding) => {
+    if (data.length === 0) {
+      return ''
+    }
+    if (typeof data === 'string') {
+      return data
+    }
+    return data.latin1Slice(0, data.length)
+  },
+
+  utf16le: (data, sourceEncoding) => {
+    if (data.length === 0) {
+      return ''
+    }
+    if (typeof data === 'string') {
+      data = Buffer.from(data, sourceEncoding)
+    }
+    return data.ucs2Slice(0, data.length)
+  },
+
+  base64: (data, sourceEncoding) => {
+    if (data.length === 0) {
+      return ''
+    }
+    if (typeof data === 'string') {
+      data = Buffer.from(data, sourceEncoding)
+    }
+    return data.base64Slice(0, data.length)
+  },
+
+  other: (data, sourceEncoding) => {
+    if (data.length === 0) {
+      return ''
+    }
+    if (typeof data === 'string') {
+      data = Buffer.from(data, sourceEncoding)
+    }
+
+    if (textDecoders.has(this.toString())) {
+      try {
+        return textDecoders.get(this).decode(data)
+      } catch {}
+    }
+    return typeof data === 'string'
+      ? data
+      : data.toString()
+  }
+}
+
+function decodeText (text, sourceEncoding, destEncoding) {
+  if (text) {
+    return getDecoder(destEncoding)(text, sourceEncoding)
+  }
+  return text
+}
+
+module.exports = decodeText
+
+
+/***/ }),
+
+/***/ 1467:
+/***/ ((module) => {
+
+
+
+module.exports = function getLimit (limits, name, defaultLimit) {
+  if (
+    !limits ||
+    limits[name] === undefined ||
+    limits[name] === null
+  ) { return defaultLimit }
+
+  if (
+    typeof limits[name] !== 'number' ||
+    isNaN(limits[name])
+  ) { throw new TypeError('Limit ' + name + ' is not a valid number') }
+
+  return limits[name]
+}
+
+
+/***/ }),
+
+/***/ 1854:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+/* eslint-disable object-property-newline */
+
+
+const decodeText = __nccwpck_require__(4619)
+
+const RE_ENCODED = /%[a-fA-F0-9][a-fA-F0-9]/g
+
+const EncodedLookup = {
+  '%00': '\x00', '%01': '\x01', '%02': '\x02', '%03': '\x03', '%04': '\x04',
+  '%05': '\x05', '%06': '\x06', '%07': '\x07', '%08': '\x08', '%09': '\x09',
+  '%0a': '\x0a', '%0A': '\x0a', '%0b': '\x0b', '%0B': '\x0b', '%0c': '\x0c',
+  '%0C': '\x0c', '%0d': '\x0d', '%0D': '\x0d', '%0e': '\x0e', '%0E': '\x0e',
+  '%0f': '\x0f', '%0F': '\x0f', '%10': '\x10', '%11': '\x11', '%12': '\x12',
+  '%13': '\x13', '%14': '\x14', '%15': '\x15', '%16': '\x16', '%17': '\x17',
+  '%18': '\x18', '%19': '\x19', '%1a': '\x1a', '%1A': '\x1a', '%1b': '\x1b',
+  '%1B': '\x1b', '%1c': '\x1c', '%1C': '\x1c', '%1d': '\x1d', '%1D': '\x1d',
+  '%1e': '\x1e', '%1E': '\x1e', '%1f': '\x1f', '%1F': '\x1f', '%20': '\x20',
+  '%21': '\x21', '%22': '\x22', '%23': '\x23', '%24': '\x24', '%25': '\x25',
+  '%26': '\x26', '%27': '\x27', '%28': '\x28', '%29': '\x29', '%2a': '\x2a',
+  '%2A': '\x2a', '%2b': '\x2b', '%2B': '\x2b', '%2c': '\x2c', '%2C': '\x2c',
+  '%2d': '\x2d', '%2D': '\x2d', '%2e': '\x2e', '%2E': '\x2e', '%2f': '\x2f',
+  '%2F': '\x2f', '%30': '\x30', '%31': '\x31', '%32': '\x32', '%33': '\x33',
+  '%34': '\x34', '%35': '\x35', '%36': '\x36', '%37': '\x37', '%38': '\x38',
+  '%39': '\x39', '%3a': '\x3a', '%3A': '\x3a', '%3b': '\x3b', '%3B': '\x3b',
+  '%3c': '\x3c', '%3C': '\x3c', '%3d': '\x3d', '%3D': '\x3d', '%3e': '\x3e',
+  '%3E': '\x3e', '%3f': '\x3f', '%3F': '\x3f', '%40': '\x40', '%41': '\x41',
+  '%42': '\x42', '%43': '\x43', '%44': '\x44', '%45': '\x45', '%46': '\x46',
+  '%47': '\x47', '%48': '\x48', '%49': '\x49', '%4a': '\x4a', '%4A': '\x4a',
+  '%4b': '\x4b', '%4B': '\x4b', '%4c': '\x4c', '%4C': '\x4c', '%4d': '\x4d',
+  '%4D': '\x4d', '%4e': '\x4e', '%4E': '\x4e', '%4f': '\x4f', '%4F': '\x4f',
+  '%50': '\x50', '%51': '\x51', '%52': '\x52', '%53': '\x53', '%54': '\x54',
+  '%55': '\x55', '%56': '\x56', '%57': '\x57', '%58': '\x58', '%59': '\x59',
+  '%5a': '\x5a', '%5A': '\x5a', '%5b': '\x5b', '%5B': '\x5b', '%5c': '\x5c',
+  '%5C': '\x5c', '%5d': '\x5d', '%5D': '\x5d', '%5e': '\x5e', '%5E': '\x5e',
+  '%5f': '\x5f', '%5F': '\x5f', '%60': '\x60', '%61': '\x61', '%62': '\x62',
+  '%63': '\x63', '%64': '\x64', '%65': '\x65', '%66': '\x66', '%67': '\x67',
+  '%68': '\x68', '%69': '\x69', '%6a': '\x6a', '%6A': '\x6a', '%6b': '\x6b',
+  '%6B': '\x6b', '%6c': '\x6c', '%6C': '\x6c', '%6d': '\x6d', '%6D': '\x6d',
+  '%6e': '\x6e', '%6E': '\x6e', '%6f': '\x6f', '%6F': '\x6f', '%70': '\x70',
+  '%71': '\x71', '%72': '\x72', '%73': '\x73', '%74': '\x74', '%75': '\x75',
+  '%76': '\x76', '%77': '\x77', '%78': '\x78', '%79': '\x79', '%7a': '\x7a',
+  '%7A': '\x7a', '%7b': '\x7b', '%7B': '\x7b', '%7c': '\x7c', '%7C': '\x7c',
+  '%7d': '\x7d', '%7D': '\x7d', '%7e': '\x7e', '%7E': '\x7e', '%7f': '\x7f',
+  '%7F': '\x7f', '%80': '\x80', '%81': '\x81', '%82': '\x82', '%83': '\x83',
+  '%84': '\x84', '%85': '\x85', '%86': '\x86', '%87': '\x87', '%88': '\x88',
+  '%89': '\x89', '%8a': '\x8a', '%8A': '\x8a', '%8b': '\x8b', '%8B': '\x8b',
+  '%8c': '\x8c', '%8C': '\x8c', '%8d': '\x8d', '%8D': '\x8d', '%8e': '\x8e',
+  '%8E': '\x8e', '%8f': '\x8f', '%8F': '\x8f', '%90': '\x90', '%91': '\x91',
+  '%92': '\x92', '%93': '\x93', '%94': '\x94', '%95': '\x95', '%96': '\x96',
+  '%97': '\x97', '%98': '\x98', '%99': '\x99', '%9a': '\x9a', '%9A': '\x9a',
+  '%9b': '\x9b', '%9B': '\x9b', '%9c': '\x9c', '%9C': '\x9c', '%9d': '\x9d',
+  '%9D': '\x9d', '%9e': '\x9e', '%9E': '\x9e', '%9f': '\x9f', '%9F': '\x9f',
+  '%a0': '\xa0', '%A0': '\xa0', '%a1': '\xa1', '%A1': '\xa1', '%a2': '\xa2',
+  '%A2': '\xa2', '%a3': '\xa3', '%A3': '\xa3', '%a4': '\xa4', '%A4': '\xa4',
+  '%a5': '\xa5', '%A5': '\xa5', '%a6': '\xa6', '%A6': '\xa6', '%a7': '\xa7',
+  '%A7': '\xa7', '%a8': '\xa8', '%A8': '\xa8', '%a9': '\xa9', '%A9': '\xa9',
+  '%aa': '\xaa', '%Aa': '\xaa', '%aA': '\xaa', '%AA': '\xaa', '%ab': '\xab',
+  '%Ab': '\xab', '%aB': '\xab', '%AB': '\xab', '%ac': '\xac', '%Ac': '\xac',
+  '%aC': '\xac', '%AC': '\xac', '%ad': '\xad', '%Ad': '\xad', '%aD': '\xad',
+  '%AD': '\xad', '%ae': '\xae', '%Ae': '\xae', '%aE': '\xae', '%AE': '\xae',
+  '%af': '\xaf', '%Af': '\xaf', '%aF': '\xaf', '%AF': '\xaf', '%b0': '\xb0',
+  '%B0': '\xb0', '%b1': '\xb1', '%B1': '\xb1', '%b2': '\xb2', '%B2': '\xb2',
+  '%b3': '\xb3', '%B3': '\xb3', '%b4': '\xb4', '%B4': '\xb4', '%b5': '\xb5',
+  '%B5': '\xb5', '%b6': '\xb6', '%B6': '\xb6', '%b7': '\xb7', '%B7': '\xb7',
+  '%b8': '\xb8', '%B8': '\xb8', '%b9': '\xb9', '%B9': '\xb9', '%ba': '\xba',
+  '%Ba': '\xba', '%bA': '\xba', '%BA': '\xba', '%bb': '\xbb', '%Bb': '\xbb',
+  '%bB': '\xbb', '%BB': '\xbb', '%bc': '\xbc', '%Bc': '\xbc', '%bC': '\xbc',
+  '%BC': '\xbc', '%bd': '\xbd', '%Bd': '\xbd', '%bD': '\xbd', '%BD': '\xbd',
+  '%be': '\xbe', '%Be': '\xbe', '%bE': '\xbe', '%BE': '\xbe', '%bf': '\xbf',
+  '%Bf': '\xbf', '%bF': '\xbf', '%BF': '\xbf', '%c0': '\xc0', '%C0': '\xc0',
+  '%c1': '\xc1', '%C1': '\xc1', '%c2': '\xc2', '%C2': '\xc2', '%c3': '\xc3',
+  '%C3': '\xc3', '%c4': '\xc4', '%C4': '\xc4', '%c5': '\xc5', '%C5': '\xc5',
+  '%c6': '\xc6', '%C6': '\xc6', '%c7': '\xc7', '%C7': '\xc7', '%c8': '\xc8',
+  '%C8': '\xc8', '%c9': '\xc9', '%C9': '\xc9', '%ca': '\xca', '%Ca': '\xca',
+  '%cA': '\xca', '%CA': '\xca', '%cb': '\xcb', '%Cb': '\xcb', '%cB': '\xcb',
+  '%CB': '\xcb', '%cc': '\xcc', '%Cc': '\xcc', '%cC': '\xcc', '%CC': '\xcc',
+  '%cd': '\xcd', '%Cd': '\xcd', '%cD': '\xcd', '%CD': '\xcd', '%ce': '\xce',
+  '%Ce': '\xce', '%cE': '\xce', '%CE': '\xce', '%cf': '\xcf', '%Cf': '\xcf',
+  '%cF': '\xcf', '%CF': '\xcf', '%d0': '\xd0', '%D0': '\xd0', '%d1': '\xd1',
+  '%D1': '\xd1', '%d2': '\xd2', '%D2': '\xd2', '%d3': '\xd3', '%D3': '\xd3',
+  '%d4': '\xd4', '%D4': '\xd4', '%d5': '\xd5', '%D5': '\xd5', '%d6': '\xd6',
+  '%D6': '\xd6', '%d7': '\xd7', '%D7': '\xd7', '%d8': '\xd8', '%D8': '\xd8',
+  '%d9': '\xd9', '%D9': '\xd9', '%da': '\xda', '%Da': '\xda', '%dA': '\xda',
+  '%DA': '\xda', '%db': '\xdb', '%Db': '\xdb', '%dB': '\xdb', '%DB': '\xdb',
+  '%dc': '\xdc', '%Dc': '\xdc', '%dC': '\xdc', '%DC': '\xdc', '%dd': '\xdd',
+  '%Dd': '\xdd', '%dD': '\xdd', '%DD': '\xdd', '%de': '\xde', '%De': '\xde',
+  '%dE': '\xde', '%DE': '\xde', '%df': '\xdf', '%Df': '\xdf', '%dF': '\xdf',
+  '%DF': '\xdf', '%e0': '\xe0', '%E0': '\xe0', '%e1': '\xe1', '%E1': '\xe1',
+  '%e2': '\xe2', '%E2': '\xe2', '%e3': '\xe3', '%E3': '\xe3', '%e4': '\xe4',
+  '%E4': '\xe4', '%e5': '\xe5', '%E5': '\xe5', '%e6': '\xe6', '%E6': '\xe6',
+  '%e7': '\xe7', '%E7': '\xe7', '%e8': '\xe8', '%E8': '\xe8', '%e9': '\xe9',
+  '%E9': '\xe9', '%ea': '\xea', '%Ea': '\xea', '%eA': '\xea', '%EA': '\xea',
+  '%eb': '\xeb', '%Eb': '\xeb', '%eB': '\xeb', '%EB': '\xeb', '%ec': '\xec',
+  '%Ec': '\xec', '%eC': '\xec', '%EC': '\xec', '%ed': '\xed', '%Ed': '\xed',
+  '%eD': '\xed', '%ED': '\xed', '%ee': '\xee', '%Ee': '\xee', '%eE': '\xee',
+  '%EE': '\xee', '%ef': '\xef', '%Ef': '\xef', '%eF': '\xef', '%EF': '\xef',
+  '%f0': '\xf0', '%F0': '\xf0', '%f1': '\xf1', '%F1': '\xf1', '%f2': '\xf2',
+  '%F2': '\xf2', '%f3': '\xf3', '%F3': '\xf3', '%f4': '\xf4', '%F4': '\xf4',
+  '%f5': '\xf5', '%F5': '\xf5', '%f6': '\xf6', '%F6': '\xf6', '%f7': '\xf7',
+  '%F7': '\xf7', '%f8': '\xf8', '%F8': '\xf8', '%f9': '\xf9', '%F9': '\xf9',
+  '%fa': '\xfa', '%Fa': '\xfa', '%fA': '\xfa', '%FA': '\xfa', '%fb': '\xfb',
+  '%Fb': '\xfb', '%fB': '\xfb', '%FB': '\xfb', '%fc': '\xfc', '%Fc': '\xfc',
+  '%fC': '\xfc', '%FC': '\xfc', '%fd': '\xfd', '%Fd': '\xfd', '%fD': '\xfd',
+  '%FD': '\xfd', '%fe': '\xfe', '%Fe': '\xfe', '%fE': '\xfe', '%FE': '\xfe',
+  '%ff': '\xff', '%Ff': '\xff', '%fF': '\xff', '%FF': '\xff'
+}
+
+function encodedReplacer (match) {
+  return EncodedLookup[match]
+}
+
+const STATE_KEY = 0
+const STATE_VALUE = 1
+const STATE_CHARSET = 2
+const STATE_LANG = 3
+
+function parseParams (str) {
+  const res = []
+  let state = STATE_KEY
+  let charset = ''
+  let inquote = false
+  let escaping = false
+  let p = 0
+  let tmp = ''
+  const len = str.length
+
+  for (var i = 0; i < len; ++i) { // eslint-disable-line no-var
+    const char = str[i]
+    if (char === '\\' && inquote) {
+      if (escaping) { escaping = false } else {
+        escaping = true
+        continue
+      }
+    } else if (char === '"') {
+      if (!escaping) {
+        if (inquote) {
+          inquote = false
+          state = STATE_KEY
+        } else { inquote = true }
+        continue
+      } else { escaping = false }
+    } else {
+      if (escaping && inquote) { tmp += '\\' }
+      escaping = false
+      if ((state === STATE_CHARSET || state === STATE_LANG) && char === "'") {
+        if (state === STATE_CHARSET) {
+          state = STATE_LANG
+          charset = tmp.substring(1)
+        } else { state = STATE_VALUE }
+        tmp = ''
+        continue
+      } else if (state === STATE_KEY &&
+        (char === '*' || char === '=') &&
+        res.length) {
+        state = char === '*'
+          ? STATE_CHARSET
+          : STATE_VALUE
+        res[p] = [tmp, undefined]
+        tmp = ''
+        continue
+      } else if (!inquote && char === ';') {
+        state = STATE_KEY
+        if (charset) {
+          if (tmp.length) {
+            tmp = decodeText(tmp.replace(RE_ENCODED, encodedReplacer),
+              'binary',
+              charset)
+          }
+          charset = ''
+        } else if (tmp.length) {
+          tmp = decodeText(tmp, 'binary', 'utf8')
+        }
+        if (res[p] === undefined) { res[p] = tmp } else { res[p][1] = tmp }
+        tmp = ''
+        ++p
+        continue
+      } else if (!inquote && (char === ' ' || char === '\t')) { continue }
+    }
+    tmp += char
+  }
+  if (charset && tmp.length) {
+    tmp = decodeText(tmp.replace(RE_ENCODED, encodedReplacer),
+      'binary',
+      charset)
+  } else if (tmp) {
+    tmp = decodeText(tmp, 'binary', 'utf8')
+  }
+
+  if (res[p] === undefined) {
+    if (tmp) { res[p] = tmp }
+  } else { res[p][1] = tmp }
+
+  return res
+}
+
+module.exports = parseParams
+
+
 /***/ })
 
 /******/ });
@@ -35135,34 +38577,1042 @@ ${table}
 });
 
 
-;// CONCATENATED MODULE: external "node:buffer"
-const external_node_buffer_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:buffer");
-;// CONCATENATED MODULE: external "node:path"
-const external_node_path_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:path");
-;// CONCATENATED MODULE: external "node:child_process"
-const external_node_child_process_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:child_process");
-;// CONCATENATED MODULE: external "node:process"
-const external_node_process_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:process");
-// EXTERNAL MODULE: ./node_modules/cross-spawn/index.js
-var cross_spawn = __nccwpck_require__(7881);
-;// CONCATENATED MODULE: ./node_modules/strip-final-newline/index.js
-function stripFinalNewline(input) {
-	const LF = typeof input === 'string' ? '\n' : '\n'.charCodeAt();
-	const CR = typeof input === 'string' ? '\r' : '\r'.charCodeAt();
-
-	if (input[input.length - 1] === LF) {
-		input = input.slice(0, -1);
+;// CONCATENATED MODULE: ./node_modules/is-plain-obj/index.js
+function isPlainObject(value) {
+	if (typeof value !== 'object' || value === null) {
+		return false;
 	}
 
-	if (input[input.length - 1] === CR) {
-		input = input.slice(0, -1);
-	}
-
-	return input;
+	const prototype = Object.getPrototypeOf(value);
+	return (prototype === null || prototype === Object.prototype || Object.getPrototypeOf(prototype) === null) && !(Symbol.toStringTag in value) && !(Symbol.iterator in value);
 }
 
 ;// CONCATENATED MODULE: external "node:url"
 const external_node_url_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:url");
+;// CONCATENATED MODULE: ./node_modules/execa/lib/arguments/file-url.js
+
+
+// Allow some arguments/options to be either a file path string or a file URL
+const safeNormalizeFileUrl = (file, name) => {
+	const fileString = normalizeFileUrl(file);
+
+	if (typeof fileString !== 'string') {
+		throw new TypeError(`${name} must be a string or a file URL: ${fileString}.`);
+	}
+
+	return fileString;
+};
+
+// Same but also allows other values, e.g. `boolean` for the `shell` option
+const normalizeFileUrl = file => file instanceof URL ? (0,external_node_url_namespaceObject.fileURLToPath)(file) : file;
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/methods/parameters.js
+
+
+
+// The command `arguments` and `options` are both optional.
+// This also does basic validation on them and on the command file.
+const normalizeParameters = (rawFile, rawArguments = [], rawOptions = {}) => {
+	const filePath = safeNormalizeFileUrl(rawFile, 'First argument');
+	const [commandArguments, options] = isPlainObject(rawArguments)
+		? [[], rawArguments]
+		: [rawArguments, rawOptions];
+
+	if (!Array.isArray(commandArguments)) {
+		throw new TypeError(`Second argument must be either an array of arguments or an options object: ${commandArguments}`);
+	}
+
+	if (commandArguments.some(commandArgument => typeof commandArgument === 'object' && commandArgument !== null)) {
+		throw new TypeError(`Second argument must be an array of strings: ${commandArguments}`);
+	}
+
+	const normalizedArguments = commandArguments.map(String);
+	const nullByteArgument = normalizedArguments.find(normalizedArgument => normalizedArgument.includes('\0'));
+	if (nullByteArgument !== undefined) {
+		throw new TypeError(`Arguments cannot contain null bytes ("\\0"): ${nullByteArgument}`);
+	}
+
+	if (!isPlainObject(options)) {
+		throw new TypeError(`Last argument must be an options object: ${options}`);
+	}
+
+	return [filePath, normalizedArguments, options];
+};
+
+;// CONCATENATED MODULE: external "node:child_process"
+const external_node_child_process_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:child_process");
+;// CONCATENATED MODULE: external "node:string_decoder"
+const external_node_string_decoder_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:string_decoder");
+;// CONCATENATED MODULE: ./node_modules/execa/lib/utils/uint-array.js
+
+
+const {toString: objectToString} = Object.prototype;
+
+const isArrayBuffer = value => objectToString.call(value) === '[object ArrayBuffer]';
+
+// Is either Uint8Array or Buffer
+const isUint8Array = value => objectToString.call(value) === '[object Uint8Array]';
+
+const bufferToUint8Array = buffer => new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+
+const textEncoder = new TextEncoder();
+const stringToUint8Array = string => textEncoder.encode(string);
+
+const textDecoder = new TextDecoder();
+const uint8ArrayToString = uint8Array => textDecoder.decode(uint8Array);
+
+const joinToString = (uint8ArraysOrStrings, encoding) => {
+	const strings = uint8ArraysToStrings(uint8ArraysOrStrings, encoding);
+	return strings.join('');
+};
+
+const uint8ArraysToStrings = (uint8ArraysOrStrings, encoding) => {
+	if (encoding === 'utf8' && uint8ArraysOrStrings.every(uint8ArrayOrString => typeof uint8ArrayOrString === 'string')) {
+		return uint8ArraysOrStrings;
+	}
+
+	const decoder = new external_node_string_decoder_namespaceObject.StringDecoder(encoding);
+	const strings = uint8ArraysOrStrings
+		.map(uint8ArrayOrString => typeof uint8ArrayOrString === 'string'
+			? stringToUint8Array(uint8ArrayOrString)
+			: uint8ArrayOrString)
+		.map(uint8Array => decoder.write(uint8Array));
+	const finalString = decoder.end();
+	return finalString === '' ? strings : [...strings, finalString];
+};
+
+const joinToUint8Array = uint8ArraysOrStrings => {
+	if (uint8ArraysOrStrings.length === 1 && isUint8Array(uint8ArraysOrStrings[0])) {
+		return uint8ArraysOrStrings[0];
+	}
+
+	return concatUint8Arrays(stringsToUint8Arrays(uint8ArraysOrStrings));
+};
+
+const stringsToUint8Arrays = uint8ArraysOrStrings => uint8ArraysOrStrings.map(uint8ArrayOrString => typeof uint8ArrayOrString === 'string'
+	? stringToUint8Array(uint8ArrayOrString)
+	: uint8ArrayOrString);
+
+const concatUint8Arrays = uint8Arrays => {
+	const result = new Uint8Array(getJoinLength(uint8Arrays));
+
+	let index = 0;
+	for (const uint8Array of uint8Arrays) {
+		result.set(uint8Array, index);
+		index += uint8Array.length;
+	}
+
+	return result;
+};
+
+const getJoinLength = uint8Arrays => {
+	let joinLength = 0;
+	for (const uint8Array of uint8Arrays) {
+		joinLength += uint8Array.length;
+	}
+
+	return joinLength;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/methods/template.js
+
+
+
+
+// Check whether the template string syntax is being used
+const isTemplateString = templates => Array.isArray(templates) && Array.isArray(templates.raw);
+
+// Convert execa`file ...commandArguments` to execa(file, commandArguments)
+const parseTemplates = (templates, expressions) => {
+	let tokens = [];
+
+	for (const [index, template] of templates.entries()) {
+		tokens = parseTemplate({
+			templates,
+			expressions,
+			tokens,
+			index,
+			template,
+		});
+	}
+
+	if (tokens.length === 0) {
+		throw new TypeError('Template script must not be empty');
+	}
+
+	const [file, ...commandArguments] = tokens;
+	return [file, commandArguments, {}];
+};
+
+const parseTemplate = ({templates, expressions, tokens, index, template}) => {
+	if (template === undefined) {
+		throw new TypeError(`Invalid backslash sequence: ${templates.raw[index]}`);
+	}
+
+	const {nextTokens, leadingWhitespaces, trailingWhitespaces} = splitByWhitespaces(template, templates.raw[index]);
+	const newTokens = concatTokens(tokens, nextTokens, leadingWhitespaces);
+
+	if (index === expressions.length) {
+		return newTokens;
+	}
+
+	const expression = expressions[index];
+	const expressionTokens = Array.isArray(expression)
+		? expression.map(expression => parseExpression(expression))
+		: [parseExpression(expression)];
+	return concatTokens(newTokens, expressionTokens, trailingWhitespaces);
+};
+
+// Like `string.split(/[ \t\r\n]+/)` except newlines and tabs are:
+//  - ignored when input as a backslash sequence like: `echo foo\n bar`
+//  - not ignored when input directly
+// The only way to distinguish those in JavaScript is to use a tagged template and compare:
+//  - the first array argument, which does not escape backslash sequences
+//  - its `raw` property, which escapes them
+const splitByWhitespaces = (template, rawTemplate) => {
+	if (rawTemplate.length === 0) {
+		return {nextTokens: [], leadingWhitespaces: false, trailingWhitespaces: false};
+	}
+
+	const nextTokens = [];
+	let templateStart = 0;
+	const leadingWhitespaces = DELIMITERS.has(rawTemplate[0]);
+
+	for (
+		let templateIndex = 0, rawIndex = 0;
+		templateIndex < template.length;
+		templateIndex += 1, rawIndex += 1
+	) {
+		const rawCharacter = rawTemplate[rawIndex];
+		if (DELIMITERS.has(rawCharacter)) {
+			if (templateStart !== templateIndex) {
+				nextTokens.push(template.slice(templateStart, templateIndex));
+			}
+
+			templateStart = templateIndex + 1;
+		} else if (rawCharacter === '\\') {
+			const nextRawCharacter = rawTemplate[rawIndex + 1];
+			if (nextRawCharacter === 'u' && rawTemplate[rawIndex + 2] === '{') {
+				rawIndex = rawTemplate.indexOf('}', rawIndex + 3);
+			} else {
+				rawIndex += ESCAPE_LENGTH[nextRawCharacter] ?? 1;
+			}
+		}
+	}
+
+	const trailingWhitespaces = templateStart === template.length;
+	if (!trailingWhitespaces) {
+		nextTokens.push(template.slice(templateStart));
+	}
+
+	return {nextTokens, leadingWhitespaces, trailingWhitespaces};
+};
+
+const DELIMITERS = new Set([' ', '\t', '\r', '\n']);
+
+// Number of characters in backslash escape sequences: \0 \xXX or \uXXXX
+// \cX is allowed in RegExps but not in strings
+// Octal sequences are not allowed in strict mode
+const ESCAPE_LENGTH = {x: 3, u: 5};
+
+const concatTokens = (tokens, nextTokens, isSeparated) => isSeparated
+	|| tokens.length === 0
+	|| nextTokens.length === 0
+	? [...tokens, ...nextTokens]
+	: [
+		...tokens.slice(0, -1),
+		`${tokens.at(-1)}${nextTokens[0]}`,
+		...nextTokens.slice(1),
+	];
+
+// Handle `${expression}` inside the template string syntax
+const parseExpression = expression => {
+	const typeOfExpression = typeof expression;
+
+	if (typeOfExpression === 'string') {
+		return expression;
+	}
+
+	if (typeOfExpression === 'number') {
+		return String(expression);
+	}
+
+	if (isPlainObject(expression) && ('stdout' in expression || 'isMaxBuffer' in expression)) {
+		return getSubprocessResult(expression);
+	}
+
+	if (expression instanceof external_node_child_process_namespaceObject.ChildProcess || Object.prototype.toString.call(expression) === '[object Promise]') {
+		// eslint-disable-next-line no-template-curly-in-string
+		throw new TypeError('Unexpected subprocess in template expression. Please use ${await subprocess} instead of ${subprocess}.');
+	}
+
+	throw new TypeError(`Unexpected "${typeOfExpression}" in template expression`);
+};
+
+const getSubprocessResult = ({stdout}) => {
+	if (typeof stdout === 'string') {
+		return stdout;
+	}
+
+	if (isUint8Array(stdout)) {
+		return uint8ArrayToString(stdout);
+	}
+
+	if (stdout === undefined) {
+		throw new TypeError('Missing result.stdout in template expression. This is probably due to the previous subprocess\' "stdout" option.');
+	}
+
+	throw new TypeError(`Unexpected "${typeof stdout}" stdout in template expression`);
+};
+
+;// CONCATENATED MODULE: external "node:tty"
+const external_node_tty_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:tty");
+;// CONCATENATED MODULE: ./node_modules/yoctocolors/index.js
+
+
+// eslint-disable-next-line no-warning-comments
+// TODO: Use a better method when it's added to Node.js (https://github.com/nodejs/node/pull/40240)
+const hasColors = external_node_tty_namespaceObject.WriteStream.prototype.hasColors();
+
+const format = (open, close) => {
+	if (!hasColors) {
+		return input => input;
+	}
+
+	const openCode = `\u001B[${open}m`;
+	const closeCode = `\u001B[${close}m`;
+
+	return input => {
+		const string = input + ''; // eslint-disable-line no-implicit-coercion -- This is faster.
+		let index = string.indexOf(closeCode);
+
+		if (index === -1) {
+			// Note: Intentionally not using string interpolation for performance reasons.
+			return openCode + string + closeCode;
+		}
+
+		// Handle nested colors.
+
+		// We could have done this, but it's too slow (as of Node.js 22).
+		// return openCode + string.replaceAll(closeCode, openCode) + closeCode;
+
+		let result = openCode;
+		let lastIndex = 0;
+
+		while (index !== -1) {
+			result += string.slice(lastIndex, index) + openCode;
+			lastIndex = index + closeCode.length;
+			index = string.indexOf(closeCode, lastIndex);
+		}
+
+		result += string.slice(lastIndex) + closeCode;
+
+		return result;
+	};
+};
+
+const yoctocolors_reset = format(0, 0);
+const bold = format(1, 22);
+const dim = format(2, 22);
+const italic = format(3, 23);
+const underline = format(4, 24);
+const overline = format(53, 55);
+const inverse = format(7, 27);
+const yoctocolors_hidden = format(8, 28);
+const strikethrough = format(9, 29);
+
+const black = format(30, 39);
+const red = format(31, 39);
+const green = format(32, 39);
+const yellow = format(33, 39);
+const blue = format(34, 39);
+const magenta = format(35, 39);
+const cyan = format(36, 39);
+const white = format(37, 39);
+const gray = format(90, 39);
+
+const bgBlack = format(40, 49);
+const bgRed = format(41, 49);
+const bgGreen = format(42, 49);
+const bgYellow = format(43, 49);
+const bgBlue = format(44, 49);
+const bgMagenta = format(45, 49);
+const bgCyan = format(46, 49);
+const bgWhite = format(47, 49);
+const bgGray = format(100, 49);
+
+const redBright = format(91, 39);
+const greenBright = format(92, 39);
+const yellowBright = format(93, 39);
+const blueBright = format(94, 39);
+const magentaBright = format(95, 39);
+const cyanBright = format(96, 39);
+const whiteBright = format(97, 39);
+
+const bgRedBright = format(101, 49);
+const bgGreenBright = format(102, 49);
+const bgYellowBright = format(103, 49);
+const bgBlueBright = format(104, 49);
+const bgMagentaBright = format(105, 49);
+const bgCyanBright = format(106, 49);
+const bgWhiteBright = format(107, 49);
+
+// EXTERNAL MODULE: external "node:util"
+var external_node_util_ = __nccwpck_require__(7261);
+;// CONCATENATED MODULE: ./node_modules/execa/lib/verbose/info.js
+
+
+// Default value for the `verbose` option
+const verboseDefault = (0,external_node_util_.debuglog)('execa').enabled ? 'full' : 'none';
+
+// Information computed before spawning, used by the `verbose` option
+const getVerboseInfo = verbose => {
+	const verboseId = isVerbose(verbose) ? VERBOSE_ID++ : undefined;
+	validateVerbose(verbose);
+	return {verbose, verboseId};
+};
+
+// Prepending the `pid` is useful when multiple commands print their output at the same time.
+// However, we cannot use the real PID since this is not available with `child_process.spawnSync()`.
+// Also, we cannot use the real PID if we want to print it before `child_process.spawn()` is run.
+// As a pro, it is shorter than a normal PID and never re-uses the same id.
+// As a con, it cannot be used to send signals.
+let VERBOSE_ID = 0n;
+
+// The `verbose` option can have different values for `stdout`/`stderr`
+const isVerbose = verbose => verbose.some(fdVerbose => fdVerbose !== 'none');
+
+const validateVerbose = verbose => {
+	for (const verboseItem of verbose) {
+		if (verboseItem === false) {
+			throw new TypeError('The "verbose: false" option was renamed to "verbose: \'none\'".');
+		}
+
+		if (verboseItem === true) {
+			throw new TypeError('The "verbose: true" option was renamed to "verbose: \'short\'".');
+		}
+
+		if (!VERBOSE_VALUES.has(verboseItem)) {
+			const allowedValues = [...VERBOSE_VALUES].map(allowedValue => `'${allowedValue}'`).join(', ');
+			throw new TypeError(`The "verbose" option must not be ${verboseItem}. Allowed values are: ${allowedValues}.`);
+		}
+	}
+};
+
+const VERBOSE_VALUES = new Set(['none', 'short', 'full']);
+
+;// CONCATENATED MODULE: external "node:fs"
+const external_node_fs_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs");
+;// CONCATENATED MODULE: external "node:process"
+const external_node_process_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:process");
+;// CONCATENATED MODULE: ./node_modules/is-unicode-supported/index.js
+
+
+function isUnicodeSupported() {
+	if (external_node_process_namespaceObject.platform !== 'win32') {
+		return external_node_process_namespaceObject.env.TERM !== 'linux'; // Linux console (kernel)
+	}
+
+	return Boolean(external_node_process_namespaceObject.env.WT_SESSION) // Windows Terminal
+		|| Boolean(external_node_process_namespaceObject.env.TERMINUS_SUBLIME) // Terminus (<0.2.27)
+		|| external_node_process_namespaceObject.env.ConEmuTask === '{cmd::Cmder}' // ConEmu and cmder
+		|| external_node_process_namespaceObject.env.TERM_PROGRAM === 'Terminus-Sublime'
+		|| external_node_process_namespaceObject.env.TERM_PROGRAM === 'vscode'
+		|| external_node_process_namespaceObject.env.TERM === 'xterm-256color'
+		|| external_node_process_namespaceObject.env.TERM === 'alacritty'
+		|| external_node_process_namespaceObject.env.TERMINAL_EMULATOR === 'JetBrains-JediTerm';
+}
+
+;// CONCATENATED MODULE: ./node_modules/figures/index.js
+
+
+const common = {
+	circleQuestionMark: '(?)',
+	questionMarkPrefix: '(?)',
+	square: '█',
+	squareDarkShade: '▓',
+	squareMediumShade: '▒',
+	squareLightShade: '░',
+	squareTop: '▀',
+	squareBottom: '▄',
+	squareLeft: '▌',
+	squareRight: '▐',
+	squareCenter: '■',
+	bullet: '●',
+	dot: '․',
+	ellipsis: '…',
+	pointerSmall: '›',
+	triangleUp: '▲',
+	triangleUpSmall: '▴',
+	triangleDown: '▼',
+	triangleDownSmall: '▾',
+	triangleLeftSmall: '◂',
+	triangleRightSmall: '▸',
+	home: '⌂',
+	heart: '♥',
+	musicNote: '♪',
+	musicNoteBeamed: '♫',
+	arrowUp: '↑',
+	arrowDown: '↓',
+	arrowLeft: '←',
+	arrowRight: '→',
+	arrowLeftRight: '↔',
+	arrowUpDown: '↕',
+	almostEqual: '≈',
+	notEqual: '≠',
+	lessOrEqual: '≤',
+	greaterOrEqual: '≥',
+	identical: '≡',
+	infinity: '∞',
+	subscriptZero: '₀',
+	subscriptOne: '₁',
+	subscriptTwo: '₂',
+	subscriptThree: '₃',
+	subscriptFour: '₄',
+	subscriptFive: '₅',
+	subscriptSix: '₆',
+	subscriptSeven: '₇',
+	subscriptEight: '₈',
+	subscriptNine: '₉',
+	oneHalf: '½',
+	oneThird: '⅓',
+	oneQuarter: '¼',
+	oneFifth: '⅕',
+	oneSixth: '⅙',
+	oneEighth: '⅛',
+	twoThirds: '⅔',
+	twoFifths: '⅖',
+	threeQuarters: '¾',
+	threeFifths: '⅗',
+	threeEighths: '⅜',
+	fourFifths: '⅘',
+	fiveSixths: '⅚',
+	fiveEighths: '⅝',
+	sevenEighths: '⅞',
+	line: '─',
+	lineBold: '━',
+	lineDouble: '═',
+	lineDashed0: '┄',
+	lineDashed1: '┅',
+	lineDashed2: '┈',
+	lineDashed3: '┉',
+	lineDashed4: '╌',
+	lineDashed5: '╍',
+	lineDashed6: '╴',
+	lineDashed7: '╶',
+	lineDashed8: '╸',
+	lineDashed9: '╺',
+	lineDashed10: '╼',
+	lineDashed11: '╾',
+	lineDashed12: '−',
+	lineDashed13: '–',
+	lineDashed14: '‐',
+	lineDashed15: '⁃',
+	lineVertical: '│',
+	lineVerticalBold: '┃',
+	lineVerticalDouble: '║',
+	lineVerticalDashed0: '┆',
+	lineVerticalDashed1: '┇',
+	lineVerticalDashed2: '┊',
+	lineVerticalDashed3: '┋',
+	lineVerticalDashed4: '╎',
+	lineVerticalDashed5: '╏',
+	lineVerticalDashed6: '╵',
+	lineVerticalDashed7: '╷',
+	lineVerticalDashed8: '╹',
+	lineVerticalDashed9: '╻',
+	lineVerticalDashed10: '╽',
+	lineVerticalDashed11: '╿',
+	lineDownLeft: '┐',
+	lineDownLeftArc: '╮',
+	lineDownBoldLeftBold: '┓',
+	lineDownBoldLeft: '┒',
+	lineDownLeftBold: '┑',
+	lineDownDoubleLeftDouble: '╗',
+	lineDownDoubleLeft: '╖',
+	lineDownLeftDouble: '╕',
+	lineDownRight: '┌',
+	lineDownRightArc: '╭',
+	lineDownBoldRightBold: '┏',
+	lineDownBoldRight: '┎',
+	lineDownRightBold: '┍',
+	lineDownDoubleRightDouble: '╔',
+	lineDownDoubleRight: '╓',
+	lineDownRightDouble: '╒',
+	lineUpLeft: '┘',
+	lineUpLeftArc: '╯',
+	lineUpBoldLeftBold: '┛',
+	lineUpBoldLeft: '┚',
+	lineUpLeftBold: '┙',
+	lineUpDoubleLeftDouble: '╝',
+	lineUpDoubleLeft: '╜',
+	lineUpLeftDouble: '╛',
+	lineUpRight: '└',
+	lineUpRightArc: '╰',
+	lineUpBoldRightBold: '┗',
+	lineUpBoldRight: '┖',
+	lineUpRightBold: '┕',
+	lineUpDoubleRightDouble: '╚',
+	lineUpDoubleRight: '╙',
+	lineUpRightDouble: '╘',
+	lineUpDownLeft: '┤',
+	lineUpBoldDownBoldLeftBold: '┫',
+	lineUpBoldDownBoldLeft: '┨',
+	lineUpDownLeftBold: '┥',
+	lineUpBoldDownLeftBold: '┩',
+	lineUpDownBoldLeftBold: '┪',
+	lineUpDownBoldLeft: '┧',
+	lineUpBoldDownLeft: '┦',
+	lineUpDoubleDownDoubleLeftDouble: '╣',
+	lineUpDoubleDownDoubleLeft: '╢',
+	lineUpDownLeftDouble: '╡',
+	lineUpDownRight: '├',
+	lineUpBoldDownBoldRightBold: '┣',
+	lineUpBoldDownBoldRight: '┠',
+	lineUpDownRightBold: '┝',
+	lineUpBoldDownRightBold: '┡',
+	lineUpDownBoldRightBold: '┢',
+	lineUpDownBoldRight: '┟',
+	lineUpBoldDownRight: '┞',
+	lineUpDoubleDownDoubleRightDouble: '╠',
+	lineUpDoubleDownDoubleRight: '╟',
+	lineUpDownRightDouble: '╞',
+	lineDownLeftRight: '┬',
+	lineDownBoldLeftBoldRightBold: '┳',
+	lineDownLeftBoldRightBold: '┯',
+	lineDownBoldLeftRight: '┰',
+	lineDownBoldLeftBoldRight: '┱',
+	lineDownBoldLeftRightBold: '┲',
+	lineDownLeftRightBold: '┮',
+	lineDownLeftBoldRight: '┭',
+	lineDownDoubleLeftDoubleRightDouble: '╦',
+	lineDownDoubleLeftRight: '╥',
+	lineDownLeftDoubleRightDouble: '╤',
+	lineUpLeftRight: '┴',
+	lineUpBoldLeftBoldRightBold: '┻',
+	lineUpLeftBoldRightBold: '┷',
+	lineUpBoldLeftRight: '┸',
+	lineUpBoldLeftBoldRight: '┹',
+	lineUpBoldLeftRightBold: '┺',
+	lineUpLeftRightBold: '┶',
+	lineUpLeftBoldRight: '┵',
+	lineUpDoubleLeftDoubleRightDouble: '╩',
+	lineUpDoubleLeftRight: '╨',
+	lineUpLeftDoubleRightDouble: '╧',
+	lineUpDownLeftRight: '┼',
+	lineUpBoldDownBoldLeftBoldRightBold: '╋',
+	lineUpDownBoldLeftBoldRightBold: '╈',
+	lineUpBoldDownLeftBoldRightBold: '╇',
+	lineUpBoldDownBoldLeftRightBold: '╊',
+	lineUpBoldDownBoldLeftBoldRight: '╉',
+	lineUpBoldDownLeftRight: '╀',
+	lineUpDownBoldLeftRight: '╁',
+	lineUpDownLeftBoldRight: '┽',
+	lineUpDownLeftRightBold: '┾',
+	lineUpBoldDownBoldLeftRight: '╂',
+	lineUpDownLeftBoldRightBold: '┿',
+	lineUpBoldDownLeftBoldRight: '╃',
+	lineUpBoldDownLeftRightBold: '╄',
+	lineUpDownBoldLeftBoldRight: '╅',
+	lineUpDownBoldLeftRightBold: '╆',
+	lineUpDoubleDownDoubleLeftDoubleRightDouble: '╬',
+	lineUpDoubleDownDoubleLeftRight: '╫',
+	lineUpDownLeftDoubleRightDouble: '╪',
+	lineCross: '╳',
+	lineBackslash: '╲',
+	lineSlash: '╱',
+};
+
+const specialMainSymbols = {
+	tick: '✔',
+	info: 'ℹ',
+	warning: '⚠',
+	cross: '✘',
+	squareSmall: '◻',
+	squareSmallFilled: '◼',
+	circle: '◯',
+	circleFilled: '◉',
+	circleDotted: '◌',
+	circleDouble: '◎',
+	circleCircle: 'ⓞ',
+	circleCross: 'ⓧ',
+	circlePipe: 'Ⓘ',
+	radioOn: '◉',
+	radioOff: '◯',
+	checkboxOn: '☒',
+	checkboxOff: '☐',
+	checkboxCircleOn: 'ⓧ',
+	checkboxCircleOff: 'Ⓘ',
+	pointer: '❯',
+	triangleUpOutline: '△',
+	triangleLeft: '◀',
+	triangleRight: '▶',
+	lozenge: '◆',
+	lozengeOutline: '◇',
+	hamburger: '☰',
+	smiley: '㋡',
+	mustache: '෴',
+	star: '★',
+	play: '▶',
+	nodejs: '⬢',
+	oneSeventh: '⅐',
+	oneNinth: '⅑',
+	oneTenth: '⅒',
+};
+
+const specialFallbackSymbols = {
+	tick: '√',
+	info: 'i',
+	warning: '‼',
+	cross: '×',
+	squareSmall: '□',
+	squareSmallFilled: '■',
+	circle: '( )',
+	circleFilled: '(*)',
+	circleDotted: '( )',
+	circleDouble: '( )',
+	circleCircle: '(○)',
+	circleCross: '(×)',
+	circlePipe: '(│)',
+	radioOn: '(*)',
+	radioOff: '( )',
+	checkboxOn: '[×]',
+	checkboxOff: '[ ]',
+	checkboxCircleOn: '(×)',
+	checkboxCircleOff: '( )',
+	pointer: '>',
+	triangleUpOutline: '∆',
+	triangleLeft: '◄',
+	triangleRight: '►',
+	lozenge: '♦',
+	lozengeOutline: '◊',
+	hamburger: '≡',
+	smiley: '☺',
+	mustache: '┌─┐',
+	star: '✶',
+	play: '►',
+	nodejs: '♦',
+	oneSeventh: '1/7',
+	oneNinth: '1/9',
+	oneTenth: '1/10',
+};
+
+const mainSymbols = {...common, ...specialMainSymbols};
+const fallbackSymbols = {...common, ...specialFallbackSymbols};
+
+const shouldUseMain = isUnicodeSupported();
+const figures = shouldUseMain ? mainSymbols : fallbackSymbols;
+/* harmony default export */ const node_modules_figures = (figures);
+
+const replacements = Object.entries(specialMainSymbols);
+
+// On terminals which do not support Unicode symbols, substitute them to other symbols
+const replaceSymbols = (string, {useFallback = !shouldUseMain} = {}) => {
+	if (useFallback) {
+		for (const [key, mainSymbol] of replacements) {
+			string = string.replaceAll(mainSymbol, fallbackSymbols[key]);
+		}
+	}
+
+	return string;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/arguments/escape.js
+
+
+
+// Compute `result.command` and `result.escapedCommand`
+const joinCommand = (filePath, rawArguments) => {
+	const fileAndArguments = [filePath, ...rawArguments];
+	const command = fileAndArguments.join(' ');
+	const escapedCommand = fileAndArguments
+		.map(fileAndArgument => quoteString(escapeControlCharacters(fileAndArgument)))
+		.join(' ');
+	return {command, escapedCommand};
+};
+
+// Remove ANSI sequences and escape control characters and newlines
+const escapeLines = lines => (0,external_node_util_.stripVTControlCharacters)(lines)
+	.split('\n')
+	.map(line => escapeControlCharacters(line))
+	.join('\n');
+
+const escapeControlCharacters = line => line.replaceAll(SPECIAL_CHAR_REGEXP, character => escapeControlCharacter(character));
+
+const escapeControlCharacter = character => {
+	const commonEscape = COMMON_ESCAPES[character];
+	if (commonEscape !== undefined) {
+		return commonEscape;
+	}
+
+	const codepoint = character.codePointAt(0);
+	const codepointHex = codepoint.toString(16);
+	return codepoint <= ASTRAL_START
+		? `\\u${codepointHex.padStart(4, '0')}`
+		: `\\U${codepointHex}`;
+};
+
+// Characters that would create issues when printed are escaped using the \u or \U notation.
+// Those include control characters and newlines.
+// The \u and \U notation is Bash specific, but there is no way to do this in a shell-agnostic way.
+// Some shells do not even have a way to print those characters in an escaped fashion.
+// Therefore, we prioritize printing those safely, instead of allowing those to be copy-pasted.
+// List of Unicode character categories: https://www.fileformat.info/info/unicode/category/index.htm
+const SPECIAL_CHAR_REGEXP = /\p{Separator}|\p{Other}/gu;
+
+// Accepted by $'...' in Bash.
+// Exclude \a \e \v which are accepted in Bash but not in JavaScript (except \v) and JSON.
+const COMMON_ESCAPES = {
+	' ': ' ',
+	'\b': '\\b',
+	'\f': '\\f',
+	'\n': '\\n',
+	'\r': '\\r',
+	'\t': '\\t',
+};
+
+// Up until that codepoint, \u notation can be used instead of \U
+const ASTRAL_START = 65_535;
+
+// Some characters are shell-specific, i.e. need to be escaped when the command is copy-pasted then run.
+// Escaping is shell-specific. We cannot know which shell is used: `process.platform` detection is not enough.
+// For example, Windows users could be using `cmd.exe`, Powershell or Bash for Windows which all use different escaping.
+// We use '...' on Unix, which is POSIX shell compliant and escape all characters but ' so this is fairly safe.
+// On Windows, we assume cmd.exe is used and escape with "...", which also works with Powershell.
+const quoteString = escapedArgument => {
+	if (NO_ESCAPE_REGEXP.test(escapedArgument)) {
+		return escapedArgument;
+	}
+
+	return external_node_process_namespaceObject.platform === 'win32'
+		? `"${escapedArgument.replaceAll('"', '""')}"`
+		: `'${escapedArgument.replaceAll('\'', '\'\\\'\'')}'`;
+};
+
+const NO_ESCAPE_REGEXP = /^[\w./-]+$/;
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/verbose/log.js
+
+
+
+
+
+
+// Write synchronously to ensure lines are properly ordered and not interleaved with `stdout`
+const verboseLog = (string, verboseId, icon, color) => {
+	const prefixedLines = addPrefix(string, verboseId, icon, color);
+	(0,external_node_fs_namespaceObject.writeFileSync)(STDERR_FD, `${prefixedLines}\n`);
+};
+
+const STDERR_FD = 2;
+
+const addPrefix = (string, verboseId, icon, color) => string.includes('\n')
+	? string
+		.split('\n')
+		.map(line => addPrefixToLine(line, verboseId, icon, color))
+		.join('\n')
+	: addPrefixToLine(string, verboseId, icon, color);
+
+const addPrefixToLine = (line, verboseId, icon, color = identity) => [
+	gray(`[${getTimestamp()}]`),
+	gray(`[${verboseId}]`),
+	color(ICONS[icon]),
+	color(line),
+].join(' ');
+
+const identity = string => string;
+
+// Prepending the timestamp allows debugging the slow paths of a subprocess
+const getTimestamp = () => {
+	const date = new Date();
+	return `${padField(date.getHours(), 2)}:${padField(date.getMinutes(), 2)}:${padField(date.getSeconds(), 2)}.${padField(date.getMilliseconds(), 3)}`;
+};
+
+const padField = (field, padding) => String(field).padStart(padding, '0');
+
+const ICONS = {
+	command: '$',
+	pipedCommand: '|',
+	output: ' ',
+	ipc: '*',
+	error: node_modules_figures.cross,
+	warning: node_modules_figures.warning,
+	success: node_modules_figures.tick,
+};
+
+// Serialize any type to a line string, for logging
+const serializeLogMessage = message => {
+	const messageString = typeof message === 'string' ? message : (0,external_node_util_.inspect)(message);
+	const escapedMessage = escapeLines(messageString);
+	return escapedMessage.replaceAll('\t', ' '.repeat(TAB_SIZE));
+};
+
+// Same as `util.inspect()`
+const TAB_SIZE = 2;
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/verbose/start.js
+
+
+
+
+// When `verbose` is `short|full`, print each command
+const logCommand = (escapedCommand, {verbose, verboseId}, {piped = false}) => {
+	if (!isVerbose(verbose)) {
+		return;
+	}
+
+	const icon = piped ? 'pipedCommand' : 'command';
+	verboseLog(escapedCommand, verboseId, icon, bold);
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/return/duration.js
+
+
+// Start counting time before spawning the subprocess
+const getStartTime = () => external_node_process_namespaceObject.hrtime.bigint();
+
+// Compute duration after the subprocess ended.
+// Printed by the `verbose` option.
+const getDurationMs = startTime => Number(external_node_process_namespaceObject.hrtime.bigint() - startTime) / 1e6;
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/utils/standard-stream.js
+
+
+const isStandardStream = stream => STANDARD_STREAMS.includes(stream);
+const STANDARD_STREAMS = [external_node_process_namespaceObject.stdin, external_node_process_namespaceObject.stdout, external_node_process_namespaceObject.stderr];
+const STANDARD_STREAMS_ALIASES = ['stdin', 'stdout', 'stderr'];
+const getStreamName = fdNumber => STANDARD_STREAMS_ALIASES[fdNumber] ?? `stdio[${fdNumber}]`;
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/arguments/specific.js
+
+
+
+
+// Some options can have different values for `stdout`/`stderr`/`fd3`.
+// This normalizes those to array of values.
+// For example, `{verbose: {stdout: 'none', stderr: 'full'}}` becomes `{verbose: ['none', 'none', 'full']}`
+const normalizeFdSpecificOptions = options => {
+	const optionsCopy = {...options};
+
+	for (const optionName of FD_SPECIFIC_OPTIONS) {
+		optionsCopy[optionName] = normalizeFdSpecificOption(options, optionName);
+	}
+
+	return optionsCopy;
+};
+
+const normalizeFdSpecificOption = (options, optionName) => {
+	const optionBaseArray = Array.from({length: getStdioLength(options) + 1});
+	const optionArray = normalizeFdSpecificValue(options[optionName], optionBaseArray, optionName);
+	return addDefaultValue(optionArray, optionName);
+};
+
+const getStdioLength = ({stdio}) => Array.isArray(stdio)
+	? Math.max(stdio.length, STANDARD_STREAMS_ALIASES.length)
+	: STANDARD_STREAMS_ALIASES.length;
+
+const normalizeFdSpecificValue = (optionValue, optionArray, optionName) => isPlainObject(optionValue)
+	? normalizeOptionObject(optionValue, optionArray, optionName)
+	: optionArray.fill(optionValue);
+
+const normalizeOptionObject = (optionValue, optionArray, optionName) => {
+	for (const fdName of Object.keys(optionValue).sort(compareFdName)) {
+		for (const fdNumber of parseFdName(fdName, optionName, optionArray)) {
+			optionArray[fdNumber] = optionValue[fdName];
+		}
+	}
+
+	return optionArray;
+};
+
+// Ensure priority order when setting both `stdout`/`stderr`, `fd1`/`fd2`, and `all`
+const compareFdName = (fdNameA, fdNameB) => getFdNameOrder(fdNameA) < getFdNameOrder(fdNameB) ? 1 : -1;
+
+const getFdNameOrder = fdName => {
+	if (fdName === 'stdout' || fdName === 'stderr') {
+		return 0;
+	}
+
+	return fdName === 'all' ? 2 : 1;
+};
+
+const parseFdName = (fdName, optionName, optionArray) => {
+	if (fdName === 'ipc') {
+		return [optionArray.length - 1];
+	}
+
+	const fdNumber = parseFd(fdName);
+	if (fdNumber === undefined || fdNumber === 0) {
+		throw new TypeError(`"${optionName}.${fdName}" is invalid.
+It must be "${optionName}.stdout", "${optionName}.stderr", "${optionName}.all", "${optionName}.ipc", or "${optionName}.fd3", "${optionName}.fd4" (and so on).`);
+	}
+
+	if (fdNumber >= optionArray.length) {
+		throw new TypeError(`"${optionName}.${fdName}" is invalid: that file descriptor does not exist.
+Please set the "stdio" option to ensure that file descriptor exists.`);
+	}
+
+	return fdNumber === 'all' ? [1, 2] : [fdNumber];
+};
+
+// Use the same syntax for fd-specific options and the `from`/`to` options
+const parseFd = fdName => {
+	if (fdName === 'all') {
+		return fdName;
+	}
+
+	if (STANDARD_STREAMS_ALIASES.includes(fdName)) {
+		return STANDARD_STREAMS_ALIASES.indexOf(fdName);
+	}
+
+	const regexpResult = FD_REGEXP.exec(fdName);
+	if (regexpResult !== null) {
+		return Number(regexpResult[1]);
+	}
+};
+
+const FD_REGEXP = /^fd(\d+)$/;
+
+const addDefaultValue = (optionArray, optionName) => optionArray.map(optionValue => optionValue === undefined
+	? DEFAULT_OPTIONS[optionName]
+	: optionValue);
+
+const DEFAULT_OPTIONS = {
+	lines: false,
+	buffer: true,
+	maxBuffer: 1000 * 1000 * 100,
+	verbose: verboseDefault,
+	stripFinalNewline: true,
+};
+
+// List of options which can have different values for `stdout`/`stderr`
+const FD_SPECIFIC_OPTIONS = ['lines', 'buffer', 'maxBuffer', 'verbose', 'stripFinalNewline'];
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/arguments/command.js
+
+
+
+
+
+
+// Compute `result.command`, `result.escapedCommand` and `verbose`-related information
+const handleCommand = (filePath, rawArguments, rawOptions) => {
+	const startTime = getStartTime();
+	const {command, escapedCommand} = joinCommand(filePath, rawArguments);
+	const verboseInfo = getVerboseInfo(normalizeFdSpecificOption(rawOptions, 'verbose'));
+	logCommand(escapedCommand, verboseInfo, rawOptions);
+	return {
+		command,
+		escapedCommand,
+		startTime,
+		verboseInfo,
+	};
+};
+
+;// CONCATENATED MODULE: external "node:path"
+const external_node_path_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:path");
+// EXTERNAL MODULE: ./node_modules/cross-spawn/index.js
+var cross_spawn = __nccwpck_require__(7881);
 ;// CONCATENATED MODULE: ./node_modules/npm-run-path/node_modules/path-key/index.js
 function pathKey(options = {}) {
 	const {
@@ -35183,155 +39633,97 @@ function pathKey(options = {}) {
 
 
 
-function npmRunPath(options = {}) {
-	const {
-		cwd = external_node_process_namespaceObject.cwd(),
-		path: path_ = external_node_process_namespaceObject.env[pathKey()],
-		execPath = external_node_process_namespaceObject.execPath,
-	} = options;
-
-	let previous;
-	const cwdString = cwd instanceof URL ? external_node_url_namespaceObject.fileURLToPath(cwd) : cwd;
-	let cwdPath = external_node_path_namespaceObject.resolve(cwdString);
+const npmRunPath = ({
+	cwd = external_node_process_namespaceObject.cwd(),
+	path: pathOption = external_node_process_namespaceObject.env[pathKey()],
+	preferLocal = true,
+	execPath = external_node_process_namespaceObject.execPath,
+	addExecPath = true,
+} = {}) => {
+	const cwdString = cwd instanceof URL ? (0,external_node_url_namespaceObject.fileURLToPath)(cwd) : cwd;
+	const cwdPath = external_node_path_namespaceObject.resolve(cwdString);
 	const result = [];
+
+	if (preferLocal) {
+		applyPreferLocal(result, cwdPath);
+	}
+
+	if (addExecPath) {
+		applyExecPath(result, execPath, cwdPath);
+	}
+
+	return [...result, pathOption].join(external_node_path_namespaceObject.delimiter);
+};
+
+const applyPreferLocal = (result, cwdPath) => {
+	let previous;
 
 	while (previous !== cwdPath) {
 		result.push(external_node_path_namespaceObject.join(cwdPath, 'node_modules/.bin'));
 		previous = cwdPath;
 		cwdPath = external_node_path_namespaceObject.resolve(cwdPath, '..');
 	}
+};
 
-	// Ensure the running `node` binary is used.
-	result.push(external_node_path_namespaceObject.resolve(cwdString, execPath, '..'));
+// Ensure the running `node` binary is used
+const applyExecPath = (result, execPath, cwdPath) => {
+	const execPathString = execPath instanceof URL ? (0,external_node_url_namespaceObject.fileURLToPath)(execPath) : execPath;
+	result.push(external_node_path_namespaceObject.resolve(cwdPath, execPathString, '..'));
+};
 
-	return [...result, path_].join(external_node_path_namespaceObject.delimiter);
-}
-
-function npmRunPathEnv({env = external_node_process_namespaceObject.env, ...options} = {}) {
+const npmRunPathEnv = ({env = external_node_process_namespaceObject.env, ...options} = {}) => {
 	env = {...env};
 
-	const path = pathKey({env});
-	options.path = env[path];
-	env[path] = npmRunPath(options);
+	const pathName = pathKey({env});
+	options.path = env[pathName];
+	env[pathName] = npmRunPath(options);
 
 	return env;
-}
-
-;// CONCATENATED MODULE: ./node_modules/mimic-fn/index.js
-const copyProperty = (to, from, property, ignoreNonConfigurable) => {
-	// `Function#length` should reflect the parameters of `to` not `from` since we keep its body.
-	// `Function#prototype` is non-writable and non-configurable so can never be modified.
-	if (property === 'length' || property === 'prototype') {
-		return;
-	}
-
-	// `Function#arguments` and `Function#caller` should not be copied. They were reported to be present in `Reflect.ownKeys` for some devices in React Native (#41), so we explicitly ignore them here.
-	if (property === 'arguments' || property === 'caller') {
-		return;
-	}
-
-	const toDescriptor = Object.getOwnPropertyDescriptor(to, property);
-	const fromDescriptor = Object.getOwnPropertyDescriptor(from, property);
-
-	if (!canCopyProperty(toDescriptor, fromDescriptor) && ignoreNonConfigurable) {
-		return;
-	}
-
-	Object.defineProperty(to, property, fromDescriptor);
 };
 
-// `Object.defineProperty()` throws if the property exists, is not configurable and either:
-// - one its descriptors is changed
-// - it is non-writable and its value is changed
-const canCopyProperty = function (toDescriptor, fromDescriptor) {
-	return toDescriptor === undefined || toDescriptor.configurable || (
-		toDescriptor.writable === fromDescriptor.writable &&
-		toDescriptor.enumerable === fromDescriptor.enumerable &&
-		toDescriptor.configurable === fromDescriptor.configurable &&
-		(toDescriptor.writable || toDescriptor.value === fromDescriptor.value)
-	);
+;// CONCATENATED MODULE: external "node:timers/promises"
+const promises_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:timers/promises");
+;// CONCATENATED MODULE: ./node_modules/execa/lib/return/final-error.js
+// When the subprocess fails, this is the error instance being returned.
+// If another error instance is being thrown, it is kept as `error.cause`.
+const getFinalError = (originalError, message, isSync) => {
+	const ErrorClass = isSync ? ExecaSyncError : ExecaError;
+	const options = originalError instanceof DiscardedError ? {} : {cause: originalError};
+	return new ErrorClass(message, options);
 };
 
-const changePrototype = (to, from) => {
-	const fromPrototype = Object.getPrototypeOf(from);
-	if (fromPrototype === Object.getPrototypeOf(to)) {
-		return;
-	}
+// Indicates that the error is used only to interrupt control flow, but not in the return value
+class DiscardedError extends Error {}
 
-	Object.setPrototypeOf(to, fromPrototype);
+// Proper way to set `error.name`: it should be inherited and non-enumerable
+const setErrorName = (ErrorClass, value) => {
+	Object.defineProperty(ErrorClass.prototype, 'name', {
+		value,
+		writable: true,
+		enumerable: false,
+		configurable: true,
+	});
+	Object.defineProperty(ErrorClass.prototype, execaErrorSymbol, {
+		value: true,
+		writable: false,
+		enumerable: false,
+		configurable: false,
+	});
 };
 
-const wrappedToString = (withName, fromBody) => `/* Wrapped ${withName}*/\n${fromBody}`;
+// Unlike `instanceof`, this works across realms
+const isExecaError = error => isErrorInstance(error) && execaErrorSymbol in error;
 
-const toStringDescriptor = Object.getOwnPropertyDescriptor(Function.prototype, 'toString');
-const toStringName = Object.getOwnPropertyDescriptor(Function.prototype.toString, 'name');
+const execaErrorSymbol = Symbol('isExecaError');
 
-// We call `from.toString()` early (not lazily) to ensure `from` can be garbage collected.
-// We use `bind()` instead of a closure for the same reason.
-// Calling `from.toString()` early also allows caching it in case `to.toString()` is called several times.
-const changeToString = (to, from, name) => {
-	const withName = name === '' ? '' : `with ${name.trim()}() `;
-	const newToString = wrappedToString.bind(null, withName, from.toString());
-	// Ensure `to.toString.toString` is non-enumerable and has the same `same`
-	Object.defineProperty(newToString, 'name', toStringName);
-	Object.defineProperty(to, 'toString', {...toStringDescriptor, value: newToString});
-};
+const isErrorInstance = value => Object.prototype.toString.call(value) === '[object Error]';
 
-function mimicFunction(to, from, {ignoreNonConfigurable = false} = {}) {
-	const {name} = to;
+// We use two different Error classes for async/sync methods since they have slightly different shape and types
+class ExecaError extends Error {}
+setErrorName(ExecaError, ExecaError.name);
 
-	for (const property of Reflect.ownKeys(from)) {
-		copyProperty(to, from, property, ignoreNonConfigurable);
-	}
-
-	changePrototype(to, from);
-	changeToString(to, from, name);
-
-	return to;
-}
-
-;// CONCATENATED MODULE: ./node_modules/onetime/index.js
-
-
-const calledFunctions = new WeakMap();
-
-const onetime = (function_, options = {}) => {
-	if (typeof function_ !== 'function') {
-		throw new TypeError('Expected a function');
-	}
-
-	let returnValue;
-	let callCount = 0;
-	const functionName = function_.displayName || function_.name || '<anonymous>';
-
-	const onetime = function (...arguments_) {
-		calledFunctions.set(onetime, ++callCount);
-
-		if (callCount === 1) {
-			returnValue = function_.apply(this, arguments_);
-			function_ = null;
-		} else if (options.throw === true) {
-			throw new Error(`Function \`${functionName}\` can only be called once`);
-		}
-
-		return returnValue;
-	};
-
-	mimicFunction(onetime, function_);
-	calledFunctions.set(onetime, callCount);
-
-	return onetime;
-};
-
-onetime.callCount = function_ => {
-	if (!calledFunctions.has(function_)) {
-		throw new Error(`The given function \`${function_.name}\` is not wrapped by the \`onetime\` package`);
-	}
-
-	return calledFunctions.get(function_);
-};
-
-/* harmony default export */ const node_modules_onetime = (onetime);
+class ExecaSyncError extends Error {}
+setErrorName(ExecaSyncError, ExecaSyncError.name);
 
 ;// CONCATENATED MODULE: external "node:os"
 const external_node_os_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:os");
@@ -35732,147 +40124,5095 @@ return signals.find((signalA)=>signalA.number===number)
 };
 
 const signalsByNumber=getSignalsByNumber();
-;// CONCATENATED MODULE: ./node_modules/execa/lib/error.js
+;// CONCATENATED MODULE: ./node_modules/execa/lib/terminate/signal.js
 
 
 
-const getErrorPrefix = ({timedOut, timeout, errorCode, signal, signalDescription, exitCode, isCanceled}) => {
-	if (timedOut) {
-		return `timed out after ${timeout} milliseconds`;
+// Normalize signals for comparison purpose.
+// Also validate the signal exists.
+const normalizeKillSignal = killSignal => {
+	const optionName = 'option `killSignal`';
+	if (killSignal === 0) {
+		throw new TypeError(`Invalid ${optionName}: 0 cannot be used.`);
 	}
 
-	if (isCanceled) {
-		return 'was canceled';
-	}
-
-	if (errorCode !== undefined) {
-		return `failed with ${errorCode}`;
-	}
-
-	if (signal !== undefined) {
-		return `was killed with ${signal} (${signalDescription})`;
-	}
-
-	if (exitCode !== undefined) {
-		return `failed with exit code ${exitCode}`;
-	}
-
-	return 'failed';
+	return signal_normalizeSignal(killSignal, optionName);
 };
 
-const makeError = ({
-	stdout,
-	stderr,
-	all,
-	error,
-	signal,
-	exitCode,
-	command,
-	escapedCommand,
-	timedOut,
-	isCanceled,
-	killed,
-	parsed: {options: {timeout, cwd = external_node_process_namespaceObject.cwd()}},
-}) => {
-	// `signal` and `exitCode` emitted on `spawned.on('exit')` event can be `null`.
-	// We normalize them to `undefined`
-	exitCode = exitCode === null ? undefined : exitCode;
-	signal = signal === null ? undefined : signal;
-	const signalDescription = signal === undefined ? undefined : signalsByName[signal].description;
+const normalizeSignalArgument = signal => signal === 0
+	? signal
+	: signal_normalizeSignal(signal, '`subprocess.kill()`\'s argument');
 
-	const errorCode = error && error.code;
-
-	const prefix = getErrorPrefix({timedOut, timeout, errorCode, signal, signalDescription, exitCode, isCanceled});
-	const execaMessage = `Command ${prefix}: ${command}`;
-	const isError = Object.prototype.toString.call(error) === '[object Error]';
-	const shortMessage = isError ? `${execaMessage}\n${error.message}` : execaMessage;
-	const message = [shortMessage, stderr, stdout].filter(Boolean).join('\n');
-
-	if (isError) {
-		error.originalMessage = error.message;
-		error.message = message;
-	} else {
-		error = new Error(message);
+const signal_normalizeSignal = (signalNameOrInteger, optionName) => {
+	if (Number.isInteger(signalNameOrInteger)) {
+		return normalizeSignalInteger(signalNameOrInteger, optionName);
 	}
 
-	error.shortMessage = shortMessage;
-	error.command = command;
-	error.escapedCommand = escapedCommand;
-	error.exitCode = exitCode;
-	error.signal = signal;
-	error.signalDescription = signalDescription;
-	error.stdout = stdout;
-	error.stderr = stderr;
-	error.cwd = cwd;
-
-	if (all !== undefined) {
-		error.all = all;
+	if (typeof signalNameOrInteger === 'string') {
+		return normalizeSignalName(signalNameOrInteger, optionName);
 	}
 
-	if ('bufferedData' in error) {
-		delete error.bufferedData;
-	}
-
-	error.failed = true;
-	error.timedOut = Boolean(timedOut);
-	error.isCanceled = isCanceled;
-	error.killed = killed && !timedOut;
-
-	return error;
+	throw new TypeError(`Invalid ${optionName} ${String(signalNameOrInteger)}: it must be a string or an integer.\n${getAvailableSignals()}`);
 };
 
-;// CONCATENATED MODULE: ./node_modules/execa/lib/stdio.js
-const aliases = ['stdin', 'stdout', 'stderr'];
+const normalizeSignalInteger = (signalInteger, optionName) => {
+	if (signalsIntegerToName.has(signalInteger)) {
+		return signalsIntegerToName.get(signalInteger);
+	}
 
-const hasAlias = options => aliases.some(alias => options[alias] !== undefined);
+	throw new TypeError(`Invalid ${optionName} ${signalInteger}: this signal integer does not exist.\n${getAvailableSignals()}`);
+};
 
-const normalizeStdio = options => {
-	if (!options) {
+const getSignalsIntegerToName = () => new Map(Object.entries(external_node_os_namespaceObject.constants.signals)
+	.reverse()
+	.map(([signalName, signalInteger]) => [signalInteger, signalName]));
+
+const signalsIntegerToName = getSignalsIntegerToName();
+
+const normalizeSignalName = (signalName, optionName) => {
+	if (signalName in external_node_os_namespaceObject.constants.signals) {
+		return signalName;
+	}
+
+	if (signalName.toUpperCase() in external_node_os_namespaceObject.constants.signals) {
+		throw new TypeError(`Invalid ${optionName} '${signalName}': please rename it to '${signalName.toUpperCase()}'.`);
+	}
+
+	throw new TypeError(`Invalid ${optionName} '${signalName}': this signal name does not exist.\n${getAvailableSignals()}`);
+};
+
+const getAvailableSignals = () => `Available signal names: ${getAvailableSignalNames()}.
+Available signal numbers: ${getAvailableSignalIntegers()}.`;
+
+const getAvailableSignalNames = () => Object.keys(external_node_os_namespaceObject.constants.signals)
+	.sort()
+	.map(signalName => `'${signalName}'`)
+	.join(', ');
+
+const getAvailableSignalIntegers = () => [...new Set(Object.values(external_node_os_namespaceObject.constants.signals)
+	.sort((signalInteger, signalIntegerTwo) => signalInteger - signalIntegerTwo))]
+	.join(', ');
+
+// Human-friendly description of a signal
+const getSignalDescription = signal => signalsByName[signal].description;
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/terminate/kill.js
+
+
+
+
+// Normalize the `forceKillAfterDelay` option
+const normalizeForceKillAfterDelay = forceKillAfterDelay => {
+	if (forceKillAfterDelay === false) {
+		return forceKillAfterDelay;
+	}
+
+	if (forceKillAfterDelay === true) {
+		return DEFAULT_FORCE_KILL_TIMEOUT;
+	}
+
+	if (!Number.isFinite(forceKillAfterDelay) || forceKillAfterDelay < 0) {
+		throw new TypeError(`Expected the \`forceKillAfterDelay\` option to be a non-negative integer, got \`${forceKillAfterDelay}\` (${typeof forceKillAfterDelay})`);
+	}
+
+	return forceKillAfterDelay;
+};
+
+const DEFAULT_FORCE_KILL_TIMEOUT = 1000 * 5;
+
+// Monkey-patches `subprocess.kill()` to add `forceKillAfterDelay` behavior and `.kill(error)`
+const subprocessKill = (
+	{kill, options: {forceKillAfterDelay, killSignal}, onInternalError, context, controller},
+	signalOrError,
+	errorArgument,
+) => {
+	const {signal, error} = parseKillArguments(signalOrError, errorArgument, killSignal);
+	emitKillError(error, onInternalError);
+	const killResult = kill(signal);
+	setKillTimeout({
+		kill,
+		signal,
+		forceKillAfterDelay,
+		killSignal,
+		killResult,
+		context,
+		controller,
+	});
+	return killResult;
+};
+
+const parseKillArguments = (signalOrError, errorArgument, killSignal) => {
+	const [signal = killSignal, error] = isErrorInstance(signalOrError)
+		? [undefined, signalOrError]
+		: [signalOrError, errorArgument];
+
+	if (typeof signal !== 'string' && !Number.isInteger(signal)) {
+		throw new TypeError(`The first argument must be an error instance or a signal name string/integer: ${String(signal)}`);
+	}
+
+	if (error !== undefined && !isErrorInstance(error)) {
+		throw new TypeError(`The second argument is optional. If specified, it must be an error instance: ${error}`);
+	}
+
+	return {signal: normalizeSignalArgument(signal), error};
+};
+
+// Fails right away when calling `subprocess.kill(error)`.
+// Does not wait for actual signal termination.
+// Uses a deferred promise instead of the `error` event on the subprocess, as this is less intrusive.
+const emitKillError = (error, onInternalError) => {
+	if (error !== undefined) {
+		onInternalError.reject(error);
+	}
+};
+
+const setKillTimeout = async ({kill, signal, forceKillAfterDelay, killSignal, killResult, context, controller}) => {
+	if (signal === killSignal && killResult) {
+		killOnTimeout({
+			kill,
+			forceKillAfterDelay,
+			context,
+			controllerSignal: controller.signal,
+		});
+	}
+};
+
+// Forcefully terminate a subprocess after a timeout
+const killOnTimeout = async ({kill, forceKillAfterDelay, context, controllerSignal}) => {
+	if (forceKillAfterDelay === false) {
 		return;
 	}
 
-	const {stdio} = options;
+	try {
+		await (0,promises_namespaceObject.setTimeout)(forceKillAfterDelay, undefined, {signal: controllerSignal});
+		if (kill('SIGKILL')) {
+			context.isForcefullyTerminated ??= true;
+		}
+	} catch {}
+};
 
+// EXTERNAL MODULE: external "node:events"
+var external_node_events_ = __nccwpck_require__(5673);
+;// CONCATENATED MODULE: ./node_modules/execa/lib/utils/abort-signal.js
+
+
+// Combines `util.aborted()` and `events.addAbortListener()`: promise-based and cleaned up with a stop signal
+const onAbortedSignal = async (mainSignal, stopSignal) => {
+	if (!mainSignal.aborted) {
+		await (0,external_node_events_.once)(mainSignal, 'abort', {signal: stopSignal});
+	}
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/terminate/cancel.js
+
+
+// Validate the `cancelSignal` option
+const validateCancelSignal = ({cancelSignal}) => {
+	if (cancelSignal !== undefined && Object.prototype.toString.call(cancelSignal) !== '[object AbortSignal]') {
+		throw new Error(`The \`cancelSignal\` option must be an AbortSignal: ${String(cancelSignal)}`);
+	}
+};
+
+// Terminate the subprocess when aborting the `cancelSignal` option and `gracefulSignal` is `false`
+const throwOnCancel = ({subprocess, cancelSignal, gracefulCancel, context, controller}) => cancelSignal === undefined || gracefulCancel
+	? []
+	: [terminateOnCancel(subprocess, cancelSignal, context, controller)];
+
+const terminateOnCancel = async (subprocess, cancelSignal, context, {signal}) => {
+	await onAbortedSignal(cancelSignal, signal);
+	context.terminationReason ??= 'cancel';
+	subprocess.kill();
+	throw cancelSignal.reason;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/ipc/validation.js
+// Validate the IPC channel is connected before receiving/sending messages
+const validateIpcMethod = ({methodName, isSubprocess, ipc, isConnected}) => {
+	validateIpcOption(methodName, isSubprocess, ipc);
+	validateConnection(methodName, isSubprocess, isConnected);
+};
+
+// Better error message when forgetting to set `ipc: true` and using the IPC methods
+const validateIpcOption = (methodName, isSubprocess, ipc) => {
+	if (!ipc) {
+		throw new Error(`${getMethodName(methodName, isSubprocess)} can only be used if the \`ipc\` option is \`true\`.`);
+	}
+};
+
+// Better error message when one process does not send/receive messages once the other process has disconnected.
+// This also makes it clear that any buffered messages are lost once either process has disconnected.
+// Also when aborting `cancelSignal` after disconnecting the IPC.
+const validateConnection = (methodName, isSubprocess, isConnected) => {
+	if (!isConnected) {
+		throw new Error(`${getMethodName(methodName, isSubprocess)} cannot be used: the ${getOtherProcessName(isSubprocess)} has already exited or disconnected.`);
+	}
+};
+
+// When `getOneMessage()` could not complete due to an early disconnection
+const throwOnEarlyDisconnect = isSubprocess => {
+	throw new Error(`${getMethodName('getOneMessage', isSubprocess)} could not complete: the ${getOtherProcessName(isSubprocess)} exited or disconnected.`);
+};
+
+// When both processes use `sendMessage()` with `strict` at the same time
+const throwOnStrictDeadlockError = isSubprocess => {
+	throw new Error(`${getMethodName('sendMessage', isSubprocess)} failed: the ${getOtherProcessName(isSubprocess)} is sending a message too, instead of listening to incoming messages.
+This can be fixed by both sending a message and listening to incoming messages at the same time:
+
+const [receivedMessage] = await Promise.all([
+	${getMethodName('getOneMessage', isSubprocess)},
+	${getMethodName('sendMessage', isSubprocess, 'message, {strict: true}')},
+]);`);
+};
+
+// When the other process used `strict` but the current process had I/O error calling `sendMessage()` for the response
+const getStrictResponseError = (error, isSubprocess) => new Error(`${getMethodName('sendMessage', isSubprocess)} failed when sending an acknowledgment response to the ${getOtherProcessName(isSubprocess)}.`, {cause: error});
+
+// When using `strict` but the other process was not listening for messages
+const throwOnMissingStrict = isSubprocess => {
+	throw new Error(`${getMethodName('sendMessage', isSubprocess)} failed: the ${getOtherProcessName(isSubprocess)} is not listening to incoming messages.`);
+};
+
+// When using `strict` but the other process disconnected before receiving the message
+const throwOnStrictDisconnect = isSubprocess => {
+	throw new Error(`${getMethodName('sendMessage', isSubprocess)} failed: the ${getOtherProcessName(isSubprocess)} exited without listening to incoming messages.`);
+};
+
+// When the current process disconnects while the subprocess is listening to `cancelSignal`
+const getAbortDisconnectError = () => new Error(`\`cancelSignal\` aborted: the ${getOtherProcessName(true)} disconnected.`);
+
+// When the subprocess uses `cancelSignal` but not the current process
+const throwOnMissingParent = () => {
+	throw new Error('`getCancelSignal()` cannot be used without setting the `cancelSignal` subprocess option.');
+};
+
+// EPIPE can happen when sending a message to a subprocess that is closing but has not disconnected yet
+const handleEpipeError = ({error, methodName, isSubprocess}) => {
+	if (error.code === 'EPIPE') {
+		throw new Error(`${getMethodName(methodName, isSubprocess)} cannot be used: the ${getOtherProcessName(isSubprocess)} is disconnecting.`, {cause: error});
+	}
+};
+
+// Better error message when sending messages which cannot be serialized.
+// Works with both `serialization: 'advanced'` and `serialization: 'json'`.
+const handleSerializationError = ({error, methodName, isSubprocess, message}) => {
+	if (isSerializationError(error)) {
+		throw new Error(`${getMethodName(methodName, isSubprocess)}'s argument type is invalid: the message cannot be serialized: ${String(message)}.`, {cause: error});
+	}
+};
+
+const isSerializationError = ({code, message}) => SERIALIZATION_ERROR_CODES.has(code)
+	|| SERIALIZATION_ERROR_MESSAGES.some(serializationErrorMessage => message.includes(serializationErrorMessage));
+
+// `error.code` set by Node.js when it failed to serialize the message
+const SERIALIZATION_ERROR_CODES = new Set([
+	// Message is `undefined`
+	'ERR_MISSING_ARGS',
+	// Message is a function, a bigint, a symbol
+	'ERR_INVALID_ARG_TYPE',
+]);
+
+// `error.message` set by Node.js when it failed to serialize the message
+const SERIALIZATION_ERROR_MESSAGES = [
+	// Message is a promise or a proxy, with `serialization: 'advanced'`
+	'could not be cloned',
+	// Message has cycles, with `serialization: 'json'`
+	'circular structure',
+	// Message has cycles inside toJSON(), with `serialization: 'json'`
+	'call stack size exceeded',
+];
+
+const getMethodName = (methodName, isSubprocess, parameters = '') => methodName === 'cancelSignal'
+	? '`cancelSignal`\'s `controller.abort()`'
+	: `${getNamespaceName(isSubprocess)}${methodName}(${parameters})`;
+
+const getNamespaceName = isSubprocess => isSubprocess ? '' : 'subprocess.';
+
+const getOtherProcessName = isSubprocess => isSubprocess ? 'parent process' : 'subprocess';
+
+// When any error arises, we disconnect the IPC.
+// Otherwise, it is likely that one of the processes will stop sending/receiving messages.
+// This would leave the other process hanging.
+const disconnect = anyProcess => {
+	if (anyProcess.connected) {
+		anyProcess.disconnect();
+	}
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/utils/deferred.js
+const createDeferred = () => {
+	const methods = {};
+	const promise = new Promise((resolve, reject) => {
+		Object.assign(methods, {resolve, reject});
+	});
+	return Object.assign(promise, methods);
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/arguments/fd-options.js
+
+
+// Retrieve stream targeted by the `to` option
+const getToStream = (destination, to = 'stdin') => {
+	const isWritable = true;
+	const {options, fileDescriptors} = SUBPROCESS_OPTIONS.get(destination);
+	const fdNumber = getFdNumber(fileDescriptors, to, isWritable);
+	const destinationStream = destination.stdio[fdNumber];
+
+	if (destinationStream === null) {
+		throw new TypeError(getInvalidStdioOptionMessage(fdNumber, to, options, isWritable));
+	}
+
+	return destinationStream;
+};
+
+// Retrieve stream targeted by the `from` option
+const getFromStream = (source, from = 'stdout') => {
+	const isWritable = false;
+	const {options, fileDescriptors} = SUBPROCESS_OPTIONS.get(source);
+	const fdNumber = getFdNumber(fileDescriptors, from, isWritable);
+	const sourceStream = fdNumber === 'all' ? source.all : source.stdio[fdNumber];
+
+	if (sourceStream === null || sourceStream === undefined) {
+		throw new TypeError(getInvalidStdioOptionMessage(fdNumber, from, options, isWritable));
+	}
+
+	return sourceStream;
+};
+
+// Keeps track of the options passed to each Execa call
+const SUBPROCESS_OPTIONS = new WeakMap();
+
+const getFdNumber = (fileDescriptors, fdName, isWritable) => {
+	const fdNumber = parseFdNumber(fdName, isWritable);
+	validateFdNumber(fdNumber, fdName, isWritable, fileDescriptors);
+	return fdNumber;
+};
+
+const parseFdNumber = (fdName, isWritable) => {
+	const fdNumber = parseFd(fdName);
+	if (fdNumber !== undefined) {
+		return fdNumber;
+	}
+
+	const {validOptions, defaultValue} = isWritable
+		? {validOptions: '"stdin"', defaultValue: 'stdin'}
+		: {validOptions: '"stdout", "stderr", "all"', defaultValue: 'stdout'};
+	throw new TypeError(`"${getOptionName(isWritable)}" must not be "${fdName}".
+It must be ${validOptions} or "fd3", "fd4" (and so on).
+It is optional and defaults to "${defaultValue}".`);
+};
+
+const validateFdNumber = (fdNumber, fdName, isWritable, fileDescriptors) => {
+	const fileDescriptor = fileDescriptors[getUsedDescriptor(fdNumber)];
+	if (fileDescriptor === undefined) {
+		throw new TypeError(`"${getOptionName(isWritable)}" must not be ${fdName}. That file descriptor does not exist.
+Please set the "stdio" option to ensure that file descriptor exists.`);
+	}
+
+	if (fileDescriptor.direction === 'input' && !isWritable) {
+		throw new TypeError(`"${getOptionName(isWritable)}" must not be ${fdName}. It must be a readable stream, not writable.`);
+	}
+
+	if (fileDescriptor.direction !== 'input' && isWritable) {
+		throw new TypeError(`"${getOptionName(isWritable)}" must not be ${fdName}. It must be a writable stream, not readable.`);
+	}
+};
+
+const getInvalidStdioOptionMessage = (fdNumber, fdName, options, isWritable) => {
+	if (fdNumber === 'all' && !options.all) {
+		return 'The "all" option must be true to use "from: \'all\'".';
+	}
+
+	const {optionName, optionValue} = getInvalidStdioOption(fdNumber, options);
+	return `The "${optionName}: ${serializeOptionValue(optionValue)}" option is incompatible with using "${getOptionName(isWritable)}: ${serializeOptionValue(fdName)}".
+Please set this option with "pipe" instead.`;
+};
+
+const getInvalidStdioOption = (fdNumber, {stdin, stdout, stderr, stdio}) => {
+	const usedDescriptor = getUsedDescriptor(fdNumber);
+
+	if (usedDescriptor === 0 && stdin !== undefined) {
+		return {optionName: 'stdin', optionValue: stdin};
+	}
+
+	if (usedDescriptor === 1 && stdout !== undefined) {
+		return {optionName: 'stdout', optionValue: stdout};
+	}
+
+	if (usedDescriptor === 2 && stderr !== undefined) {
+		return {optionName: 'stderr', optionValue: stderr};
+	}
+
+	return {optionName: `stdio[${usedDescriptor}]`, optionValue: stdio[usedDescriptor]};
+};
+
+const getUsedDescriptor = fdNumber => fdNumber === 'all' ? 1 : fdNumber;
+
+const getOptionName = isWritable => isWritable ? 'to' : 'from';
+
+const serializeOptionValue = value => {
+	if (typeof value === 'string') {
+		return `'${value}'`;
+	}
+
+	return typeof value === 'number' ? `${value}` : 'Stream';
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/utils/max-listeners.js
+
+
+// Temporarily increase the maximum number of listeners on an eventEmitter
+const incrementMaxListeners = (eventEmitter, maxListenersIncrement, signal) => {
+	const maxListeners = eventEmitter.getMaxListeners();
+	if (maxListeners === 0 || maxListeners === Number.POSITIVE_INFINITY) {
+		return;
+	}
+
+	eventEmitter.setMaxListeners(maxListeners + maxListenersIncrement);
+	(0,external_node_events_.addAbortListener)(signal, () => {
+		eventEmitter.setMaxListeners(eventEmitter.getMaxListeners() - maxListenersIncrement);
+	});
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/ipc/reference.js
+// By default, Node.js keeps the subprocess alive while it has a `message` or `disconnect` listener.
+// We replicate the same logic for the events that we proxy.
+// This ensures the subprocess is kept alive while `getOneMessage()` and `getEachMessage()` are ongoing.
+// This is not a problem with `sendMessage()` since Node.js handles that method automatically.
+// We do not use `anyProcess.channel.ref()` since this would prevent the automatic `.channel.refCounted()` Node.js is doing.
+// We keep a reference to `anyProcess.channel` since it might be `null` while `getOneMessage()` or `getEachMessage()` is still processing debounced messages.
+// See https://github.com/nodejs/node/blob/2aaeaa863c35befa2ebaa98fb7737ec84df4d8e9/lib/internal/child_process.js#L547
+const addReference = (channel, reference) => {
+	if (reference) {
+		addReferenceCount(channel);
+	}
+};
+
+const addReferenceCount = channel => {
+	channel.refCounted();
+};
+
+const removeReference = (channel, reference) => {
+	if (reference) {
+		removeReferenceCount(channel);
+	}
+};
+
+const removeReferenceCount = channel => {
+	channel.unrefCounted();
+};
+
+// To proxy events, we setup some global listeners on the `message` and `disconnect` events.
+// Those should not keep the subprocess alive, so we remove the automatic counting that Node.js is doing.
+// See https://github.com/nodejs/node/blob/1b965270a9c273d4cf70e8808e9d28b9ada7844f/lib/child_process.js#L180
+const undoAddedReferences = (channel, isSubprocess) => {
+	if (isSubprocess) {
+		removeReferenceCount(channel);
+		removeReferenceCount(channel);
+	}
+};
+
+// Reverse it during `disconnect`
+const redoAddedReferences = (channel, isSubprocess) => {
+	if (isSubprocess) {
+		addReferenceCount(channel);
+		addReferenceCount(channel);
+	}
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/ipc/incoming.js
+
+
+
+
+
+
+
+// By default, Node.js buffers `message` events.
+//  - Buffering happens when there is a `message` event is emitted but there is no handler.
+//  - As soon as a `message` event handler is set, all buffered `message` events are emitted, emptying the buffer.
+//  - This happens both in the current process and the subprocess.
+//  - See https://github.com/nodejs/node/blob/501546e8f37059cd577041e23941b640d0d4d406/lib/internal/child_process.js#L719
+// This is helpful. Notably, this allows sending messages to a subprocess that's still initializing.
+// However, it has several problems.
+//  - This works with `events.on()` but not `events.once()` since all buffered messages are emitted at once.
+//    For example, users cannot call `await getOneMessage()`/`getEachMessage()` multiple times in a row.
+//  - When a user intentionally starts listening to `message` at a specific point in time, past `message` events are replayed, which might be unexpected.
+//  - Buffering is unlimited, which might lead to an out-of-memory crash.
+//  - This does not work well with multiple consumers.
+//    For example, Execa consumes events with both `result.ipcOutput` and manual IPC calls like `getOneMessage()`.
+//    Since `result.ipcOutput` reads all incoming messages, no buffering happens for manual IPC calls.
+//  - Forgetting to setup a `message` listener, or setting it up too late, is a programming mistake.
+//    The default behavior does not allow users to realize they made that mistake.
+// To solve those problems, instead of buffering messages, we debounce them.
+// The `message` event so it is emitted at most once per macrotask.
+const onMessage = async ({anyProcess, channel, isSubprocess, ipcEmitter}, wrappedMessage) => {
+	if (handleStrictResponse(wrappedMessage) || handleAbort(wrappedMessage)) {
+		return;
+	}
+
+	if (!INCOMING_MESSAGES.has(anyProcess)) {
+		INCOMING_MESSAGES.set(anyProcess, []);
+	}
+
+	const incomingMessages = INCOMING_MESSAGES.get(anyProcess);
+	incomingMessages.push(wrappedMessage);
+
+	if (incomingMessages.length > 1) {
+		return;
+	}
+
+	while (incomingMessages.length > 0) {
+		// eslint-disable-next-line no-await-in-loop
+		await waitForOutgoingMessages(anyProcess, ipcEmitter, wrappedMessage);
+		// eslint-disable-next-line no-await-in-loop
+		await promises_namespaceObject.scheduler["yield"]();
+
+		// eslint-disable-next-line no-await-in-loop
+		const message = await handleStrictRequest({
+			wrappedMessage: incomingMessages[0],
+			anyProcess,
+			channel,
+			isSubprocess,
+			ipcEmitter,
+		});
+
+		incomingMessages.shift();
+		ipcEmitter.emit('message', message);
+		ipcEmitter.emit('message:done');
+	}
+};
+
+// If the `message` event is currently debounced, the `disconnect` event must wait for it
+const onDisconnect = async ({anyProcess, channel, isSubprocess, ipcEmitter, boundOnMessage}) => {
+	abortOnDisconnect();
+
+	const incomingMessages = INCOMING_MESSAGES.get(anyProcess);
+	while (incomingMessages?.length > 0) {
+		// eslint-disable-next-line no-await-in-loop
+		await (0,external_node_events_.once)(ipcEmitter, 'message:done');
+	}
+
+	anyProcess.removeListener('message', boundOnMessage);
+	redoAddedReferences(channel, isSubprocess);
+	ipcEmitter.connected = false;
+	ipcEmitter.emit('disconnect');
+};
+
+const INCOMING_MESSAGES = new WeakMap();
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/ipc/forward.js
+
+
+
+
+// Forward the `message` and `disconnect` events from the process and subprocess to a proxy emitter.
+// This prevents the `error` event from stopping IPC.
+// This also allows debouncing the `message` event.
+const getIpcEmitter = (anyProcess, channel, isSubprocess) => {
+	if (IPC_EMITTERS.has(anyProcess)) {
+		return IPC_EMITTERS.get(anyProcess);
+	}
+
+	// Use an `EventEmitter`, like the `process` that is being proxied
+	// eslint-disable-next-line unicorn/prefer-event-target
+	const ipcEmitter = new external_node_events_.EventEmitter();
+	ipcEmitter.connected = true;
+	IPC_EMITTERS.set(anyProcess, ipcEmitter);
+	forwardEvents({
+		ipcEmitter,
+		anyProcess,
+		channel,
+		isSubprocess,
+	});
+	return ipcEmitter;
+};
+
+const IPC_EMITTERS = new WeakMap();
+
+// The `message` and `disconnect` events are buffered in the subprocess until the first listener is setup.
+// However, unbuffering happens after one tick, so this give enough time for the caller to setup the listener on the proxy emitter first.
+// See https://github.com/nodejs/node/blob/2aaeaa863c35befa2ebaa98fb7737ec84df4d8e9/lib/internal/child_process.js#L721
+const forwardEvents = ({ipcEmitter, anyProcess, channel, isSubprocess}) => {
+	const boundOnMessage = onMessage.bind(undefined, {
+		anyProcess,
+		channel,
+		isSubprocess,
+		ipcEmitter,
+	});
+	anyProcess.on('message', boundOnMessage);
+	anyProcess.once('disconnect', onDisconnect.bind(undefined, {
+		anyProcess,
+		channel,
+		isSubprocess,
+		ipcEmitter,
+		boundOnMessage,
+	}));
+	undoAddedReferences(channel, isSubprocess);
+};
+
+// Check whether there might still be some `message` events to receive
+const isConnected = anyProcess => {
+	const ipcEmitter = IPC_EMITTERS.get(anyProcess);
+	return ipcEmitter === undefined
+		? anyProcess.channel !== null
+		: ipcEmitter.connected;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/ipc/strict.js
+
+
+
+
+
+
+
+
+// When using the `strict` option, wrap the message with metadata during `sendMessage()`
+const handleSendStrict = ({anyProcess, channel, isSubprocess, message, strict}) => {
+	if (!strict) {
+		return message;
+	}
+
+	const ipcEmitter = getIpcEmitter(anyProcess, channel, isSubprocess);
+	const hasListeners = hasMessageListeners(anyProcess, ipcEmitter);
+	return {
+		id: count++,
+		type: REQUEST_TYPE,
+		message,
+		hasListeners,
+	};
+};
+
+let count = 0n;
+
+// Handles when both processes are calling `sendMessage()` with `strict` at the same time.
+// If neither process is listening, this would create a deadlock. We detect it and throw.
+const validateStrictDeadlock = (outgoingMessages, wrappedMessage) => {
+	if (wrappedMessage?.type !== REQUEST_TYPE || wrappedMessage.hasListeners) {
+		return;
+	}
+
+	for (const {id} of outgoingMessages) {
+		if (id !== undefined) {
+			STRICT_RESPONSES[id].resolve({isDeadlock: true, hasListeners: false});
+		}
+	}
+};
+
+// The other process then sends the acknowledgment back as a response
+const handleStrictRequest = async ({wrappedMessage, anyProcess, channel, isSubprocess, ipcEmitter}) => {
+	if (wrappedMessage?.type !== REQUEST_TYPE || !anyProcess.connected) {
+		return wrappedMessage;
+	}
+
+	const {id, message} = wrappedMessage;
+	const response = {id, type: RESPONSE_TYPE, message: hasMessageListeners(anyProcess, ipcEmitter)};
+
+	try {
+		await sendMessage({
+			anyProcess,
+			channel,
+			isSubprocess,
+			ipc: true,
+		}, response);
+	} catch (error) {
+		ipcEmitter.emit('strict:error', error);
+	}
+
+	return message;
+};
+
+// Reception of the acknowledgment response
+const handleStrictResponse = wrappedMessage => {
+	if (wrappedMessage?.type !== RESPONSE_TYPE) {
+		return false;
+	}
+
+	const {id, message: hasListeners} = wrappedMessage;
+	STRICT_RESPONSES[id]?.resolve({isDeadlock: false, hasListeners});
+	return true;
+};
+
+// Wait for the other process to receive the message from `sendMessage()`
+const waitForStrictResponse = async (wrappedMessage, anyProcess, isSubprocess) => {
+	if (wrappedMessage?.type !== REQUEST_TYPE) {
+		return;
+	}
+
+	const deferred = createDeferred();
+	STRICT_RESPONSES[wrappedMessage.id] = deferred;
+	const controller = new AbortController();
+
+	try {
+		const {isDeadlock, hasListeners} = await Promise.race([
+			deferred,
+			throwOnDisconnect(anyProcess, isSubprocess, controller),
+		]);
+
+		if (isDeadlock) {
+			throwOnStrictDeadlockError(isSubprocess);
+		}
+
+		if (!hasListeners) {
+			throwOnMissingStrict(isSubprocess);
+		}
+	} finally {
+		controller.abort();
+		delete STRICT_RESPONSES[wrappedMessage.id];
+	}
+};
+
+const STRICT_RESPONSES = {};
+
+const throwOnDisconnect = async (anyProcess, isSubprocess, {signal}) => {
+	incrementMaxListeners(anyProcess, 1, signal);
+	await (0,external_node_events_.once)(anyProcess, 'disconnect', {signal});
+	throwOnStrictDisconnect(isSubprocess);
+};
+
+const REQUEST_TYPE = 'execa:ipc:request';
+const RESPONSE_TYPE = 'execa:ipc:response';
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/ipc/outgoing.js
+
+
+
+
+// When `sendMessage()` is ongoing, any `message` being received waits before being emitted.
+// This allows calling one or multiple `await sendMessage()` followed by `await getOneMessage()`/`await getEachMessage()`.
+// Without running into a race condition when the other process sends a response too fast, before the current process set up a listener.
+const startSendMessage = (anyProcess, wrappedMessage, strict) => {
+	if (!OUTGOING_MESSAGES.has(anyProcess)) {
+		OUTGOING_MESSAGES.set(anyProcess, new Set());
+	}
+
+	const outgoingMessages = OUTGOING_MESSAGES.get(anyProcess);
+	const onMessageSent = createDeferred();
+	const id = strict ? wrappedMessage.id : undefined;
+	const outgoingMessage = {onMessageSent, id};
+	outgoingMessages.add(outgoingMessage);
+	return {outgoingMessages, outgoingMessage};
+};
+
+const endSendMessage = ({outgoingMessages, outgoingMessage}) => {
+	outgoingMessages.delete(outgoingMessage);
+	outgoingMessage.onMessageSent.resolve();
+};
+
+// Await while `sendMessage()` is ongoing, unless there is already a `message` listener
+const waitForOutgoingMessages = async (anyProcess, ipcEmitter, wrappedMessage) => {
+	while (!hasMessageListeners(anyProcess, ipcEmitter) && OUTGOING_MESSAGES.get(anyProcess)?.size > 0) {
+		const outgoingMessages = [...OUTGOING_MESSAGES.get(anyProcess)];
+		validateStrictDeadlock(outgoingMessages, wrappedMessage);
+		// eslint-disable-next-line no-await-in-loop
+		await Promise.all(outgoingMessages.map(({onMessageSent}) => onMessageSent));
+	}
+};
+
+const OUTGOING_MESSAGES = new WeakMap();
+
+// Whether any `message` listener is setup
+const hasMessageListeners = (anyProcess, ipcEmitter) => ipcEmitter.listenerCount('message') > getMinListenerCount(anyProcess);
+
+// When `buffer` is `false`, we set up a `message` listener that should be ignored.
+// That listener is only meant to intercept `strict` acknowledgement responses.
+const getMinListenerCount = anyProcess => SUBPROCESS_OPTIONS.has(anyProcess)
+	&& !SUBPROCESS_OPTIONS.get(anyProcess).options.buffer.at(-1)
+	? 1
+	: 0;
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/ipc/send.js
+
+
+
+
+
+// Like `[sub]process.send()` but promise-based.
+// We do not `await subprocess` during `.sendMessage()` nor `.getOneMessage()` since those methods are transient.
+// Users would still need to `await subprocess` after the method is done.
+// Also, this would prevent `unhandledRejection` event from being emitted, making it silent.
+const sendMessage = ({anyProcess, channel, isSubprocess, ipc}, message, {strict = false} = {}) => {
+	const methodName = 'sendMessage';
+	validateIpcMethod({
+		methodName,
+		isSubprocess,
+		ipc,
+		isConnected: anyProcess.connected,
+	});
+
+	return sendMessageAsync({
+		anyProcess,
+		channel,
+		methodName,
+		isSubprocess,
+		message,
+		strict,
+	});
+};
+
+const sendMessageAsync = async ({anyProcess, channel, methodName, isSubprocess, message, strict}) => {
+	const wrappedMessage = handleSendStrict({
+		anyProcess,
+		channel,
+		isSubprocess,
+		message,
+		strict,
+	});
+	const outgoingMessagesState = startSendMessage(anyProcess, wrappedMessage, strict);
+	try {
+		await sendOneMessage({
+			anyProcess,
+			methodName,
+			isSubprocess,
+			wrappedMessage,
+			message,
+		});
+	} catch (error) {
+		disconnect(anyProcess);
+		throw error;
+	} finally {
+		endSendMessage(outgoingMessagesState);
+	}
+};
+
+// Used internally by `cancelSignal`
+const sendOneMessage = async ({anyProcess, methodName, isSubprocess, wrappedMessage, message}) => {
+	const sendMethod = getSendMethod(anyProcess);
+
+	try {
+		await Promise.all([
+			waitForStrictResponse(wrappedMessage, anyProcess, isSubprocess),
+			sendMethod(wrappedMessage),
+		]);
+	} catch (error) {
+		handleEpipeError({error, methodName, isSubprocess});
+		handleSerializationError({
+			error,
+			methodName,
+			isSubprocess,
+			message,
+		});
+		throw error;
+	}
+};
+
+// [sub]process.send() promisified, memoized
+const getSendMethod = anyProcess => {
+	if (PROCESS_SEND_METHODS.has(anyProcess)) {
+		return PROCESS_SEND_METHODS.get(anyProcess);
+	}
+
+	const sendMethod = (0,external_node_util_.promisify)(anyProcess.send.bind(anyProcess));
+	PROCESS_SEND_METHODS.set(anyProcess, sendMethod);
+	return sendMethod;
+};
+
+const PROCESS_SEND_METHODS = new WeakMap();
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/ipc/graceful.js
+
+
+
+
+
+// Send an IPC message so the subprocess performs a graceful termination
+const sendAbort = (subprocess, message) => {
+	const methodName = 'cancelSignal';
+	validateConnection(methodName, false, subprocess.connected);
+	return sendOneMessage({
+		anyProcess: subprocess,
+		methodName,
+		isSubprocess: false,
+		wrappedMessage: {type: GRACEFUL_CANCEL_TYPE, message},
+		message,
+	});
+};
+
+// When the signal is being used, start listening for incoming messages.
+// Unbuffering messages takes one microtask to complete, so this must be async.
+const getCancelSignal = async ({anyProcess, channel, isSubprocess, ipc}) => {
+	await startIpc({
+		anyProcess,
+		channel,
+		isSubprocess,
+		ipc,
+	});
+	return cancelController.signal;
+};
+
+const startIpc = async ({anyProcess, channel, isSubprocess, ipc}) => {
+	if (cancelListening) {
+		return;
+	}
+
+	cancelListening = true;
+
+	if (!ipc) {
+		throwOnMissingParent();
+		return;
+	}
+
+	if (channel === null) {
+		abortOnDisconnect();
+		return;
+	}
+
+	getIpcEmitter(anyProcess, channel, isSubprocess);
+	await promises_namespaceObject.scheduler["yield"]();
+};
+
+let cancelListening = false;
+
+// Reception of IPC message to perform a graceful termination
+const handleAbort = wrappedMessage => {
+	if (wrappedMessage?.type !== GRACEFUL_CANCEL_TYPE) {
+		return false;
+	}
+
+	cancelController.abort(wrappedMessage.message);
+	return true;
+};
+
+const GRACEFUL_CANCEL_TYPE = 'execa:ipc:cancel';
+
+// When the current process disconnects early, the subprocess `cancelSignal` is aborted.
+// Otherwise, the signal would never be able to be aborted later on.
+const abortOnDisconnect = () => {
+	cancelController.abort(getAbortDisconnectError());
+};
+
+const cancelController = new AbortController();
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/terminate/graceful.js
+
+
+
+
+// Validate the `gracefulCancel` option
+const validateGracefulCancel = ({gracefulCancel, cancelSignal, ipc, serialization}) => {
+	if (!gracefulCancel) {
+		return;
+	}
+
+	if (cancelSignal === undefined) {
+		throw new Error('The `cancelSignal` option must be defined when setting the `gracefulCancel` option.');
+	}
+
+	if (!ipc) {
+		throw new Error('The `ipc` option cannot be false when setting the `gracefulCancel` option.');
+	}
+
+	if (serialization === 'json') {
+		throw new Error('The `serialization` option cannot be \'json\' when setting the `gracefulCancel` option.');
+	}
+};
+
+// Send abort reason to the subprocess when aborting the `cancelSignal` option and `gracefulCancel` is `true`
+const throwOnGracefulCancel = ({
+	subprocess,
+	cancelSignal,
+	gracefulCancel,
+	forceKillAfterDelay,
+	context,
+	controller,
+}) => gracefulCancel
+	? [sendOnAbort({
+		subprocess,
+		cancelSignal,
+		forceKillAfterDelay,
+		context,
+		controller,
+	})]
+	: [];
+
+const sendOnAbort = async ({subprocess, cancelSignal, forceKillAfterDelay, context, controller: {signal}}) => {
+	await onAbortedSignal(cancelSignal, signal);
+	const reason = getReason(cancelSignal);
+	await sendAbort(subprocess, reason);
+	killOnTimeout({
+		kill: subprocess.kill,
+		forceKillAfterDelay,
+		context,
+		controllerSignal: signal,
+	});
+	context.terminationReason ??= 'gracefulCancel';
+	throw cancelSignal.reason;
+};
+
+// The default `reason` is a DOMException, which is not serializable with V8
+// See https://github.com/nodejs/node/issues/53225
+const getReason = ({reason}) => {
+	if (!(reason instanceof DOMException)) {
+		return reason;
+	}
+
+	const error = new Error(reason.message);
+	Object.defineProperty(error, 'stack', {
+		value: reason.stack,
+		enumerable: false,
+		configurable: true,
+		writable: true,
+	});
+	return error;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/terminate/timeout.js
+
+
+
+// Validate `timeout` option
+const validateTimeout = ({timeout}) => {
+	if (timeout !== undefined && (!Number.isFinite(timeout) || timeout < 0)) {
+		throw new TypeError(`Expected the \`timeout\` option to be a non-negative integer, got \`${timeout}\` (${typeof timeout})`);
+	}
+};
+
+// Fails when the `timeout` option is exceeded
+const throwOnTimeout = (subprocess, timeout, context, controller) => timeout === 0 || timeout === undefined
+	? []
+	: [killAfterTimeout(subprocess, timeout, context, controller)];
+
+const killAfterTimeout = async (subprocess, timeout, context, {signal}) => {
+	await (0,promises_namespaceObject.setTimeout)(timeout, undefined, {signal});
+	context.terminationReason ??= 'timeout';
+	subprocess.kill();
+	throw new DiscardedError();
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/methods/node.js
+
+
+
+
+// `execaNode()` is a shortcut for `execa(..., {node: true})`
+const mapNode = ({options}) => {
+	if (options.node === false) {
+		throw new TypeError('The "node" option cannot be false with `execaNode()`.');
+	}
+
+	return {options: {...options, node: true}};
+};
+
+// Applies the `node: true` option, and the related `nodePath`/`nodeOptions` options.
+// Modifies the file commands/arguments to ensure the same Node binary and flags are re-used.
+// Also adds `ipc: true` and `shell: false`.
+const handleNodeOption = (file, commandArguments, {
+	node: shouldHandleNode = false,
+	nodePath = external_node_process_namespaceObject.execPath,
+	nodeOptions = external_node_process_namespaceObject.execArgv.filter(nodeOption => !nodeOption.startsWith('--inspect')),
+	cwd,
+	execPath: formerNodePath,
+	...options
+}) => {
+	if (formerNodePath !== undefined) {
+		throw new TypeError('The "execPath" option has been removed. Please use the "nodePath" option instead.');
+	}
+
+	const normalizedNodePath = safeNormalizeFileUrl(nodePath, 'The "nodePath" option');
+	const resolvedNodePath = (0,external_node_path_namespaceObject.resolve)(cwd, normalizedNodePath);
+	const newOptions = {
+		...options,
+		nodePath: resolvedNodePath,
+		node: shouldHandleNode,
+		cwd,
+	};
+
+	if (!shouldHandleNode) {
+		return [file, commandArguments, newOptions];
+	}
+
+	if ((0,external_node_path_namespaceObject.basename)(file, '.exe') === 'node') {
+		throw new TypeError('When the "node" option is true, the first argument does not need to be "node".');
+	}
+
+	return [
+		resolvedNodePath,
+		[...nodeOptions, file, ...commandArguments],
+		{ipc: true, ...newOptions, shell: false},
+	];
+};
+
+;// CONCATENATED MODULE: external "node:v8"
+const external_node_v8_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:v8");
+;// CONCATENATED MODULE: ./node_modules/execa/lib/ipc/ipc-input.js
+
+
+// Validate the `ipcInput` option
+const validateIpcInputOption = ({ipcInput, ipc, serialization}) => {
+	if (ipcInput === undefined) {
+		return;
+	}
+
+	if (!ipc) {
+		throw new Error('The `ipcInput` option cannot be set unless the `ipc` option is `true`.');
+	}
+
+	validateIpcInput[serialization](ipcInput);
+};
+
+const validateAdvancedInput = ipcInput => {
+	try {
+		(0,external_node_v8_namespaceObject.serialize)(ipcInput);
+	} catch (error) {
+		throw new Error('The `ipcInput` option is not serializable with a structured clone.', {cause: error});
+	}
+};
+
+const validateJsonInput = ipcInput => {
+	try {
+		JSON.stringify(ipcInput);
+	} catch (error) {
+		throw new Error('The `ipcInput` option is not serializable with JSON.', {cause: error});
+	}
+};
+
+const validateIpcInput = {
+	advanced: validateAdvancedInput,
+	json: validateJsonInput,
+};
+
+// When the `ipcInput` option is set, it is sent as an initial IPC message to the subprocess
+const sendIpcInput = async (subprocess, ipcInput) => {
+	if (ipcInput === undefined) {
+		return;
+	}
+
+	await subprocess.sendMessage(ipcInput);
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/arguments/encoding-option.js
+// Validate `encoding` option
+const validateEncoding = ({encoding}) => {
+	if (ENCODINGS.has(encoding)) {
+		return;
+	}
+
+	const correctEncoding = getCorrectEncoding(encoding);
+	if (correctEncoding !== undefined) {
+		throw new TypeError(`Invalid option \`encoding: ${serializeEncoding(encoding)}\`.
+Please rename it to ${serializeEncoding(correctEncoding)}.`);
+	}
+
+	const correctEncodings = [...ENCODINGS].map(correctEncoding => serializeEncoding(correctEncoding)).join(', ');
+	throw new TypeError(`Invalid option \`encoding: ${serializeEncoding(encoding)}\`.
+Please rename it to one of: ${correctEncodings}.`);
+};
+
+const TEXT_ENCODINGS = new Set(['utf8', 'utf16le']);
+const BINARY_ENCODINGS = new Set(['buffer', 'hex', 'base64', 'base64url', 'latin1', 'ascii']);
+const ENCODINGS = new Set([...TEXT_ENCODINGS, ...BINARY_ENCODINGS]);
+
+const getCorrectEncoding = encoding => {
+	if (encoding === null) {
+		return 'buffer';
+	}
+
+	if (typeof encoding !== 'string') {
+		return;
+	}
+
+	const lowerEncoding = encoding.toLowerCase();
+	if (lowerEncoding in ENCODING_ALIASES) {
+		return ENCODING_ALIASES[lowerEncoding];
+	}
+
+	if (ENCODINGS.has(lowerEncoding)) {
+		return lowerEncoding;
+	}
+};
+
+const ENCODING_ALIASES = {
+	// eslint-disable-next-line unicorn/text-encoding-identifier-case
+	'utf-8': 'utf8',
+	'utf-16le': 'utf16le',
+	'ucs-2': 'utf16le',
+	ucs2: 'utf16le',
+	binary: 'latin1',
+};
+
+const serializeEncoding = encoding => typeof encoding === 'string' ? `"${encoding}"` : String(encoding);
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/arguments/cwd.js
+
+
+
+
+
+// Normalize `cwd` option
+const normalizeCwd = (cwd = getDefaultCwd()) => {
+	const cwdString = safeNormalizeFileUrl(cwd, 'The "cwd" option');
+	return (0,external_node_path_namespaceObject.resolve)(cwdString);
+};
+
+const getDefaultCwd = () => {
+	try {
+		return external_node_process_namespaceObject.cwd();
+	} catch (error) {
+		error.message = `The current directory does not exist.\n${error.message}`;
+		throw error;
+	}
+};
+
+// When `cwd` option has an invalid value, provide with a better error message
+const fixCwdError = (originalMessage, cwd) => {
+	if (cwd === getDefaultCwd()) {
+		return originalMessage;
+	}
+
+	let cwdStat;
+	try {
+		cwdStat = (0,external_node_fs_namespaceObject.statSync)(cwd);
+	} catch (error) {
+		return `The "cwd" option is invalid: ${cwd}.\n${error.message}\n${originalMessage}`;
+	}
+
+	if (!cwdStat.isDirectory()) {
+		return `The "cwd" option is not a directory: ${cwd}.\n${originalMessage}`;
+	}
+
+	return originalMessage;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/arguments/options.js
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Normalize the options object, and sometimes also the file paths and arguments.
+// Applies default values, validate allowed options, normalize them.
+const normalizeOptions = (filePath, rawArguments, rawOptions) => {
+	rawOptions.cwd = normalizeCwd(rawOptions.cwd);
+	const [processedFile, processedArguments, processedOptions] = handleNodeOption(filePath, rawArguments, rawOptions);
+
+	const {command: file, args: commandArguments, options: initialOptions} = cross_spawn._parse(processedFile, processedArguments, processedOptions);
+
+	const fdOptions = normalizeFdSpecificOptions(initialOptions);
+	const options = addDefaultOptions(fdOptions);
+	validateTimeout(options);
+	validateEncoding(options);
+	validateIpcInputOption(options);
+	validateCancelSignal(options);
+	validateGracefulCancel(options);
+	options.shell = normalizeFileUrl(options.shell);
+	options.env = getEnv(options);
+	options.killSignal = normalizeKillSignal(options.killSignal);
+	options.forceKillAfterDelay = normalizeForceKillAfterDelay(options.forceKillAfterDelay);
+	options.lines = options.lines.map((lines, fdNumber) => lines && !BINARY_ENCODINGS.has(options.encoding) && options.buffer[fdNumber]);
+
+	if (external_node_process_namespaceObject.platform === 'win32' && (0,external_node_path_namespaceObject.basename)(file, '.exe') === 'cmd') {
+		// #116
+		commandArguments.unshift('/q');
+	}
+
+	return {file, commandArguments, options};
+};
+
+const addDefaultOptions = ({
+	extendEnv = true,
+	preferLocal = false,
+	cwd,
+	localDir: localDirectory = cwd,
+	encoding = 'utf8',
+	reject = true,
+	cleanup = true,
+	all = false,
+	windowsHide = true,
+	killSignal = 'SIGTERM',
+	forceKillAfterDelay = true,
+	gracefulCancel = false,
+	ipcInput,
+	ipc = ipcInput !== undefined || gracefulCancel,
+	serialization = 'advanced',
+	...options
+}) => ({
+	...options,
+	extendEnv,
+	preferLocal,
+	cwd,
+	localDirectory,
+	encoding,
+	reject,
+	cleanup,
+	all,
+	windowsHide,
+	killSignal,
+	forceKillAfterDelay,
+	gracefulCancel,
+	ipcInput,
+	ipc,
+	serialization,
+});
+
+const getEnv = ({env: envOption, extendEnv, preferLocal, node, localDirectory, nodePath}) => {
+	const env = extendEnv ? {...external_node_process_namespaceObject.env, ...envOption} : envOption;
+
+	if (preferLocal || node) {
+		return npmRunPathEnv({
+			env,
+			cwd: localDirectory,
+			execPath: nodePath,
+			preferLocal,
+			addExecPath: node,
+		});
+	}
+
+	return env;
+};
+
+;// CONCATENATED MODULE: ./node_modules/strip-final-newline/index.js
+function strip_final_newline_stripFinalNewline(input) {
+	if (typeof input === 'string') {
+		return stripFinalNewlineString(input);
+	}
+
+	if (!(ArrayBuffer.isView(input) && input.BYTES_PER_ELEMENT === 1)) {
+		throw new Error('Input must be a string or a Uint8Array');
+	}
+
+	return stripFinalNewlineBinary(input);
+}
+
+const stripFinalNewlineString = input =>
+	input.at(-1) === LF
+		? input.slice(0, input.at(-2) === CR ? -2 : -1)
+		: input;
+
+const stripFinalNewlineBinary = input =>
+	input.at(-1) === LF_BINARY
+		? input.subarray(0, input.at(-2) === CR_BINARY ? -2 : -1)
+		: input;
+
+const LF = '\n';
+const LF_BINARY = LF.codePointAt(0);
+const CR = '\r';
+const CR_BINARY = CR.codePointAt(0);
+
+;// CONCATENATED MODULE: ./node_modules/is-stream/index.js
+function isStream(stream, {checkOpen = true} = {}) {
+	return stream !== null
+		&& typeof stream === 'object'
+		&& (stream.writable || stream.readable || !checkOpen || (stream.writable === undefined && stream.readable === undefined))
+		&& typeof stream.pipe === 'function';
+}
+
+function isWritableStream(stream, {checkOpen = true} = {}) {
+	return isStream(stream, {checkOpen})
+		&& (stream.writable || !checkOpen)
+		&& typeof stream.write === 'function'
+		&& typeof stream.end === 'function'
+		&& typeof stream.writable === 'boolean'
+		&& typeof stream.writableObjectMode === 'boolean'
+		&& typeof stream.destroy === 'function'
+		&& typeof stream.destroyed === 'boolean';
+}
+
+function isReadableStream(stream, {checkOpen = true} = {}) {
+	return isStream(stream, {checkOpen})
+		&& (stream.readable || !checkOpen)
+		&& typeof stream.read === 'function'
+		&& typeof stream.readable === 'boolean'
+		&& typeof stream.readableObjectMode === 'boolean'
+		&& typeof stream.destroy === 'function'
+		&& typeof stream.destroyed === 'boolean';
+}
+
+function isDuplexStream(stream, options) {
+	return isWritableStream(stream, options)
+		&& isReadableStream(stream, options);
+}
+
+function isTransformStream(stream, options) {
+	return isDuplexStream(stream, options)
+		&& typeof stream._transform === 'function';
+}
+
+;// CONCATENATED MODULE: ./node_modules/@sec-ant/readable-stream/dist/ponyfill/asyncIterator.js
+const a = Object.getPrototypeOf(
+  Object.getPrototypeOf(
+    /* istanbul ignore next */
+    async function* () {
+    }
+  ).prototype
+);
+class c {
+  #t;
+  #n;
+  #r = !1;
+  #e = void 0;
+  constructor(e, t) {
+    this.#t = e, this.#n = t;
+  }
+  next() {
+    const e = () => this.#s();
+    return this.#e = this.#e ? this.#e.then(e, e) : e(), this.#e;
+  }
+  return(e) {
+    const t = () => this.#i(e);
+    return this.#e ? this.#e.then(t, t) : t();
+  }
+  async #s() {
+    if (this.#r)
+      return {
+        done: !0,
+        value: void 0
+      };
+    let e;
+    try {
+      e = await this.#t.read();
+    } catch (t) {
+      throw this.#e = void 0, this.#r = !0, this.#t.releaseLock(), t;
+    }
+    return e.done && (this.#e = void 0, this.#r = !0, this.#t.releaseLock()), e;
+  }
+  async #i(e) {
+    if (this.#r)
+      return {
+        done: !0,
+        value: e
+      };
+    if (this.#r = !0, !this.#n) {
+      const t = this.#t.cancel(e);
+      return this.#t.releaseLock(), await t, {
+        done: !0,
+        value: e
+      };
+    }
+    return this.#t.releaseLock(), {
+      done: !0,
+      value: e
+    };
+  }
+}
+const n = Symbol();
+function i() {
+  return this[n].next();
+}
+Object.defineProperty(i, "name", { value: "next" });
+function o(r) {
+  return this[n].return(r);
+}
+Object.defineProperty(o, "name", { value: "return" });
+const u = Object.create(a, {
+  next: {
+    enumerable: !0,
+    configurable: !0,
+    writable: !0,
+    value: i
+  },
+  return: {
+    enumerable: !0,
+    configurable: !0,
+    writable: !0,
+    value: o
+  }
+});
+function h({ preventCancel: r = !1 } = {}) {
+  const e = this.getReader(), t = new c(
+    e,
+    r
+  ), s = Object.create(u);
+  return s[n] = t, s;
+}
+
+
+;// CONCATENATED MODULE: ./node_modules/@sec-ant/readable-stream/dist/ponyfill/index.js
+
+
+
+
+;// CONCATENATED MODULE: ./node_modules/get-stream/source/stream.js
+
+
+
+const getAsyncIterable = stream => {
+	if (isReadableStream(stream, {checkOpen: false}) && nodeImports.on !== undefined) {
+		return getStreamIterable(stream);
+	}
+
+	if (typeof stream?.[Symbol.asyncIterator] === 'function') {
+		return stream;
+	}
+
+	// `ReadableStream[Symbol.asyncIterator]` support is missing in multiple browsers, so we ponyfill it
+	if (stream_toString.call(stream) === '[object ReadableStream]') {
+		return h.call(stream);
+	}
+
+	throw new TypeError('The first argument must be a Readable, a ReadableStream, or an async iterable.');
+};
+
+const {toString: stream_toString} = Object.prototype;
+
+// The default iterable for Node.js streams does not allow for multiple readers at once, so we re-implement it
+const getStreamIterable = async function * (stream) {
+	const controller = new AbortController();
+	const state = {};
+	handleStreamEnd(stream, controller, state);
+
+	try {
+		for await (const [chunk] of nodeImports.on(stream, 'data', {signal: controller.signal})) {
+			yield chunk;
+		}
+	} catch (error) {
+		// Stream failure, for example due to `stream.destroy(error)`
+		if (state.error !== undefined) {
+			throw state.error;
+		// `error` event directly emitted on stream
+		} else if (!controller.signal.aborted) {
+			throw error;
+		// Otherwise, stream completed successfully
+		}
+		// The `finally` block also runs when the caller throws, for example due to the `maxBuffer` option
+	} finally {
+		stream.destroy();
+	}
+};
+
+const handleStreamEnd = async (stream, controller, state) => {
+	try {
+		await nodeImports.finished(stream, {
+			cleanup: true,
+			readable: true,
+			writable: false,
+			error: false,
+		});
+	} catch (error) {
+		state.error = error;
+	} finally {
+		controller.abort();
+	}
+};
+
+// Loaded by the Node entrypoint, but not by the browser one.
+// This prevents using dynamic imports.
+const nodeImports = {};
+
+;// CONCATENATED MODULE: ./node_modules/get-stream/source/contents.js
+
+
+const contents_getStreamContents = async (stream, {init, convertChunk, getSize, truncateChunk, addChunk, getFinalChunk, finalize}, {maxBuffer = Number.POSITIVE_INFINITY} = {}) => {
+	const asyncIterable = getAsyncIterable(stream);
+
+	const state = init();
+	state.length = 0;
+
+	try {
+		for await (const chunk of asyncIterable) {
+			const chunkType = getChunkType(chunk);
+			const convertedChunk = convertChunk[chunkType](chunk, state);
+			appendChunk({
+				convertedChunk,
+				state,
+				getSize,
+				truncateChunk,
+				addChunk,
+				maxBuffer,
+			});
+		}
+
+		appendFinalChunk({
+			state,
+			convertChunk,
+			getSize,
+			truncateChunk,
+			addChunk,
+			getFinalChunk,
+			maxBuffer,
+		});
+		return finalize(state);
+	} catch (error) {
+		const normalizedError = typeof error === 'object' && error !== null ? error : new Error(error);
+		normalizedError.bufferedData = finalize(state);
+		throw normalizedError;
+	}
+};
+
+const appendFinalChunk = ({state, getSize, truncateChunk, addChunk, getFinalChunk, maxBuffer}) => {
+	const convertedChunk = getFinalChunk(state);
+	if (convertedChunk !== undefined) {
+		appendChunk({
+			convertedChunk,
+			state,
+			getSize,
+			truncateChunk,
+			addChunk,
+			maxBuffer,
+		});
+	}
+};
+
+const appendChunk = ({convertedChunk, state, getSize, truncateChunk, addChunk, maxBuffer}) => {
+	const chunkSize = getSize(convertedChunk);
+	const newLength = state.length + chunkSize;
+
+	if (newLength <= maxBuffer) {
+		addNewChunk(convertedChunk, state, addChunk, newLength);
+		return;
+	}
+
+	const truncatedChunk = truncateChunk(convertedChunk, maxBuffer - state.length);
+
+	if (truncatedChunk !== undefined) {
+		addNewChunk(truncatedChunk, state, addChunk, maxBuffer);
+	}
+
+	throw new MaxBufferError();
+};
+
+const addNewChunk = (convertedChunk, state, addChunk, newLength) => {
+	state.contents = addChunk(convertedChunk, state, newLength);
+	state.length = newLength;
+};
+
+const getChunkType = chunk => {
+	const typeOfChunk = typeof chunk;
+
+	if (typeOfChunk === 'string') {
+		return 'string';
+	}
+
+	if (typeOfChunk !== 'object' || chunk === null) {
+		return 'others';
+	}
+
+	if (globalThis.Buffer?.isBuffer(chunk)) {
+		return 'buffer';
+	}
+
+	const prototypeName = contents_objectToString.call(chunk);
+
+	if (prototypeName === '[object ArrayBuffer]') {
+		return 'arrayBuffer';
+	}
+
+	if (prototypeName === '[object DataView]') {
+		return 'dataView';
+	}
+
+	if (
+		Number.isInteger(chunk.byteLength)
+		&& Number.isInteger(chunk.byteOffset)
+		&& contents_objectToString.call(chunk.buffer) === '[object ArrayBuffer]'
+	) {
+		return 'typedArray';
+	}
+
+	return 'others';
+};
+
+const {toString: contents_objectToString} = Object.prototype;
+
+class MaxBufferError extends Error {
+	name = 'MaxBufferError';
+
+	constructor() {
+		super('maxBuffer exceeded');
+	}
+}
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/io/max-buffer.js
+
+
+
+// When the `maxBuffer` option is hit, a MaxBufferError is thrown.
+// The stream is aborted, then specific information is kept for the error message.
+const handleMaxBuffer = ({error, stream, readableObjectMode, lines, encoding, fdNumber}) => {
+	if (!(error instanceof MaxBufferError)) {
+		throw error;
+	}
+
+	if (fdNumber === 'all') {
+		return error;
+	}
+
+	const unit = getMaxBufferUnit(readableObjectMode, lines, encoding);
+	error.maxBufferInfo = {fdNumber, unit};
+	stream.destroy();
+	throw error;
+};
+
+const getMaxBufferUnit = (readableObjectMode, lines, encoding) => {
+	if (readableObjectMode) {
+		return 'objects';
+	}
+
+	if (lines) {
+		return 'lines';
+	}
+
+	if (encoding === 'buffer') {
+		return 'bytes';
+	}
+
+	return 'characters';
+};
+
+// Check the `maxBuffer` option with `result.ipcOutput`
+const checkIpcMaxBuffer = (subprocess, ipcOutput, maxBuffer) => {
+	if (ipcOutput.length !== maxBuffer) {
+		return;
+	}
+
+	const error = new MaxBufferError();
+	error.maxBufferInfo = {fdNumber: 'ipc'};
+	throw error;
+};
+
+// Error message when `maxBuffer` is hit
+const getMaxBufferMessage = (error, maxBuffer) => {
+	const {streamName, threshold, unit} = getMaxBufferInfo(error, maxBuffer);
+	return `Command's ${streamName} was larger than ${threshold} ${unit}`;
+};
+
+const getMaxBufferInfo = (error, maxBuffer) => {
+	if (error?.maxBufferInfo === undefined) {
+		return {streamName: 'output', threshold: maxBuffer[1], unit: 'bytes'};
+	}
+
+	const {maxBufferInfo: {fdNumber, unit}} = error;
+	delete error.maxBufferInfo;
+
+	if (fdNumber === 'ipc') {
+		return {streamName: 'IPC output', threshold: maxBuffer.at(-1), unit: 'messages'};
+	}
+
+	return {streamName: getStreamName(fdNumber), threshold: maxBuffer[fdNumber], unit};
+};
+
+// The only way to apply `maxBuffer` with `spawnSync()` is to use the native `maxBuffer` option Node.js provides.
+// However, this has multiple limitations, and cannot behave the exact same way as the async behavior.
+// When the `maxBuffer` is hit, a `ENOBUFS` error is thrown.
+const isMaxBufferSync = (resultError, output, maxBuffer) => resultError?.code === 'ENOBUFS'
+	&& output !== null
+	&& output.some(result => result !== null && result.length > getMaxBufferSync(maxBuffer));
+
+// When `maxBuffer` is hit, ensure the result is truncated
+const truncateMaxBufferSync = (result, isMaxBuffer, maxBuffer) => {
+	if (!isMaxBuffer) {
+		return result;
+	}
+
+	const maxBufferValue = getMaxBufferSync(maxBuffer);
+	return result.length > maxBufferValue ? result.slice(0, maxBufferValue) : result;
+};
+
+// `spawnSync()` does not allow differentiating `maxBuffer` per file descriptor, so we always use `stdout`
+const getMaxBufferSync = ([, stdoutMaxBuffer]) => stdoutMaxBuffer;
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/return/message.js
+
+
+
+
+
+
+
+
+
+// Computes `error.message`, `error.shortMessage` and `error.originalMessage`
+const createMessages = ({
+	stdio,
+	all,
+	ipcOutput,
+	originalError,
+	signal,
+	signalDescription,
+	exitCode,
+	escapedCommand,
+	timedOut,
+	isCanceled,
+	isGracefullyCanceled,
+	isMaxBuffer,
+	isForcefullyTerminated,
+	forceKillAfterDelay,
+	killSignal,
+	maxBuffer,
+	timeout,
+	cwd,
+}) => {
+	const errorCode = originalError?.code;
+	const prefix = getErrorPrefix({
+		originalError,
+		timedOut,
+		timeout,
+		isMaxBuffer,
+		maxBuffer,
+		errorCode,
+		signal,
+		signalDescription,
+		exitCode,
+		isCanceled,
+		isGracefullyCanceled,
+		isForcefullyTerminated,
+		forceKillAfterDelay,
+		killSignal,
+	});
+	const originalMessage = getOriginalMessage(originalError, cwd);
+	const suffix = originalMessage === undefined ? '' : `\n${originalMessage}`;
+	const shortMessage = `${prefix}: ${escapedCommand}${suffix}`;
+	const messageStdio = all === undefined ? [stdio[2], stdio[1]] : [all];
+	const message = [
+		shortMessage,
+		...messageStdio,
+		...stdio.slice(3),
+		ipcOutput.map(ipcMessage => serializeIpcMessage(ipcMessage)).join('\n'),
+	]
+		.map(messagePart => escapeLines(strip_final_newline_stripFinalNewline(serializeMessagePart(messagePart))))
+		.filter(Boolean)
+		.join('\n\n');
+	return {originalMessage, shortMessage, message};
+};
+
+const getErrorPrefix = ({
+	originalError,
+	timedOut,
+	timeout,
+	isMaxBuffer,
+	maxBuffer,
+	errorCode,
+	signal,
+	signalDescription,
+	exitCode,
+	isCanceled,
+	isGracefullyCanceled,
+	isForcefullyTerminated,
+	forceKillAfterDelay,
+	killSignal,
+}) => {
+	const forcefulSuffix = getForcefulSuffix(isForcefullyTerminated, forceKillAfterDelay);
+
+	if (timedOut) {
+		return `Command timed out after ${timeout} milliseconds${forcefulSuffix}`;
+	}
+
+	if (isGracefullyCanceled) {
+		if (signal === undefined) {
+			return `Command was gracefully canceled with exit code ${exitCode}`;
+		}
+
+		return isForcefullyTerminated
+			? `Command was gracefully canceled${forcefulSuffix}`
+			: `Command was gracefully canceled with ${signal} (${signalDescription})`;
+	}
+
+	if (isCanceled) {
+		return `Command was canceled${forcefulSuffix}`;
+	}
+
+	if (isMaxBuffer) {
+		return `${getMaxBufferMessage(originalError, maxBuffer)}${forcefulSuffix}`;
+	}
+
+	if (errorCode !== undefined) {
+		return `Command failed with ${errorCode}${forcefulSuffix}`;
+	}
+
+	if (isForcefullyTerminated) {
+		return `Command was killed with ${killSignal} (${getSignalDescription(killSignal)})${forcefulSuffix}`;
+	}
+
+	if (signal !== undefined) {
+		return `Command was killed with ${signal} (${signalDescription})`;
+	}
+
+	if (exitCode !== undefined) {
+		return `Command failed with exit code ${exitCode}`;
+	}
+
+	return 'Command failed';
+};
+
+const getForcefulSuffix = (isForcefullyTerminated, forceKillAfterDelay) => isForcefullyTerminated
+	? ` and was forcefully terminated after ${forceKillAfterDelay} milliseconds`
+	: '';
+
+const getOriginalMessage = (originalError, cwd) => {
+	if (originalError instanceof DiscardedError) {
+		return;
+	}
+
+	const originalMessage = isExecaError(originalError)
+		? originalError.originalMessage
+		: String(originalError?.message ?? originalError);
+	const escapedOriginalMessage = escapeLines(fixCwdError(originalMessage, cwd));
+	return escapedOriginalMessage === '' ? undefined : escapedOriginalMessage;
+};
+
+const serializeIpcMessage = ipcMessage => typeof ipcMessage === 'string'
+	? ipcMessage
+	: (0,external_node_util_.inspect)(ipcMessage);
+
+const serializeMessagePart = messagePart => Array.isArray(messagePart)
+	? messagePart.map(messageItem => strip_final_newline_stripFinalNewline(serializeMessageItem(messageItem))).filter(Boolean).join('\n')
+	: serializeMessageItem(messagePart);
+
+const serializeMessageItem = messageItem => {
+	if (typeof messageItem === 'string') {
+		return messageItem;
+	}
+
+	if (isUint8Array(messageItem)) {
+		return uint8ArrayToString(messageItem);
+	}
+
+	return '';
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/return/result.js
+
+
+
+
+
+// Object returned on subprocess success
+const makeSuccessResult = ({
+	command,
+	escapedCommand,
+	stdio,
+	all,
+	ipcOutput,
+	options: {cwd},
+	startTime,
+}) => omitUndefinedProperties({
+	command,
+	escapedCommand,
+	cwd,
+	durationMs: getDurationMs(startTime),
+	failed: false,
+	timedOut: false,
+	isCanceled: false,
+	isGracefullyCanceled: false,
+	isTerminated: false,
+	isMaxBuffer: false,
+	isForcefullyTerminated: false,
+	exitCode: 0,
+	stdout: stdio[1],
+	stderr: stdio[2],
+	all,
+	stdio,
+	ipcOutput,
+	pipedFrom: [],
+});
+
+// Object returned on subprocess failure before spawning
+const makeEarlyError = ({
+	error,
+	command,
+	escapedCommand,
+	fileDescriptors,
+	options,
+	startTime,
+	isSync,
+}) => makeError({
+	error,
+	command,
+	escapedCommand,
+	startTime,
+	timedOut: false,
+	isCanceled: false,
+	isGracefullyCanceled: false,
+	isMaxBuffer: false,
+	isForcefullyTerminated: false,
+	stdio: Array.from({length: fileDescriptors.length}),
+	ipcOutput: [],
+	options,
+	isSync,
+});
+
+// Object returned on subprocess failure
+const makeError = ({
+	error: originalError,
+	command,
+	escapedCommand,
+	startTime,
+	timedOut,
+	isCanceled,
+	isGracefullyCanceled,
+	isMaxBuffer,
+	isForcefullyTerminated,
+	exitCode: rawExitCode,
+	signal: rawSignal,
+	stdio,
+	all,
+	ipcOutput,
+	options: {
+		timeoutDuration,
+		timeout = timeoutDuration,
+		forceKillAfterDelay,
+		killSignal,
+		cwd,
+		maxBuffer,
+	},
+	isSync,
+}) => {
+	const {exitCode, signal, signalDescription} = normalizeExitPayload(rawExitCode, rawSignal);
+	const {originalMessage, shortMessage, message} = createMessages({
+		stdio,
+		all,
+		ipcOutput,
+		originalError,
+		signal,
+		signalDescription,
+		exitCode,
+		escapedCommand,
+		timedOut,
+		isCanceled,
+		isGracefullyCanceled,
+		isMaxBuffer,
+		isForcefullyTerminated,
+		forceKillAfterDelay,
+		killSignal,
+		maxBuffer,
+		timeout,
+		cwd,
+	});
+	const error = getFinalError(originalError, message, isSync);
+	Object.assign(error, getErrorProperties({
+		error,
+		command,
+		escapedCommand,
+		startTime,
+		timedOut,
+		isCanceled,
+		isGracefullyCanceled,
+		isMaxBuffer,
+		isForcefullyTerminated,
+		exitCode,
+		signal,
+		signalDescription,
+		stdio,
+		all,
+		ipcOutput,
+		cwd,
+		originalMessage,
+		shortMessage,
+	}));
+	return error;
+};
+
+const getErrorProperties = ({
+	error,
+	command,
+	escapedCommand,
+	startTime,
+	timedOut,
+	isCanceled,
+	isGracefullyCanceled,
+	isMaxBuffer,
+	isForcefullyTerminated,
+	exitCode,
+	signal,
+	signalDescription,
+	stdio,
+	all,
+	ipcOutput,
+	cwd,
+	originalMessage,
+	shortMessage,
+}) => omitUndefinedProperties({
+	shortMessage,
+	originalMessage,
+	command,
+	escapedCommand,
+	cwd,
+	durationMs: getDurationMs(startTime),
+	failed: true,
+	timedOut,
+	isCanceled,
+	isGracefullyCanceled,
+	isTerminated: signal !== undefined,
+	isMaxBuffer,
+	isForcefullyTerminated,
+	exitCode,
+	signal,
+	signalDescription,
+	code: error.cause?.code,
+	stdout: stdio[1],
+	stderr: stdio[2],
+	all,
+	stdio,
+	ipcOutput,
+	pipedFrom: [],
+});
+
+const omitUndefinedProperties = result => Object.fromEntries(Object.entries(result).filter(([, value]) => value !== undefined));
+
+// `signal` and `exitCode` emitted on `subprocess.on('exit')` event can be `null`.
+// We normalize them to `undefined`
+const normalizeExitPayload = (rawExitCode, rawSignal) => {
+	const exitCode = rawExitCode === null ? undefined : rawExitCode;
+	const signal = rawSignal === null ? undefined : rawSignal;
+	const signalDescription = signal === undefined ? undefined : getSignalDescription(rawSignal);
+	return {exitCode, signal, signalDescription};
+};
+
+;// CONCATENATED MODULE: ./node_modules/parse-ms/index.js
+const toZeroIfInfinity = value => Number.isFinite(value) ? value : 0;
+
+function parseNumber(milliseconds) {
+	return {
+		days: Math.trunc(milliseconds / 86_400_000),
+		hours: Math.trunc(milliseconds / 3_600_000 % 24),
+		minutes: Math.trunc(milliseconds / 60_000 % 60),
+		seconds: Math.trunc(milliseconds / 1000 % 60),
+		milliseconds: Math.trunc(milliseconds % 1000),
+		microseconds: Math.trunc(toZeroIfInfinity(milliseconds * 1000) % 1000),
+		nanoseconds: Math.trunc(toZeroIfInfinity(milliseconds * 1e6) % 1000),
+	};
+}
+
+function parseBigint(milliseconds) {
+	return {
+		days: milliseconds / 86_400_000n,
+		hours: milliseconds / 3_600_000n % 24n,
+		minutes: milliseconds / 60_000n % 60n,
+		seconds: milliseconds / 1000n % 60n,
+		milliseconds: milliseconds % 1000n,
+		microseconds: 0n,
+		nanoseconds: 0n,
+	};
+}
+
+function parseMilliseconds(milliseconds) {
+	switch (typeof milliseconds) {
+		case 'number': {
+			if (Number.isFinite(milliseconds)) {
+				return parseNumber(milliseconds);
+			}
+
+			break;
+		}
+
+		case 'bigint': {
+			return parseBigint(milliseconds);
+		}
+
+		// No default
+	}
+
+	throw new TypeError('Expected a finite number or bigint');
+}
+
+;// CONCATENATED MODULE: ./node_modules/pretty-ms/index.js
+
+
+const isZero = value => value === 0 || value === 0n;
+const pluralize = (word, count) => (count === 1 || count === 1n) ? word : `${word}s`;
+
+const SECOND_ROUNDING_EPSILON = 0.000_000_1;
+const ONE_DAY_IN_MILLISECONDS = 24n * 60n * 60n * 1000n;
+
+function prettyMilliseconds(milliseconds, options) {
+	const isBigInt = typeof milliseconds === 'bigint';
+	if (!isBigInt && !Number.isFinite(milliseconds)) {
+		throw new TypeError('Expected a finite number or bigint');
+	}
+
+	options = {...options};
+
+	if (options.colonNotation) {
+		options.compact = false;
+		options.formatSubMilliseconds = false;
+		options.separateMilliseconds = false;
+		options.verbose = false;
+	}
+
+	if (options.compact) {
+		options.unitCount = 1;
+		options.secondsDecimalDigits = 0;
+		options.millisecondsDecimalDigits = 0;
+	}
+
+	let result = [];
+
+	const floorDecimals = (value, decimalDigits) => {
+		const flooredInterimValue = Math.floor((value * (10 ** decimalDigits)) + SECOND_ROUNDING_EPSILON);
+		const flooredValue = Math.round(flooredInterimValue) / (10 ** decimalDigits);
+		return flooredValue.toFixed(decimalDigits);
+	};
+
+	const add = (value, long, short, valueString) => {
+		if (
+			(result.length === 0 || !options.colonNotation)
+			&& isZero(value)
+			&& !(options.colonNotation && short === 'm')) {
+			return;
+		}
+
+		valueString = valueString ?? String(value);
+		if (options.colonNotation) {
+			const wholeDigits = valueString.includes('.') ? valueString.split('.')[0].length : valueString.length;
+			const minLength = result.length > 0 ? 2 : 1;
+			valueString = '0'.repeat(Math.max(0, minLength - wholeDigits)) + valueString;
+		} else {
+			valueString += options.verbose ? ' ' + pluralize(long, value) : short;
+		}
+
+		result.push(valueString);
+	};
+
+	const parsed = parseMilliseconds(milliseconds);
+	const days = BigInt(parsed.days);
+
+	add(days / 365n, 'year', 'y');
+	add(days % 365n, 'day', 'd');
+	add(Number(parsed.hours), 'hour', 'h');
+	add(Number(parsed.minutes), 'minute', 'm');
+
+	if (
+		options.separateMilliseconds
+		|| options.formatSubMilliseconds
+		|| (!options.colonNotation && milliseconds < 1000)
+	) {
+		const seconds = Number(parsed.seconds);
+		const milliseconds = Number(parsed.milliseconds);
+		const microseconds = Number(parsed.microseconds);
+		const nanoseconds = Number(parsed.nanoseconds);
+
+		add(seconds, 'second', 's');
+
+		if (options.formatSubMilliseconds) {
+			add(milliseconds, 'millisecond', 'ms');
+			add(microseconds, 'microsecond', 'µs');
+			add(nanoseconds, 'nanosecond', 'ns');
+		} else {
+			const millisecondsAndBelow
+				= milliseconds
+				+ (microseconds / 1000)
+				+ (nanoseconds / 1e6);
+
+			const millisecondsDecimalDigits
+				= typeof options.millisecondsDecimalDigits === 'number'
+					? options.millisecondsDecimalDigits
+					: 0;
+
+			const roundedMilliseconds = millisecondsAndBelow >= 1
+				? Math.round(millisecondsAndBelow)
+				: Math.ceil(millisecondsAndBelow);
+
+			const millisecondsString = millisecondsDecimalDigits
+				? millisecondsAndBelow.toFixed(millisecondsDecimalDigits)
+				: roundedMilliseconds;
+
+			add(
+				Number.parseFloat(millisecondsString),
+				'millisecond',
+				'ms',
+				millisecondsString,
+			);
+		}
+	} else {
+		const seconds = (
+			(isBigInt ? Number(milliseconds % ONE_DAY_IN_MILLISECONDS) : milliseconds)
+			/ 1000
+		) % 60;
+		const secondsDecimalDigits
+			= typeof options.secondsDecimalDigits === 'number'
+				? options.secondsDecimalDigits
+				: 1;
+		const secondsFixed = floorDecimals(seconds, secondsDecimalDigits);
+		const secondsString = options.keepDecimalsOnWholeSeconds
+			? secondsFixed
+			: secondsFixed.replace(/\.0+$/, '');
+		add(Number.parseFloat(secondsString), 'second', 's', secondsString);
+	}
+
+	if (result.length === 0) {
+		return '0' + (options.verbose ? ' milliseconds' : 'ms');
+	}
+
+	const separator = options.colonNotation ? ':' : ' ';
+	if (typeof options.unitCount === 'number') {
+		result = result.slice(0, Math.max(options.unitCount, 1));
+	}
+
+	return result.join(separator);
+}
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/verbose/error.js
+
+
+
+// When `verbose` is `short|full`, print each command's error when it fails
+const logError = ({message, failed, reject, verboseId, icon}) => {
+	if (!failed) {
+		return;
+	}
+
+	const color = reject ? redBright : yellowBright;
+	verboseLog(message, verboseId, icon, color);
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/verbose/complete.js
+
+
+
+
+
+
+
+
+// When `verbose` is `short|full`, print each command's completion, duration and error
+const logFinalResult = ({shortMessage, failed, durationMs}, reject, verboseInfo) => {
+	logResult({
+		message: shortMessage,
+		failed,
+		reject,
+		durationMs,
+		verboseInfo,
+	});
+};
+
+// Same but for early validation errors
+const logEarlyResult = (error, startTime, verboseInfo) => {
+	logResult({
+		message: escapeLines(String(error)),
+		failed: true,
+		reject: true,
+		durationMs: getDurationMs(startTime),
+		verboseInfo,
+	});
+};
+
+const logResult = ({message, failed, reject, durationMs, verboseInfo: {verbose, verboseId}}) => {
+	if (!isVerbose(verbose)) {
+		return;
+	}
+
+	const icon = getIcon(failed, reject);
+	logError({
+		message,
+		failed,
+		reject,
+		verboseId,
+		icon,
+	});
+	logDuration(durationMs, verboseId, icon);
+};
+
+const logDuration = (durationMs, verboseId, icon) => {
+	const durationMessage = `(done in ${prettyMilliseconds(durationMs)})`;
+	verboseLog(durationMessage, verboseId, icon, gray);
+};
+
+const getIcon = (failed, reject) => {
+	if (!failed) {
+		return 'success';
+	}
+
+	return reject ? 'error' : 'warning';
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/return/reject.js
+
+
+// Applies the `reject` option.
+// Also print the final log line with `verbose`.
+const handleResult = (result, verboseInfo, {reject}) => {
+	logFinalResult(result, reject, verboseInfo);
+
+	if (result.failed && reject) {
+		throw result;
+	}
+
+	return result;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/stdio/type.js
+
+
+
+
+// The `stdin`/`stdout`/`stderr` option can be of many types. This detects it.
+const getStdioItemType = (value, optionName) => {
+	if (isAsyncGenerator(value)) {
+		return 'asyncGenerator';
+	}
+
+	if (isSyncGenerator(value)) {
+		return 'generator';
+	}
+
+	if (isUrl(value)) {
+		return 'fileUrl';
+	}
+
+	if (isFilePathObject(value)) {
+		return 'filePath';
+	}
+
+	if (isWebStream(value)) {
+		return 'webStream';
+	}
+
+	if (isStream(value, {checkOpen: false})) {
+		return 'native';
+	}
+
+	if (isUint8Array(value)) {
+		return 'uint8Array';
+	}
+
+	if (isAsyncIterableObject(value)) {
+		return 'asyncIterable';
+	}
+
+	if (isIterableObject(value)) {
+		return 'iterable';
+	}
+
+	if (type_isTransformStream(value)) {
+		return getTransformStreamType({transform: value}, optionName);
+	}
+
+	if (isTransformOptions(value)) {
+		return getTransformObjectType(value, optionName);
+	}
+
+	return 'native';
+};
+
+const getTransformObjectType = (value, optionName) => {
+	if (isDuplexStream(value.transform, {checkOpen: false})) {
+		return getDuplexType(value, optionName);
+	}
+
+	if (type_isTransformStream(value.transform)) {
+		return getTransformStreamType(value, optionName);
+	}
+
+	return getGeneratorObjectType(value, optionName);
+};
+
+const getDuplexType = (value, optionName) => {
+	validateNonGeneratorType(value, optionName, 'Duplex stream');
+	return 'duplex';
+};
+
+const getTransformStreamType = (value, optionName) => {
+	validateNonGeneratorType(value, optionName, 'web TransformStream');
+	return 'webTransform';
+};
+
+const validateNonGeneratorType = ({final, binary, objectMode}, optionName, typeName) => {
+	checkUndefinedOption(final, `${optionName}.final`, typeName);
+	checkUndefinedOption(binary, `${optionName}.binary`, typeName);
+	checkBooleanOption(objectMode, `${optionName}.objectMode`);
+};
+
+const checkUndefinedOption = (value, optionName, typeName) => {
+	if (value !== undefined) {
+		throw new TypeError(`The \`${optionName}\` option can only be defined when using a generator, not a ${typeName}.`);
+	}
+};
+
+const getGeneratorObjectType = ({transform, final, binary, objectMode}, optionName) => {
+	if (transform !== undefined && !isGenerator(transform)) {
+		throw new TypeError(`The \`${optionName}.transform\` option must be a generator, a Duplex stream or a web TransformStream.`);
+	}
+
+	if (isDuplexStream(final, {checkOpen: false})) {
+		throw new TypeError(`The \`${optionName}.final\` option must not be a Duplex stream.`);
+	}
+
+	if (type_isTransformStream(final)) {
+		throw new TypeError(`The \`${optionName}.final\` option must not be a web TransformStream.`);
+	}
+
+	if (final !== undefined && !isGenerator(final)) {
+		throw new TypeError(`The \`${optionName}.final\` option must be a generator.`);
+	}
+
+	checkBooleanOption(binary, `${optionName}.binary`);
+	checkBooleanOption(objectMode, `${optionName}.objectMode`);
+
+	return isAsyncGenerator(transform) || isAsyncGenerator(final) ? 'asyncGenerator' : 'generator';
+};
+
+const checkBooleanOption = (value, optionName) => {
+	if (value !== undefined && typeof value !== 'boolean') {
+		throw new TypeError(`The \`${optionName}\` option must use a boolean.`);
+	}
+};
+
+const isGenerator = value => isAsyncGenerator(value) || isSyncGenerator(value);
+const isAsyncGenerator = value => Object.prototype.toString.call(value) === '[object AsyncGeneratorFunction]';
+const isSyncGenerator = value => Object.prototype.toString.call(value) === '[object GeneratorFunction]';
+const isTransformOptions = value => isPlainObject(value)
+	&& (value.transform !== undefined || value.final !== undefined);
+
+const isUrl = value => Object.prototype.toString.call(value) === '[object URL]';
+const isRegularUrl = value => isUrl(value) && value.protocol !== 'file:';
+
+const isFilePathObject = value => isPlainObject(value)
+	&& Object.keys(value).length === 1
+	&& isFilePathString(value.file);
+const isFilePathString = file => typeof file === 'string';
+
+const isUnknownStdioString = (type, value) => type === 'native'
+	&& typeof value === 'string'
+	&& !KNOWN_STDIO_STRINGS.has(value);
+const KNOWN_STDIO_STRINGS = new Set(['ipc', 'ignore', 'inherit', 'overlapped', 'pipe']);
+
+const type_isReadableStream = value => Object.prototype.toString.call(value) === '[object ReadableStream]';
+const type_isWritableStream = value => Object.prototype.toString.call(value) === '[object WritableStream]';
+const isWebStream = value => type_isReadableStream(value) || type_isWritableStream(value);
+const type_isTransformStream = value => type_isReadableStream(value?.readable) && type_isWritableStream(value?.writable);
+
+const isAsyncIterableObject = value => isObject(value) && typeof value[Symbol.asyncIterator] === 'function';
+const isIterableObject = value => isObject(value) && typeof value[Symbol.iterator] === 'function';
+const isObject = value => typeof value === 'object' && value !== null;
+
+// Types which modify `subprocess.std*`
+const TRANSFORM_TYPES = new Set(['generator', 'asyncGenerator', 'duplex', 'webTransform']);
+// Types which write to a file or a file descriptor
+const FILE_TYPES = new Set(['fileUrl', 'filePath', 'fileNumber']);
+// When two file descriptors of this type share the same target, we need to do some special logic
+const SPECIAL_DUPLICATE_TYPES_SYNC = new Set(['fileUrl', 'filePath']);
+const SPECIAL_DUPLICATE_TYPES = new Set([...SPECIAL_DUPLICATE_TYPES_SYNC, 'webStream', 'nodeStream']);
+// Do not allow two file descriptors of this type sharing the same target
+const FORBID_DUPLICATE_TYPES = new Set(['webTransform', 'duplex']);
+
+// Convert types to human-friendly strings for error messages
+const TYPE_TO_MESSAGE = {
+	generator: 'a generator',
+	asyncGenerator: 'an async generator',
+	fileUrl: 'a file URL',
+	filePath: 'a file path string',
+	fileNumber: 'a file descriptor number',
+	webStream: 'a web stream',
+	nodeStream: 'a Node.js stream',
+	webTransform: 'a web TransformStream',
+	duplex: 'a Duplex stream',
+	native: 'any value',
+	iterable: 'an iterable',
+	asyncIterable: 'an async iterable',
+	string: 'a string',
+	uint8Array: 'a Uint8Array',
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/transform/object-mode.js
+
+
+/*
+Retrieve the `objectMode`s of a single transform.
+`objectMode` determines the return value's type, i.e. the `readableObjectMode`.
+The chunk argument's type is based on the previous generator's return value, i.e. the `writableObjectMode` is based on the previous `readableObjectMode`.
+The last input's generator is read by `subprocess.stdin` which:
+- should not be in `objectMode` for performance reasons.
+- can only be strings, Buffers and Uint8Arrays.
+Therefore its `readableObjectMode` must be `false`.
+The same applies to the first output's generator's `writableObjectMode`.
+*/
+const getTransformObjectModes = (objectMode, index, newTransforms, direction) => direction === 'output'
+	? getOutputObjectModes(objectMode, index, newTransforms)
+	: getInputObjectModes(objectMode, index, newTransforms);
+
+const getOutputObjectModes = (objectMode, index, newTransforms) => {
+	const writableObjectMode = index !== 0 && newTransforms[index - 1].value.readableObjectMode;
+	const readableObjectMode = objectMode ?? writableObjectMode;
+	return {writableObjectMode, readableObjectMode};
+};
+
+const getInputObjectModes = (objectMode, index, newTransforms) => {
+	const writableObjectMode = index === 0
+		? objectMode === true
+		: newTransforms[index - 1].value.readableObjectMode;
+	const readableObjectMode = index !== newTransforms.length - 1 && (objectMode ?? writableObjectMode);
+	return {writableObjectMode, readableObjectMode};
+};
+
+// Retrieve the `objectMode` of a file descriptor, e.g. `stdout` or `stderr`
+const getFdObjectMode = (stdioItems, direction) => {
+	const lastTransform = stdioItems.findLast(({type}) => TRANSFORM_TYPES.has(type));
+	if (lastTransform === undefined) {
+		return false;
+	}
+
+	return direction === 'input'
+		? lastTransform.value.writableObjectMode
+		: lastTransform.value.readableObjectMode;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/transform/normalize.js
+
+
+
+
+
+// Transforms generators/duplex/TransformStream can have multiple shapes.
+// This normalizes it and applies default values.
+const normalizeTransforms = (stdioItems, optionName, direction, options) => [
+	...stdioItems.filter(({type}) => !TRANSFORM_TYPES.has(type)),
+	...getTransforms(stdioItems, optionName, direction, options),
+];
+
+const getTransforms = (stdioItems, optionName, direction, {encoding}) => {
+	const transforms = stdioItems.filter(({type}) => TRANSFORM_TYPES.has(type));
+	const newTransforms = Array.from({length: transforms.length});
+
+	for (const [index, stdioItem] of Object.entries(transforms)) {
+		newTransforms[index] = normalizeTransform({
+			stdioItem,
+			index: Number(index),
+			newTransforms,
+			optionName,
+			direction,
+			encoding,
+		});
+	}
+
+	return sortTransforms(newTransforms, direction);
+};
+
+const normalizeTransform = ({stdioItem, stdioItem: {type}, index, newTransforms, optionName, direction, encoding}) => {
+	if (type === 'duplex') {
+		return normalizeDuplex({stdioItem, optionName});
+	}
+
+	if (type === 'webTransform') {
+		return normalizeTransformStream({
+			stdioItem,
+			index,
+			newTransforms,
+			direction,
+		});
+	}
+
+	return normalizeGenerator({
+		stdioItem,
+		index,
+		newTransforms,
+		direction,
+		encoding,
+	});
+};
+
+const normalizeDuplex = ({
+	stdioItem,
+	stdioItem: {
+		value: {
+			transform,
+			transform: {writableObjectMode, readableObjectMode},
+			objectMode = readableObjectMode,
+		},
+	},
+	optionName,
+}) => {
+	if (objectMode && !readableObjectMode) {
+		throw new TypeError(`The \`${optionName}.objectMode\` option can only be \`true\` if \`new Duplex({objectMode: true})\` is used.`);
+	}
+
+	if (!objectMode && readableObjectMode) {
+		throw new TypeError(`The \`${optionName}.objectMode\` option cannot be \`false\` if \`new Duplex({objectMode: true})\` is used.`);
+	}
+
+	return {
+		...stdioItem,
+		value: {transform, writableObjectMode, readableObjectMode},
+	};
+};
+
+const normalizeTransformStream = ({stdioItem, stdioItem: {value}, index, newTransforms, direction}) => {
+	const {transform, objectMode} = isPlainObject(value) ? value : {transform: value};
+	const {writableObjectMode, readableObjectMode} = getTransformObjectModes(objectMode, index, newTransforms, direction);
+	return ({
+		...stdioItem,
+		value: {transform, writableObjectMode, readableObjectMode},
+	});
+};
+
+const normalizeGenerator = ({stdioItem, stdioItem: {value}, index, newTransforms, direction, encoding}) => {
+	const {
+		transform,
+		final,
+		binary: binaryOption = false,
+		preserveNewlines = false,
+		objectMode,
+	} = isPlainObject(value) ? value : {transform: value};
+	const binary = binaryOption || BINARY_ENCODINGS.has(encoding);
+	const {writableObjectMode, readableObjectMode} = getTransformObjectModes(objectMode, index, newTransforms, direction);
+	return {
+		...stdioItem,
+		value: {
+			transform,
+			final,
+			binary,
+			preserveNewlines,
+			writableObjectMode,
+			readableObjectMode,
+		},
+	};
+};
+
+const sortTransforms = (newTransforms, direction) => direction === 'input' ? newTransforms.reverse() : newTransforms;
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/stdio/direction.js
+
+
+
+
+// For `stdio[fdNumber]` beyond stdin/stdout/stderr, we need to guess whether the value passed is intended for inputs or outputs.
+// This allows us to know whether to pipe _into_ or _from_ the stream.
+// When `stdio[fdNumber]` is a single value, this guess is fairly straightforward.
+// However, when it is an array instead, we also need to make sure the different values are not incompatible with each other.
+const getStreamDirection = (stdioItems, fdNumber, optionName) => {
+	const directions = stdioItems.map(stdioItem => getStdioItemDirection(stdioItem, fdNumber));
+
+	if (directions.includes('input') && directions.includes('output')) {
+		throw new TypeError(`The \`${optionName}\` option must not be an array of both readable and writable values.`);
+	}
+
+	return directions.find(Boolean) ?? DEFAULT_DIRECTION;
+};
+
+const getStdioItemDirection = ({type, value}, fdNumber) => KNOWN_DIRECTIONS[fdNumber] ?? guessStreamDirection[type](value);
+
+// `stdin`/`stdout`/`stderr` have a known direction
+const KNOWN_DIRECTIONS = ['input', 'output', 'output'];
+
+const anyDirection = () => undefined;
+const alwaysInput = () => 'input';
+
+// `string` can only be added through the `input` option, i.e. does not need to be handled here
+const guessStreamDirection = {
+	generator: anyDirection,
+	asyncGenerator: anyDirection,
+	fileUrl: anyDirection,
+	filePath: anyDirection,
+	iterable: alwaysInput,
+	asyncIterable: alwaysInput,
+	uint8Array: alwaysInput,
+	webStream: value => type_isWritableStream(value) ? 'output' : 'input',
+	nodeStream(value) {
+		if (!isReadableStream(value, {checkOpen: false})) {
+			return 'output';
+		}
+
+		return isWritableStream(value, {checkOpen: false}) ? undefined : 'input';
+	},
+	webTransform: anyDirection,
+	duplex: anyDirection,
+	native(value) {
+		const standardStreamDirection = getStandardStreamDirection(value);
+		if (standardStreamDirection !== undefined) {
+			return standardStreamDirection;
+		}
+
+		if (isStream(value, {checkOpen: false})) {
+			return guessStreamDirection.nodeStream(value);
+		}
+	},
+};
+
+const getStandardStreamDirection = value => {
+	if ([0, external_node_process_namespaceObject.stdin].includes(value)) {
+		return 'input';
+	}
+
+	if ([1, 2, external_node_process_namespaceObject.stdout, external_node_process_namespaceObject.stderr].includes(value)) {
+		return 'output';
+	}
+};
+
+// When ambiguous, we initially keep the direction as `undefined`.
+// This allows arrays of `stdio` values to resolve the ambiguity.
+// For example, `stdio[3]: DuplexStream` is ambiguous, but `stdio[3]: [DuplexStream, WritableStream]` is not.
+// When the ambiguity remains, we default to `output` since it is the most common use case for additional file descriptors.
+const DEFAULT_DIRECTION = 'output';
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/ipc/array.js
+// The `ipc` option adds an `ipc` item to the `stdio` option
+const normalizeIpcStdioArray = (stdioArray, ipc) => ipc && !stdioArray.includes('ipc')
+	? [...stdioArray, 'ipc']
+	: stdioArray;
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/stdio/stdio-option.js
+
+
+
+// Add support for `stdin`/`stdout`/`stderr` as an alias for `stdio`.
+// Also normalize the `stdio` option.
+const normalizeStdioOption = ({stdio, ipc, buffer, verbose, ...options}, isSync) => {
+	const stdioArray = getStdioArray(stdio, options).map((stdioOption, fdNumber) => stdio_option_addDefaultValue(stdioOption, fdNumber));
+	return isSync
+		? normalizeStdioSync(stdioArray, buffer, verbose)
+		: normalizeIpcStdioArray(stdioArray, ipc);
+};
+
+const getStdioArray = (stdio, options) => {
 	if (stdio === undefined) {
-		return aliases.map(alias => options[alias]);
+		return STANDARD_STREAMS_ALIASES.map(alias => options[alias]);
 	}
 
 	if (hasAlias(options)) {
-		throw new Error(`It's not possible to provide \`stdio\` in combination with one of ${aliases.map(alias => `\`${alias}\``).join(', ')}`);
+		throw new Error(`It's not possible to provide \`stdio\` in combination with one of ${STANDARD_STREAMS_ALIASES.map(alias => `\`${alias}\``).join(', ')}`);
 	}
 
 	if (typeof stdio === 'string') {
-		return stdio;
+		return [stdio, stdio, stdio];
 	}
 
 	if (!Array.isArray(stdio)) {
 		throw new TypeError(`Expected \`stdio\` to be of type \`string\` or \`Array\`, got \`${typeof stdio}\``);
 	}
 
-	const length = Math.max(stdio.length, aliases.length);
-	return Array.from({length}, (value, index) => stdio[index]);
+	const length = Math.max(stdio.length, STANDARD_STREAMS_ALIASES.length);
+	return Array.from({length}, (_, fdNumber) => stdio[fdNumber]);
 };
 
-// `ipc` is pushed unless it is already present
-const stdio_normalizeStdioNode = options => {
-	const stdio = normalizeStdio(options);
+const hasAlias = options => STANDARD_STREAMS_ALIASES.some(alias => options[alias] !== undefined);
 
-	if (stdio === 'ipc') {
-		return 'ipc';
+const stdio_option_addDefaultValue = (stdioOption, fdNumber) => {
+	if (Array.isArray(stdioOption)) {
+		return stdioOption.map(item => stdio_option_addDefaultValue(item, fdNumber));
 	}
 
-	if (stdio === undefined || typeof stdio === 'string') {
-		return [stdio, stdio, stdio, 'ipc'];
+	if (stdioOption === null || stdioOption === undefined) {
+		return fdNumber >= STANDARD_STREAMS_ALIASES.length ? 'ignore' : 'pipe';
 	}
 
-	if (stdio.includes('ipc')) {
-		return stdio;
-	}
-
-	return [...stdio, 'ipc'];
+	return stdioOption;
 };
 
-;// CONCATENATED MODULE: ./node_modules/execa/node_modules/signal-exit/dist/mjs/signals.js
+// Using `buffer: false` with synchronous methods implies `stdout`/`stderr`: `ignore`.
+// Unless the output is needed, e.g. due to `verbose: 'full'` or to redirecting to a file.
+const normalizeStdioSync = (stdioArray, buffer, verbose) => stdioArray.map((stdioOption, fdNumber) =>
+	!buffer[fdNumber]
+	&& fdNumber !== 0
+	&& verbose[fdNumber] !== 'full'
+	&& isOutputPipeOnly(stdioOption)
+		? 'ignore'
+		: stdioOption);
+
+const isOutputPipeOnly = stdioOption => stdioOption === 'pipe'
+	|| (Array.isArray(stdioOption) && stdioOption.every(item => item === 'pipe'));
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/stdio/native.js
+
+
+
+
+
+
+
+// When we use multiple `stdio` values for the same streams, we pass 'pipe' to `child_process.spawn()`.
+// We then emulate the piping done by core Node.js.
+// To do so, we transform the following values:
+//  - Node.js streams are marked as `type: nodeStream`
+//  - 'inherit' becomes `process.stdin|stdout|stderr`
+//  - any file descriptor integer becomes `process.stdio[fdNumber]`
+// All of the above transformations tell Execa to perform manual piping.
+const handleNativeStream = ({stdioItem, stdioItem: {type}, isStdioArray, fdNumber, direction, isSync}) => {
+	if (!isStdioArray || type !== 'native') {
+		return stdioItem;
+	}
+
+	return isSync
+		? handleNativeStreamSync({stdioItem, fdNumber, direction})
+		: handleNativeStreamAsync({stdioItem, fdNumber});
+};
+
+// Synchronous methods use a different logic.
+// 'inherit', file descriptors and process.std* are handled by readFileSync()/writeFileSync().
+const handleNativeStreamSync = ({stdioItem, stdioItem: {value, optionName}, fdNumber, direction}) => {
+	const targetFd = getTargetFd({
+		value,
+		optionName,
+		fdNumber,
+		direction,
+	});
+	if (targetFd !== undefined) {
+		return targetFd;
+	}
+
+	if (isStream(value, {checkOpen: false})) {
+		throw new TypeError(`The \`${optionName}: Stream\` option cannot both be an array and include a stream with synchronous methods.`);
+	}
+
+	return stdioItem;
+};
+
+const getTargetFd = ({value, optionName, fdNumber, direction}) => {
+	const targetFdNumber = getTargetFdNumber(value, fdNumber);
+	if (targetFdNumber === undefined) {
+		return;
+	}
+
+	if (direction === 'output') {
+		return {type: 'fileNumber', value: targetFdNumber, optionName};
+	}
+
+	if (external_node_tty_namespaceObject.isatty(targetFdNumber)) {
+		throw new TypeError(`The \`${optionName}: ${serializeOptionValue(value)}\` option is invalid: it cannot be a TTY with synchronous methods.`);
+	}
+
+	return {type: 'uint8Array', value: bufferToUint8Array((0,external_node_fs_namespaceObject.readFileSync)(targetFdNumber)), optionName};
+};
+
+const getTargetFdNumber = (value, fdNumber) => {
+	if (value === 'inherit') {
+		return fdNumber;
+	}
+
+	if (typeof value === 'number') {
+		return value;
+	}
+
+	const standardStreamIndex = STANDARD_STREAMS.indexOf(value);
+	if (standardStreamIndex !== -1) {
+		return standardStreamIndex;
+	}
+};
+
+const handleNativeStreamAsync = ({stdioItem, stdioItem: {value, optionName}, fdNumber}) => {
+	if (value === 'inherit') {
+		return {type: 'nodeStream', value: getStandardStream(fdNumber, value, optionName), optionName};
+	}
+
+	if (typeof value === 'number') {
+		return {type: 'nodeStream', value: getStandardStream(value, value, optionName), optionName};
+	}
+
+	if (isStream(value, {checkOpen: false})) {
+		return {type: 'nodeStream', value, optionName};
+	}
+
+	return stdioItem;
+};
+
+// Node.js does not allow to easily retrieve file descriptors beyond stdin/stdout/stderr as streams.
+//  - `fs.createReadStream()`/`fs.createWriteStream()` with the `fd` option do not work with character devices that use blocking reads/writes (such as interactive TTYs).
+//  - Using a TCP `Socket` would work but be rather complex to implement.
+// Since this is an edge case, we simply throw an error message.
+// See https://github.com/sindresorhus/execa/pull/643#discussion_r1435905707
+const getStandardStream = (fdNumber, value, optionName) => {
+	const standardStream = STANDARD_STREAMS[fdNumber];
+
+	if (standardStream === undefined) {
+		throw new TypeError(`The \`${optionName}: ${value}\` option is invalid: no such standard stream.`);
+	}
+
+	return standardStream;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/stdio/input-option.js
+
+
+
+
+// Append the `stdin` option with the `input` and `inputFile` options
+const handleInputOptions = ({input, inputFile}, fdNumber) => fdNumber === 0
+	? [
+		...handleInputOption(input),
+		...handleInputFileOption(inputFile),
+	]
+	: [];
+
+const handleInputOption = input => input === undefined ? [] : [{
+	type: getInputType(input),
+	value: input,
+	optionName: 'input',
+}];
+
+const getInputType = input => {
+	if (isReadableStream(input, {checkOpen: false})) {
+		return 'nodeStream';
+	}
+
+	if (typeof input === 'string') {
+		return 'string';
+	}
+
+	if (isUint8Array(input)) {
+		return 'uint8Array';
+	}
+
+	throw new Error('The `input` option must be a string, a Uint8Array or a Node.js Readable stream.');
+};
+
+const handleInputFileOption = inputFile => inputFile === undefined ? [] : [{
+	...getInputFileType(inputFile),
+	optionName: 'inputFile',
+}];
+
+const getInputFileType = inputFile => {
+	if (isUrl(inputFile)) {
+		return {type: 'fileUrl', value: inputFile};
+	}
+
+	if (isFilePathString(inputFile)) {
+		return {type: 'filePath', value: {file: inputFile}};
+	}
+
+	throw new Error('The `inputFile` option must be a file path string or a file URL.');
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/stdio/duplicate.js
+
+
+// Duplicates in the same file descriptor is most likely an error.
+// However, this can be useful with generators.
+const filterDuplicates = stdioItems => stdioItems.filter((stdioItemOne, indexOne) =>
+	stdioItems.every((stdioItemTwo, indexTwo) => stdioItemOne.value !== stdioItemTwo.value
+		|| indexOne >= indexTwo
+		|| stdioItemOne.type === 'generator'
+		|| stdioItemOne.type === 'asyncGenerator'));
+
+// Check if two file descriptors are sharing the same target.
+// For example `{stdout: {file: './output.txt'}, stderr: {file: './output.txt'}}`.
+const getDuplicateStream = ({stdioItem: {type, value, optionName}, direction, fileDescriptors, isSync}) => {
+	const otherStdioItems = getOtherStdioItems(fileDescriptors, type);
+	if (otherStdioItems.length === 0) {
+		return;
+	}
+
+	if (isSync) {
+		validateDuplicateStreamSync({
+			otherStdioItems,
+			type,
+			value,
+			optionName,
+			direction,
+		});
+		return;
+	}
+
+	if (SPECIAL_DUPLICATE_TYPES.has(type)) {
+		return getDuplicateStreamInstance({
+			otherStdioItems,
+			type,
+			value,
+			optionName,
+			direction,
+		});
+	}
+
+	if (FORBID_DUPLICATE_TYPES.has(type)) {
+		validateDuplicateTransform({
+			otherStdioItems,
+			type,
+			value,
+			optionName,
+		});
+	}
+};
+
+// Values shared by multiple file descriptors
+const getOtherStdioItems = (fileDescriptors, type) => fileDescriptors
+	.flatMap(({direction, stdioItems}) => stdioItems
+		.filter(stdioItem => stdioItem.type === type)
+		.map((stdioItem => ({...stdioItem, direction}))));
+
+// With `execaSync()`, do not allow setting a file path both in input and output
+const validateDuplicateStreamSync = ({otherStdioItems, type, value, optionName, direction}) => {
+	if (SPECIAL_DUPLICATE_TYPES_SYNC.has(type)) {
+		getDuplicateStreamInstance({
+			otherStdioItems,
+			type,
+			value,
+			optionName,
+			direction,
+		});
+	}
+};
+
+// When two file descriptors share the file or stream, we need to re-use the same underlying stream.
+// Otherwise, the stream would be closed twice when piping ends.
+// This is only an issue with output file descriptors.
+// This is not a problem with generator functions since those create a new instance for each file descriptor.
+// We also forbid input and output file descriptors sharing the same file or stream, since that does not make sense.
+const getDuplicateStreamInstance = ({otherStdioItems, type, value, optionName, direction}) => {
+	const duplicateStdioItems = otherStdioItems.filter(stdioItem => hasSameValue(stdioItem, value));
+	if (duplicateStdioItems.length === 0) {
+		return;
+	}
+
+	const differentStdioItem = duplicateStdioItems.find(stdioItem => stdioItem.direction !== direction);
+	throwOnDuplicateStream(differentStdioItem, optionName, type);
+
+	return direction === 'output' ? duplicateStdioItems[0].stream : undefined;
+};
+
+const hasSameValue = ({type, value}, secondValue) => {
+	if (type === 'filePath') {
+		return value.file === secondValue.file;
+	}
+
+	if (type === 'fileUrl') {
+		return value.href === secondValue.href;
+	}
+
+	return value === secondValue;
+};
+
+// We do not allow two file descriptors to share the same Duplex or TransformStream.
+// This is because those are set directly to `subprocess.std*`.
+// For example, this could result in `subprocess.stdout` and `subprocess.stderr` being the same value.
+// This means reading from either would get data from both stdout and stderr.
+const validateDuplicateTransform = ({otherStdioItems, type, value, optionName}) => {
+	const duplicateStdioItem = otherStdioItems.find(({value: {transform}}) => transform === value.transform);
+	throwOnDuplicateStream(duplicateStdioItem, optionName, type);
+};
+
+const throwOnDuplicateStream = (stdioItem, optionName, type) => {
+	if (stdioItem !== undefined) {
+		throw new TypeError(`The \`${stdioItem.optionName}\` and \`${optionName}\` options must not target ${TYPE_TO_MESSAGE[type]} that is the same.`);
+	}
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/stdio/handle.js
+
+
+
+
+
+
+
+
+
+
+// Handle `input`, `inputFile`, `stdin`, `stdout` and `stderr` options, before spawning, in async/sync mode
+// They are converted into an array of `fileDescriptors`.
+// Each `fileDescriptor` is normalized, validated and contains all information necessary for further handling.
+const handleStdio = (addProperties, options, verboseInfo, isSync) => {
+	const stdio = normalizeStdioOption(options, isSync);
+	const initialFileDescriptors = stdio.map((stdioOption, fdNumber) => getFileDescriptor({
+		stdioOption,
+		fdNumber,
+		options,
+		isSync,
+	}));
+	const fileDescriptors = getFinalFileDescriptors({
+		initialFileDescriptors,
+		addProperties,
+		options,
+		isSync,
+	});
+	options.stdio = fileDescriptors.map(({stdioItems}) => forwardStdio(stdioItems));
+	return fileDescriptors;
+};
+
+const getFileDescriptor = ({stdioOption, fdNumber, options, isSync}) => {
+	const optionName = getStreamName(fdNumber);
+	const {stdioItems: initialStdioItems, isStdioArray} = initializeStdioItems({
+		stdioOption,
+		fdNumber,
+		options,
+		optionName,
+	});
+	const direction = getStreamDirection(initialStdioItems, fdNumber, optionName);
+	const stdioItems = initialStdioItems.map(stdioItem => handleNativeStream({
+		stdioItem,
+		isStdioArray,
+		fdNumber,
+		direction,
+		isSync,
+	}));
+	const normalizedStdioItems = normalizeTransforms(stdioItems, optionName, direction, options);
+	const objectMode = getFdObjectMode(normalizedStdioItems, direction);
+	validateFileObjectMode(normalizedStdioItems, objectMode);
+	return {direction, objectMode, stdioItems: normalizedStdioItems};
+};
+
+// We make sure passing an array with a single item behaves the same as passing that item without an array.
+// This is what users would expect.
+// For example, `stdout: ['ignore']` behaves the same as `stdout: 'ignore'`.
+const initializeStdioItems = ({stdioOption, fdNumber, options, optionName}) => {
+	const values = Array.isArray(stdioOption) ? stdioOption : [stdioOption];
+	const initialStdioItems = [
+		...values.map(value => initializeStdioItem(value, optionName)),
+		...handleInputOptions(options, fdNumber),
+	];
+
+	const stdioItems = filterDuplicates(initialStdioItems);
+	const isStdioArray = stdioItems.length > 1;
+	validateStdioArray(stdioItems, isStdioArray, optionName);
+	validateStreams(stdioItems);
+	return {stdioItems, isStdioArray};
+};
+
+const initializeStdioItem = (value, optionName) => ({
+	type: getStdioItemType(value, optionName),
+	value,
+	optionName,
+});
+
+const validateStdioArray = (stdioItems, isStdioArray, optionName) => {
+	if (stdioItems.length === 0) {
+		throw new TypeError(`The \`${optionName}\` option must not be an empty array.`);
+	}
+
+	if (!isStdioArray) {
+		return;
+	}
+
+	for (const {value, optionName} of stdioItems) {
+		if (INVALID_STDIO_ARRAY_OPTIONS.has(value)) {
+			throw new Error(`The \`${optionName}\` option must not include \`${value}\`.`);
+		}
+	}
+};
+
+// Using those `stdio` values together with others for the same stream does not make sense, so we make it fail.
+// However, we do allow it if the array has a single item.
+const INVALID_STDIO_ARRAY_OPTIONS = new Set(['ignore', 'ipc']);
+
+const validateStreams = stdioItems => {
+	for (const stdioItem of stdioItems) {
+		validateFileStdio(stdioItem);
+	}
+};
+
+const validateFileStdio = ({type, value, optionName}) => {
+	if (isRegularUrl(value)) {
+		throw new TypeError(`The \`${optionName}: URL\` option must use the \`file:\` scheme.
+For example, you can use the \`pathToFileURL()\` method of the \`url\` core module.`);
+	}
+
+	if (isUnknownStdioString(type, value)) {
+		throw new TypeError(`The \`${optionName}: { file: '...' }\` option must be used instead of \`${optionName}: '...'\`.`);
+	}
+};
+
+const validateFileObjectMode = (stdioItems, objectMode) => {
+	if (!objectMode) {
+		return;
+	}
+
+	const fileStdioItem = stdioItems.find(({type}) => FILE_TYPES.has(type));
+	if (fileStdioItem !== undefined) {
+		throw new TypeError(`The \`${fileStdioItem.optionName}\` option cannot use both files and transforms in objectMode.`);
+	}
+};
+
+// Some `stdio` values require Execa to create streams.
+// For example, file paths create file read/write streams.
+// Those transformations are specified in `addProperties`, which is both direction-specific and type-specific.
+const getFinalFileDescriptors = ({initialFileDescriptors, addProperties, options, isSync}) => {
+	const fileDescriptors = [];
+
+	try {
+		for (const fileDescriptor of initialFileDescriptors) {
+			fileDescriptors.push(getFinalFileDescriptor({
+				fileDescriptor,
+				fileDescriptors,
+				addProperties,
+				options,
+				isSync,
+			}));
+		}
+
+		return fileDescriptors;
+	} catch (error) {
+		cleanupCustomStreams(fileDescriptors);
+		throw error;
+	}
+};
+
+const getFinalFileDescriptor = ({
+	fileDescriptor: {direction, objectMode, stdioItems},
+	fileDescriptors,
+	addProperties,
+	options,
+	isSync,
+}) => {
+	const finalStdioItems = stdioItems.map(stdioItem => addStreamProperties({
+		stdioItem,
+		addProperties,
+		direction,
+		options,
+		fileDescriptors,
+		isSync,
+	}));
+	return {direction, objectMode, stdioItems: finalStdioItems};
+};
+
+const addStreamProperties = ({stdioItem, addProperties, direction, options, fileDescriptors, isSync}) => {
+	const duplicateStream = getDuplicateStream({
+		stdioItem,
+		direction,
+		fileDescriptors,
+		isSync,
+	});
+
+	if (duplicateStream !== undefined) {
+		return {...stdioItem, stream: duplicateStream};
+	}
+
+	return {
+		...stdioItem,
+		...addProperties[direction][stdioItem.type](stdioItem, options),
+	};
+};
+
+// The stream error handling is performed by the piping logic above, which cannot be performed before subprocess spawning.
+// If the subprocess spawning fails (e.g. due to an invalid command), the streams need to be manually destroyed.
+// We need to create those streams before subprocess spawning, in case their creation fails, e.g. when passing an invalid generator as argument.
+// Like this, an exception would be thrown, which would prevent spawning a subprocess.
+const cleanupCustomStreams = fileDescriptors => {
+	for (const {stdioItems} of fileDescriptors) {
+		for (const {stream} of stdioItems) {
+			if (stream !== undefined && !isStandardStream(stream)) {
+				stream.destroy();
+			}
+		}
+	}
+};
+
+// When the `std*: Iterable | WebStream | URL | filePath`, `input` or `inputFile` option is used, we pipe to `subprocess.std*`.
+// When the `std*: Array` option is used, we emulate some of the native values ('inherit', Node.js stream and file descriptor integer). To do so, we also need to pipe to `subprocess.std*`.
+// Therefore the `std*` options must be either `pipe` or `overlapped`. Other values do not set `subprocess.std*`.
+const forwardStdio = stdioItems => {
+	if (stdioItems.length > 1) {
+		return stdioItems.some(({value}) => value === 'overlapped') ? 'overlapped' : 'pipe';
+	}
+
+	const [{type, value}] = stdioItems;
+	return type === 'native' ? value : 'pipe';
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/stdio/handle-sync.js
+
+
+
+
+
+// Normalize `input`, `inputFile`, `stdin`, `stdout` and `stderr` options, before spawning, in sync mode
+const handleStdioSync = (options, verboseInfo) => handleStdio(addPropertiesSync, options, verboseInfo, true);
+
+const forbiddenIfSync = ({type, optionName}) => {
+	throwInvalidSyncValue(optionName, TYPE_TO_MESSAGE[type]);
+};
+
+const forbiddenNativeIfSync = ({optionName, value}) => {
+	if (value === 'ipc' || value === 'overlapped') {
+		throwInvalidSyncValue(optionName, `"${value}"`);
+	}
+
+	return {};
+};
+
+const throwInvalidSyncValue = (optionName, value) => {
+	throw new TypeError(`The \`${optionName}\` option cannot be ${value} with synchronous methods.`);
+};
+
+// Create streams used internally for redirecting when using specific values for the `std*` options, in sync mode.
+// For example, `stdin: {file}` reads the file synchronously, then passes it as the `input` option.
+const addProperties = {
+	generator() {},
+	asyncGenerator: forbiddenIfSync,
+	webStream: forbiddenIfSync,
+	nodeStream: forbiddenIfSync,
+	webTransform: forbiddenIfSync,
+	duplex: forbiddenIfSync,
+	asyncIterable: forbiddenIfSync,
+	native: forbiddenNativeIfSync,
+};
+
+const addPropertiesSync = {
+	input: {
+		...addProperties,
+		fileUrl: ({value}) => ({contents: [bufferToUint8Array((0,external_node_fs_namespaceObject.readFileSync)(value))]}),
+		filePath: ({value: {file}}) => ({contents: [bufferToUint8Array((0,external_node_fs_namespaceObject.readFileSync)(file))]}),
+		fileNumber: forbiddenIfSync,
+		iterable: ({value}) => ({contents: [...value]}),
+		string: ({value}) => ({contents: [value]}),
+		uint8Array: ({value}) => ({contents: [value]}),
+	},
+	output: {
+		...addProperties,
+		fileUrl: ({value}) => ({path: value}),
+		filePath: ({value: {file}}) => ({path: file}),
+		fileNumber: ({value}) => ({path: value}),
+		iterable: forbiddenIfSync,
+		string: forbiddenIfSync,
+		uint8Array: forbiddenIfSync,
+	},
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/io/strip-newline.js
+
+
+// Apply `stripFinalNewline` option, which applies to `result.stdout|stderr|all|stdio[*]`.
+// If the `lines` option is used, it is applied on each line, but using a different function.
+const stripNewline = (value, {stripFinalNewline}, fdNumber) => getStripFinalNewline(stripFinalNewline, fdNumber) && value !== undefined && !Array.isArray(value)
+	? strip_final_newline_stripFinalNewline(value)
+	: value;
+
+// Retrieve `stripFinalNewline` option value, including with `subprocess.all`
+const getStripFinalNewline = (stripFinalNewline, fdNumber) => fdNumber === 'all'
+	? stripFinalNewline[1] || stripFinalNewline[2]
+	: stripFinalNewline[fdNumber];
+
+// EXTERNAL MODULE: external "node:stream"
+var external_node_stream_ = __nccwpck_require__(4492);
+;// CONCATENATED MODULE: ./node_modules/execa/lib/transform/split.js
+// Split chunks line-wise for generators passed to the `std*` options
+const getSplitLinesGenerator = (binary, preserveNewlines, skipped, state) => binary || skipped
+	? undefined
+	: initializeSplitLines(preserveNewlines, state);
+
+// Same but for synchronous methods
+const splitLinesSync = (chunk, preserveNewlines, objectMode) => objectMode
+	? chunk.flatMap(item => splitLinesItemSync(item, preserveNewlines))
+	: splitLinesItemSync(chunk, preserveNewlines);
+
+const splitLinesItemSync = (chunk, preserveNewlines) => {
+	const {transform, final} = initializeSplitLines(preserveNewlines, {});
+	return [...transform(chunk), ...final()];
+};
+
+const initializeSplitLines = (preserveNewlines, state) => {
+	state.previousChunks = '';
+	return {
+		transform: splitGenerator.bind(undefined, state, preserveNewlines),
+		final: linesFinal.bind(undefined, state),
+	};
+};
+
+// This imperative logic is much faster than using `String.split()` and uses very low memory.
+const splitGenerator = function * (state, preserveNewlines, chunk) {
+	if (typeof chunk !== 'string') {
+		yield chunk;
+		return;
+	}
+
+	let {previousChunks} = state;
+	let start = -1;
+
+	for (let end = 0; end < chunk.length; end += 1) {
+		if (chunk[end] === '\n') {
+			const newlineLength = getNewlineLength(chunk, end, preserveNewlines, state);
+			let line = chunk.slice(start + 1, end + 1 - newlineLength);
+
+			if (previousChunks.length > 0) {
+				line = concatString(previousChunks, line);
+				previousChunks = '';
+			}
+
+			yield line;
+			start = end;
+		}
+	}
+
+	if (start !== chunk.length - 1) {
+		previousChunks = concatString(previousChunks, chunk.slice(start + 1));
+	}
+
+	state.previousChunks = previousChunks;
+};
+
+const getNewlineLength = (chunk, end, preserveNewlines, state) => {
+	if (preserveNewlines) {
+		return 0;
+	}
+
+	state.isWindowsNewline = end !== 0 && chunk[end - 1] === '\r';
+	return state.isWindowsNewline ? 2 : 1;
+};
+
+const linesFinal = function * ({previousChunks}) {
+	if (previousChunks.length > 0) {
+		yield previousChunks;
+	}
+};
+
+// Unless `preserveNewlines: true` is used, we strip the newline of each line.
+// This re-adds them after the user `transform` code has run.
+const getAppendNewlineGenerator = ({binary, preserveNewlines, readableObjectMode, state}) => binary || preserveNewlines || readableObjectMode
+	? undefined
+	: {transform: appendNewlineGenerator.bind(undefined, state)};
+
+const appendNewlineGenerator = function * ({isWindowsNewline = false}, chunk) {
+	const {unixNewline, windowsNewline, LF, concatBytes} = typeof chunk === 'string' ? linesStringInfo : linesUint8ArrayInfo;
+
+	if (chunk.at(-1) === LF) {
+		yield chunk;
+		return;
+	}
+
+	const newline = isWindowsNewline ? windowsNewline : unixNewline;
+	yield concatBytes(chunk, newline);
+};
+
+const concatString = (firstChunk, secondChunk) => `${firstChunk}${secondChunk}`;
+
+const linesStringInfo = {
+	windowsNewline: '\r\n',
+	unixNewline: '\n',
+	LF: '\n',
+	concatBytes: concatString,
+};
+
+const concatUint8Array = (firstChunk, secondChunk) => {
+	const chunk = new Uint8Array(firstChunk.length + secondChunk.length);
+	chunk.set(firstChunk, 0);
+	chunk.set(secondChunk, firstChunk.length);
+	return chunk;
+};
+
+const linesUint8ArrayInfo = {
+	windowsNewline: new Uint8Array([0x0D, 0x0A]),
+	unixNewline: new Uint8Array([0x0A]),
+	LF: 0x0A,
+	concatBytes: concatUint8Array,
+};
+
+;// CONCATENATED MODULE: external "node:buffer"
+const external_node_buffer_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:buffer");
+;// CONCATENATED MODULE: ./node_modules/execa/lib/transform/validate.js
+
+
+
+// Validate the type of chunk argument passed to transform generators
+const getValidateTransformInput = (writableObjectMode, optionName) => writableObjectMode
+	? undefined
+	: validateStringTransformInput.bind(undefined, optionName);
+
+const validateStringTransformInput = function * (optionName, chunk) {
+	if (typeof chunk !== 'string' && !isUint8Array(chunk) && !external_node_buffer_namespaceObject.Buffer.isBuffer(chunk)) {
+		throw new TypeError(`The \`${optionName}\` option's transform must use "objectMode: true" to receive as input: ${typeof chunk}.`);
+	}
+
+	yield chunk;
+};
+
+// Validate the type of the value returned by transform generators
+const getValidateTransformReturn = (readableObjectMode, optionName) => readableObjectMode
+	? validateObjectTransformReturn.bind(undefined, optionName)
+	: validateStringTransformReturn.bind(undefined, optionName);
+
+const validateObjectTransformReturn = function * (optionName, chunk) {
+	validateEmptyReturn(optionName, chunk);
+	yield chunk;
+};
+
+const validateStringTransformReturn = function * (optionName, chunk) {
+	validateEmptyReturn(optionName, chunk);
+
+	if (typeof chunk !== 'string' && !isUint8Array(chunk)) {
+		throw new TypeError(`The \`${optionName}\` option's function must yield a string or an Uint8Array, not ${typeof chunk}.`);
+	}
+
+	yield chunk;
+};
+
+const validateEmptyReturn = (optionName, chunk) => {
+	if (chunk === null || chunk === undefined) {
+		throw new TypeError(`The \`${optionName}\` option's function must not call \`yield ${chunk}\`.
+Instead, \`yield\` should either be called with a value, or not be called at all. For example:
+  if (condition) { yield value; }`);
+	}
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/transform/encoding-transform.js
+
+
+
+
+/*
+When using binary encodings, add an internal generator that converts chunks from `Buffer` to `string` or `Uint8Array`.
+Chunks might be Buffer, Uint8Array or strings since:
+- `subprocess.stdout|stderr` emits Buffers
+- `subprocess.stdin.write()` accepts Buffer, Uint8Array or string
+- Previous generators might return Uint8Array or string
+
+However, those are converted to Buffer:
+- on writes: `Duplex.writable` `decodeStrings: true` default option
+- on reads: `Duplex.readable` `readableEncoding: null` default option
+*/
+const getEncodingTransformGenerator = (binary, encoding, skipped) => {
+	if (skipped) {
+		return;
+	}
+
+	if (binary) {
+		return {transform: encodingUint8ArrayGenerator.bind(undefined, new TextEncoder())};
+	}
+
+	const stringDecoder = new external_node_string_decoder_namespaceObject.StringDecoder(encoding);
+	return {
+		transform: encodingStringGenerator.bind(undefined, stringDecoder),
+		final: encodingStringFinal.bind(undefined, stringDecoder),
+	};
+};
+
+const encodingUint8ArrayGenerator = function * (textEncoder, chunk) {
+	if (external_node_buffer_namespaceObject.Buffer.isBuffer(chunk)) {
+		yield bufferToUint8Array(chunk);
+	} else if (typeof chunk === 'string') {
+		yield textEncoder.encode(chunk);
+	} else {
+		yield chunk;
+	}
+};
+
+const encodingStringGenerator = function * (stringDecoder, chunk) {
+	yield isUint8Array(chunk) ? stringDecoder.write(chunk) : chunk;
+};
+
+const encodingStringFinal = function * (stringDecoder) {
+	const lastChunk = stringDecoder.end();
+	if (lastChunk !== '') {
+		yield lastChunk;
+	}
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/transform/run-async.js
+
+
+// Applies a series of generator functions asynchronously
+const pushChunks = (0,external_node_util_.callbackify)(async (getChunks, state, getChunksArguments, transformStream) => {
+	state.currentIterable = getChunks(...getChunksArguments);
+
+	try {
+		for await (const chunk of state.currentIterable) {
+			transformStream.push(chunk);
+		}
+	} finally {
+		delete state.currentIterable;
+	}
+});
+
+// For each new chunk, apply each `transform()` method
+const transformChunk = async function * (chunk, generators, index) {
+	if (index === generators.length) {
+		yield chunk;
+		return;
+	}
+
+	const {transform = identityGenerator} = generators[index];
+	for await (const transformedChunk of transform(chunk)) {
+		yield * transformChunk(transformedChunk, generators, index + 1);
+	}
+};
+
+// At the end, apply each `final()` method, followed by the `transform()` method of the next transforms
+const finalChunks = async function * (generators) {
+	for (const [index, {final}] of Object.entries(generators)) {
+		yield * generatorFinalChunks(final, Number(index), generators);
+	}
+};
+
+const generatorFinalChunks = async function * (final, index, generators) {
+	if (final === undefined) {
+		return;
+	}
+
+	for await (const finalChunk of final()) {
+		yield * transformChunk(finalChunk, generators, index + 1);
+	}
+};
+
+// Cancel any ongoing async generator when the Transform is destroyed, e.g. when the subprocess errors
+const destroyTransform = (0,external_node_util_.callbackify)(async ({currentIterable}, error) => {
+	if (currentIterable !== undefined) {
+		await (error ? currentIterable.throw(error) : currentIterable.return());
+		return;
+	}
+
+	if (error) {
+		throw error;
+	}
+});
+
+const identityGenerator = function * (chunk) {
+	yield chunk;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/transform/run-sync.js
+// Duplicate the code from `run-async.js` but as synchronous functions
+const pushChunksSync = (getChunksSync, getChunksArguments, transformStream, done) => {
+	try {
+		for (const chunk of getChunksSync(...getChunksArguments)) {
+			transformStream.push(chunk);
+		}
+
+		done();
+	} catch (error) {
+		done(error);
+	}
+};
+
+// Run synchronous generators with `execaSync()`
+const runTransformSync = (generators, chunks) => [
+	...chunks.flatMap(chunk => [...transformChunkSync(chunk, generators, 0)]),
+	...finalChunksSync(generators),
+];
+
+const transformChunkSync = function * (chunk, generators, index) {
+	if (index === generators.length) {
+		yield chunk;
+		return;
+	}
+
+	const {transform = run_sync_identityGenerator} = generators[index];
+	for (const transformedChunk of transform(chunk)) {
+		yield * transformChunkSync(transformedChunk, generators, index + 1);
+	}
+};
+
+const finalChunksSync = function * (generators) {
+	for (const [index, {final}] of Object.entries(generators)) {
+		yield * generatorFinalChunksSync(final, Number(index), generators);
+	}
+};
+
+const generatorFinalChunksSync = function * (final, index, generators) {
+	if (final === undefined) {
+		return;
+	}
+
+	for (const finalChunk of final()) {
+		yield * transformChunkSync(finalChunk, generators, index + 1);
+	}
+};
+
+const run_sync_identityGenerator = function * (chunk) {
+	yield chunk;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/transform/generator.js
+
+
+
+
+
+
+
+
+/*
+Generators can be used to transform/filter standard streams.
+
+Generators have a simple syntax, yet allows all of the following:
+- Sharing `state` between chunks
+- Flushing logic, by using a `final` function
+- Asynchronous logic
+- Emitting multiple chunks from a single source chunk, even if spaced in time, by using multiple `yield`
+- Filtering, by using no `yield`
+
+Therefore, there is no need to allow Node.js or web transform streams.
+
+The `highWaterMark` is kept as the default value, since this is what `subprocess.std*` uses.
+
+Chunks are currently processed serially. We could add a `concurrency` option to parallelize in the future.
+
+Transform an array of generator functions into a `Transform` stream.
+`Duplex.from(generator)` cannot be used because it does not allow setting the `objectMode` and `highWaterMark`.
+*/
+const generatorToStream = ({
+	value,
+	value: {transform, final, writableObjectMode, readableObjectMode},
+	optionName,
+}, {encoding}) => {
+	const state = {};
+	const generators = addInternalGenerators(value, encoding, optionName);
+
+	const transformAsync = isAsyncGenerator(transform);
+	const finalAsync = isAsyncGenerator(final);
+	const transformMethod = transformAsync
+		? pushChunks.bind(undefined, transformChunk, state)
+		: pushChunksSync.bind(undefined, transformChunkSync);
+	const finalMethod = transformAsync || finalAsync
+		? pushChunks.bind(undefined, finalChunks, state)
+		: pushChunksSync.bind(undefined, finalChunksSync);
+	const destroyMethod = transformAsync || finalAsync
+		? destroyTransform.bind(undefined, state)
+		: undefined;
+
+	const stream = new external_node_stream_.Transform({
+		writableObjectMode,
+		writableHighWaterMark: (0,external_node_stream_.getDefaultHighWaterMark)(writableObjectMode),
+		readableObjectMode,
+		readableHighWaterMark: (0,external_node_stream_.getDefaultHighWaterMark)(readableObjectMode),
+		transform(chunk, encoding, done) {
+			transformMethod([chunk, generators, 0], this, done);
+		},
+		flush(done) {
+			finalMethod([generators], this, done);
+		},
+		destroy: destroyMethod,
+	});
+	return {stream};
+};
+
+// Applies transform generators in sync mode
+const runGeneratorsSync = (chunks, stdioItems, encoding, isInput) => {
+	const generators = stdioItems.filter(({type}) => type === 'generator');
+	const reversedGenerators = isInput ? generators.reverse() : generators;
+
+	for (const {value, optionName} of reversedGenerators) {
+		const generators = addInternalGenerators(value, encoding, optionName);
+		chunks = runTransformSync(generators, chunks);
+	}
+
+	return chunks;
+};
+
+// Generators used internally to convert the chunk type, validate it, and split into lines
+const addInternalGenerators = (
+	{transform, final, binary, writableObjectMode, readableObjectMode, preserveNewlines},
+	encoding,
+	optionName,
+) => {
+	const state = {};
+	return [
+		{transform: getValidateTransformInput(writableObjectMode, optionName)},
+		getEncodingTransformGenerator(binary, encoding, writableObjectMode),
+		getSplitLinesGenerator(binary, preserveNewlines, writableObjectMode, state),
+		{transform, final},
+		{transform: getValidateTransformReturn(readableObjectMode, optionName)},
+		getAppendNewlineGenerator({
+			binary,
+			preserveNewlines,
+			readableObjectMode,
+			state,
+		}),
+	].filter(Boolean);
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/io/input-sync.js
+
+
+
+
+// Apply `stdin`/`input`/`inputFile` options, before spawning, in sync mode, by converting it to the `input` option
+const addInputOptionsSync = (fileDescriptors, options) => {
+	for (const fdNumber of getInputFdNumbers(fileDescriptors)) {
+		addInputOptionSync(fileDescriptors, fdNumber, options);
+	}
+};
+
+const getInputFdNumbers = fileDescriptors => new Set(Object.entries(fileDescriptors)
+	.filter(([, {direction}]) => direction === 'input')
+	.map(([fdNumber]) => Number(fdNumber)));
+
+const addInputOptionSync = (fileDescriptors, fdNumber, options) => {
+	const {stdioItems} = fileDescriptors[fdNumber];
+	const allStdioItems = stdioItems.filter(({contents}) => contents !== undefined);
+	if (allStdioItems.length === 0) {
+		return;
+	}
+
+	if (fdNumber !== 0) {
+		const [{type, optionName}] = allStdioItems;
+		throw new TypeError(`Only the \`stdin\` option, not \`${optionName}\`, can be ${TYPE_TO_MESSAGE[type]} with synchronous methods.`);
+	}
+
+	const allContents = allStdioItems.map(({contents}) => contents);
+	const transformedContents = allContents.map(contents => applySingleInputGeneratorsSync(contents, stdioItems));
+	options.input = joinToUint8Array(transformedContents);
+};
+
+const applySingleInputGeneratorsSync = (contents, stdioItems) => {
+	const newContents = runGeneratorsSync(contents, stdioItems, 'utf8', true);
+	validateSerializable(newContents);
+	return joinToUint8Array(newContents);
+};
+
+const validateSerializable = newContents => {
+	const invalidItem = newContents.find(item => typeof item !== 'string' && !isUint8Array(item));
+	if (invalidItem !== undefined) {
+		throw new TypeError(`The \`stdin\` option is invalid: when passing objects as input, a transform must be used to serialize them to strings or Uint8Arrays: ${invalidItem}.`);
+	}
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/verbose/output.js
+
+
+
+
+// `ignore` opts-out of `verbose` for a specific stream.
+// `ipc` cannot use piping.
+// `inherit` would result in double printing.
+// They can also lead to double printing when passing file descriptor integers or `process.std*`.
+// This only leaves with `pipe` and `overlapped`.
+const shouldLogOutput = ({stdioItems, encoding, verboseInfo: {verbose}, fdNumber}) => fdNumber !== 'all'
+	&& verbose[fdNumber] === 'full'
+	&& !BINARY_ENCODINGS.has(encoding)
+	&& fdUsesVerbose(fdNumber)
+	&& (stdioItems.some(({type, value}) => type === 'native' && PIPED_STDIO_VALUES.has(value))
+	|| stdioItems.every(({type}) => TRANSFORM_TYPES.has(type)));
+
+// Printing input streams would be confusing.
+// Files and streams can produce big outputs, which we don't want to print.
+// We could print `stdio[3+]` but it often is redirected to files and streams, with the same issue.
+// So we only print stdout and stderr.
+const fdUsesVerbose = fdNumber => fdNumber === 1 || fdNumber === 2;
+
+const PIPED_STDIO_VALUES = new Set(['pipe', 'overlapped']);
+
+// `verbose: 'full'` printing logic with async methods
+const logLines = async (linesIterable, stream, verboseInfo) => {
+	for await (const line of linesIterable) {
+		if (!isPipingStream(stream)) {
+			logLine(line, verboseInfo);
+		}
+	}
+};
+
+// `verbose: 'full'` printing logic with sync methods
+const logLinesSync = (linesArray, verboseInfo) => {
+	for (const line of linesArray) {
+		logLine(line, verboseInfo);
+	}
+};
+
+// When `subprocess.stdout|stderr.pipe()` is called, `verbose` becomes a noop.
+// This prevents the following problems:
+//  - `.pipe()` achieves the same result as using `stdout: 'inherit'`, `stdout: stream`, etc. which also make `verbose` a noop.
+//    For example, `subprocess.stdout.pipe(process.stdin)` would print each line twice.
+//  - When chaining subprocesses with `subprocess.pipe(otherSubprocess)`, only the last one should print its output.
+// Detecting whether `.pipe()` is impossible without monkey-patching it, so we use the following undocumented property.
+// This is not a critical behavior since changes of the following property would only make `verbose` more verbose.
+const isPipingStream = stream => stream._readableState.pipes.length > 0;
+
+// When `verbose` is `full`, print stdout|stderr
+const logLine = (line, {verboseId}) => {
+	verboseLog(serializeLogMessage(line), verboseId, 'output');
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/io/output-sync.js
+
+
+
+
+
+
+
+
+// Apply `stdout`/`stderr` options, after spawning, in sync mode
+const transformOutputSync = ({fileDescriptors, syncResult: {output}, options, isMaxBuffer, verboseInfo}) => {
+	if (output === null) {
+		return {output: Array.from({length: 3})};
+	}
+
+	const state = {};
+	const outputFiles = new Set([]);
+	const transformedOutput = output.map((result, fdNumber) =>
+		transformOutputResultSync({
+			result,
+			fileDescriptors,
+			fdNumber,
+			state,
+			outputFiles,
+			isMaxBuffer,
+			verboseInfo,
+		}, options));
+	return {output: transformedOutput, ...state};
+};
+
+const transformOutputResultSync = (
+	{result, fileDescriptors, fdNumber, state, outputFiles, isMaxBuffer, verboseInfo},
+	{buffer, encoding, lines, stripFinalNewline, maxBuffer},
+) => {
+	if (result === null) {
+		return;
+	}
+
+	const truncatedResult = truncateMaxBufferSync(result, isMaxBuffer, maxBuffer);
+	const uint8ArrayResult = bufferToUint8Array(truncatedResult);
+	const {stdioItems, objectMode} = fileDescriptors[fdNumber];
+	const chunks = runOutputGeneratorsSync([uint8ArrayResult], stdioItems, encoding, state);
+	const {serializedResult, finalResult = serializedResult} = serializeChunks({
+		chunks,
+		objectMode,
+		encoding,
+		lines,
+		stripFinalNewline,
+		fdNumber,
+	});
+
+	if (shouldLogOutput({
+		stdioItems,
+		encoding,
+		verboseInfo,
+		fdNumber,
+	})) {
+		const linesArray = splitLinesSync(serializedResult, false, objectMode);
+		logLinesSync(linesArray, verboseInfo);
+	}
+
+	const returnedResult = buffer[fdNumber] ? finalResult : undefined;
+
+	try {
+		if (state.error === undefined) {
+			writeToFiles(serializedResult, stdioItems, outputFiles);
+		}
+
+		return returnedResult;
+	} catch (error) {
+		state.error = error;
+		return returnedResult;
+	}
+};
+
+// Applies transform generators to `stdout`/`stderr`
+const runOutputGeneratorsSync = (chunks, stdioItems, encoding, state) => {
+	try {
+		return runGeneratorsSync(chunks, stdioItems, encoding, false);
+	} catch (error) {
+		state.error = error;
+		return chunks;
+	}
+};
+
+// The contents is converted to three stages:
+//  - serializedResult: used when the target is a file path/URL or a file descriptor (including 'inherit')
+//  - finalResult/returnedResult: returned as `result.std*`
+const serializeChunks = ({chunks, objectMode, encoding, lines, stripFinalNewline, fdNumber}) => {
+	if (objectMode) {
+		return {serializedResult: chunks};
+	}
+
+	if (encoding === 'buffer') {
+		return {serializedResult: joinToUint8Array(chunks)};
+	}
+
+	const serializedResult = joinToString(chunks, encoding);
+	if (lines[fdNumber]) {
+		return {serializedResult, finalResult: splitLinesSync(serializedResult, !stripFinalNewline[fdNumber], objectMode)};
+	}
+
+	return {serializedResult};
+};
+
+// When the `std*` target is a file path/URL or a file descriptor
+const writeToFiles = (serializedResult, stdioItems, outputFiles) => {
+	for (const {path} of stdioItems.filter(({type}) => FILE_TYPES.has(type))) {
+		const pathString = typeof path === 'string' ? path : path.toString();
+		if (outputFiles.has(pathString)) {
+			(0,external_node_fs_namespaceObject.appendFileSync)(path, serializedResult);
+		} else {
+			outputFiles.add(pathString);
+			(0,external_node_fs_namespaceObject.writeFileSync)(path, serializedResult);
+		}
+	}
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/resolve/all-sync.js
+
+
+
+// Retrieve `result.all` with synchronous methods
+const getAllSync = ([, stdout, stderr], options) => {
+	if (!options.all) {
+		return;
+	}
+
+	if (stdout === undefined) {
+		return stderr;
+	}
+
+	if (stderr === undefined) {
+		return stdout;
+	}
+
+	if (Array.isArray(stdout)) {
+		return Array.isArray(stderr)
+			? [...stdout, ...stderr]
+			: [...stdout, stripNewline(stderr, options, 'all')];
+	}
+
+	if (Array.isArray(stderr)) {
+		return [stripNewline(stdout, options, 'all'), ...stderr];
+	}
+
+	if (isUint8Array(stdout) && isUint8Array(stderr)) {
+		return concatUint8Arrays([stdout, stderr]);
+	}
+
+	return `${stdout}${stderr}`;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/resolve/exit-async.js
+
+
+
+// If `error` is emitted before `spawn`, `exit` will never be emitted.
+// However, `error` might be emitted after `spawn`.
+// In that case, `exit` will still be emitted.
+// Since the `exit` event contains the signal name, we want to make sure we are listening for it.
+// This function also takes into account the following unlikely cases:
+//  - `exit` being emitted in the same microtask as `spawn`
+//  - `error` being emitted multiple times
+const waitForExit = async (subprocess, context) => {
+	const [exitCode, signal] = await waitForExitOrError(subprocess);
+	context.isForcefullyTerminated ??= false;
+	return [exitCode, signal];
+};
+
+const waitForExitOrError = async subprocess => {
+	const [spawnPayload, exitPayload] = await Promise.allSettled([
+		(0,external_node_events_.once)(subprocess, 'spawn'),
+		(0,external_node_events_.once)(subprocess, 'exit'),
+	]);
+
+	if (spawnPayload.status === 'rejected') {
+		return [];
+	}
+
+	return exitPayload.status === 'rejected'
+		? waitForSubprocessExit(subprocess)
+		: exitPayload.value;
+};
+
+const waitForSubprocessExit = async subprocess => {
+	try {
+		return await (0,external_node_events_.once)(subprocess, 'exit');
+	} catch {
+		return waitForSubprocessExit(subprocess);
+	}
+};
+
+// Retrieve the final exit code and|or signal name
+const waitForSuccessfulExit = async exitPromise => {
+	const [exitCode, signal] = await exitPromise;
+
+	if (!isSubprocessErrorExit(exitCode, signal) && isFailedExit(exitCode, signal)) {
+		throw new DiscardedError();
+	}
+
+	return [exitCode, signal];
+};
+
+// When the subprocess fails due to an `error` event
+const isSubprocessErrorExit = (exitCode, signal) => exitCode === undefined && signal === undefined;
+// When the subprocess fails due to a non-0 exit code or to a signal termination
+const isFailedExit = (exitCode, signal) => exitCode !== 0 || signal !== null;
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/resolve/exit-sync.js
+
+
+
+
+// Retrieve exit code, signal name and error information, with synchronous methods
+const getExitResultSync = ({error, status: exitCode, signal, output}, {maxBuffer}) => {
+	const resultError = getResultError(error, exitCode, signal);
+	const timedOut = resultError?.code === 'ETIMEDOUT';
+	const isMaxBuffer = isMaxBufferSync(resultError, output, maxBuffer);
+	return {
+		resultError,
+		exitCode,
+		signal,
+		timedOut,
+		isMaxBuffer,
+	};
+};
+
+const getResultError = (error, exitCode, signal) => {
+	if (error !== undefined) {
+		return error;
+	}
+
+	return isFailedExit(exitCode, signal) ? new DiscardedError() : undefined;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/methods/main-sync.js
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Main shared logic for all sync methods: `execaSync()`, `$.sync()`
+const execaCoreSync = (rawFile, rawArguments, rawOptions) => {
+	const {file, commandArguments, command, escapedCommand, startTime, verboseInfo, options, fileDescriptors} = handleSyncArguments(rawFile, rawArguments, rawOptions);
+	const result = spawnSubprocessSync({
+		file,
+		commandArguments,
+		options,
+		command,
+		escapedCommand,
+		verboseInfo,
+		fileDescriptors,
+		startTime,
+	});
+	return handleResult(result, verboseInfo, options);
+};
+
+// Compute arguments to pass to `child_process.spawnSync()`
+const handleSyncArguments = (rawFile, rawArguments, rawOptions) => {
+	const {command, escapedCommand, startTime, verboseInfo} = handleCommand(rawFile, rawArguments, rawOptions);
+
+	try {
+		const syncOptions = normalizeSyncOptions(rawOptions);
+		const {file, commandArguments, options} = normalizeOptions(rawFile, rawArguments, syncOptions);
+		validateSyncOptions(options);
+		const fileDescriptors = handleStdioSync(options, verboseInfo);
+		return {
+			file,
+			commandArguments,
+			command,
+			escapedCommand,
+			startTime,
+			verboseInfo,
+			options,
+			fileDescriptors,
+		};
+	} catch (error) {
+		logEarlyResult(error, startTime, verboseInfo);
+		throw error;
+	}
+};
+
+// Options normalization logic specific to sync methods
+const normalizeSyncOptions = options => options.node && !options.ipc ? {...options, ipc: false} : options;
+
+// Options validation logic specific to sync methods
+const validateSyncOptions = ({ipc, ipcInput, detached, cancelSignal}) => {
+	if (ipcInput) {
+		throwInvalidSyncOption('ipcInput');
+	}
+
+	if (ipc) {
+		throwInvalidSyncOption('ipc: true');
+	}
+
+	if (detached) {
+		throwInvalidSyncOption('detached: true');
+	}
+
+	if (cancelSignal) {
+		throwInvalidSyncOption('cancelSignal');
+	}
+};
+
+const throwInvalidSyncOption = value => {
+	throw new TypeError(`The "${value}" option cannot be used with synchronous methods.`);
+};
+
+const spawnSubprocessSync = ({file, commandArguments, options, command, escapedCommand, verboseInfo, fileDescriptors, startTime}) => {
+	const syncResult = runSubprocessSync({
+		file,
+		commandArguments,
+		options,
+		command,
+		escapedCommand,
+		fileDescriptors,
+		startTime,
+	});
+	if (syncResult.failed) {
+		return syncResult;
+	}
+
+	const {resultError, exitCode, signal, timedOut, isMaxBuffer} = getExitResultSync(syncResult, options);
+	const {output, error = resultError} = transformOutputSync({
+		fileDescriptors,
+		syncResult,
+		options,
+		isMaxBuffer,
+		verboseInfo,
+	});
+	const stdio = output.map((stdioOutput, fdNumber) => stripNewline(stdioOutput, options, fdNumber));
+	const all = stripNewline(getAllSync(output, options), options, 'all');
+	return getSyncResult({
+		error,
+		exitCode,
+		signal,
+		timedOut,
+		isMaxBuffer,
+		stdio,
+		all,
+		options,
+		command,
+		escapedCommand,
+		startTime,
+	});
+};
+
+const runSubprocessSync = ({file, commandArguments, options, command, escapedCommand, fileDescriptors, startTime}) => {
+	try {
+		addInputOptionsSync(fileDescriptors, options);
+		const normalizedOptions = normalizeSpawnSyncOptions(options);
+		return (0,external_node_child_process_namespaceObject.spawnSync)(file, commandArguments, normalizedOptions);
+	} catch (error) {
+		return makeEarlyError({
+			error,
+			command,
+			escapedCommand,
+			fileDescriptors,
+			options,
+			startTime,
+			isSync: true,
+		});
+	}
+};
+
+// The `encoding` option is handled by Execa, not by `child_process.spawnSync()`
+const normalizeSpawnSyncOptions = ({encoding, maxBuffer, ...options}) => ({...options, encoding: 'buffer', maxBuffer: getMaxBufferSync(maxBuffer)});
+
+const getSyncResult = ({error, exitCode, signal, timedOut, isMaxBuffer, stdio, all, options, command, escapedCommand, startTime}) => error === undefined
+	? makeSuccessResult({
+		command,
+		escapedCommand,
+		stdio,
+		all,
+		ipcOutput: [],
+		options,
+		startTime,
+	})
+	: makeError({
+		error,
+		command,
+		escapedCommand,
+		timedOut,
+		isCanceled: false,
+		isGracefullyCanceled: false,
+		isMaxBuffer,
+		isForcefullyTerminated: false,
+		exitCode,
+		signal,
+		stdio,
+		all,
+		ipcOutput: [],
+		options,
+		startTime,
+		isSync: true,
+	});
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/ipc/get-one.js
+
+
+
+
+
+// Like `[sub]process.once('message')` but promise-based
+const getOneMessage = ({anyProcess, channel, isSubprocess, ipc}, {reference = true, filter} = {}) => {
+	validateIpcMethod({
+		methodName: 'getOneMessage',
+		isSubprocess,
+		ipc,
+		isConnected: isConnected(anyProcess),
+	});
+
+	return getOneMessageAsync({
+		anyProcess,
+		channel,
+		isSubprocess,
+		filter,
+		reference,
+	});
+};
+
+const getOneMessageAsync = async ({anyProcess, channel, isSubprocess, filter, reference}) => {
+	addReference(channel, reference);
+	const ipcEmitter = getIpcEmitter(anyProcess, channel, isSubprocess);
+	const controller = new AbortController();
+	try {
+		return await Promise.race([
+			getMessage(ipcEmitter, filter, controller),
+			get_one_throwOnDisconnect(ipcEmitter, isSubprocess, controller),
+			throwOnStrictError(ipcEmitter, isSubprocess, controller),
+		]);
+	} catch (error) {
+		disconnect(anyProcess);
+		throw error;
+	} finally {
+		controller.abort();
+		removeReference(channel, reference);
+	}
+};
+
+const getMessage = async (ipcEmitter, filter, {signal}) => {
+	if (filter === undefined) {
+		const [message] = await (0,external_node_events_.once)(ipcEmitter, 'message', {signal});
+		return message;
+	}
+
+	for await (const [message] of (0,external_node_events_.on)(ipcEmitter, 'message', {signal})) {
+		if (filter(message)) {
+			return message;
+		}
+	}
+};
+
+const get_one_throwOnDisconnect = async (ipcEmitter, isSubprocess, {signal}) => {
+	await (0,external_node_events_.once)(ipcEmitter, 'disconnect', {signal});
+	throwOnEarlyDisconnect(isSubprocess);
+};
+
+const throwOnStrictError = async (ipcEmitter, isSubprocess, {signal}) => {
+	const [error] = await (0,external_node_events_.once)(ipcEmitter, 'strict:error', {signal});
+	throw getStrictResponseError(error, isSubprocess);
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/ipc/get-each.js
+
+
+
+
+
+// Like `[sub]process.on('message')` but promise-based
+const getEachMessage = ({anyProcess, channel, isSubprocess, ipc}, {reference = true} = {}) => loopOnMessages({
+	anyProcess,
+	channel,
+	isSubprocess,
+	ipc,
+	shouldAwait: !isSubprocess,
+	reference,
+});
+
+// Same but used internally
+const loopOnMessages = ({anyProcess, channel, isSubprocess, ipc, shouldAwait, reference}) => {
+	validateIpcMethod({
+		methodName: 'getEachMessage',
+		isSubprocess,
+		ipc,
+		isConnected: isConnected(anyProcess),
+	});
+
+	addReference(channel, reference);
+	const ipcEmitter = getIpcEmitter(anyProcess, channel, isSubprocess);
+	const controller = new AbortController();
+	const state = {};
+	stopOnDisconnect(anyProcess, ipcEmitter, controller);
+	abortOnStrictError({
+		ipcEmitter,
+		isSubprocess,
+		controller,
+		state,
+	});
+	return iterateOnMessages({
+		anyProcess,
+		channel,
+		ipcEmitter,
+		isSubprocess,
+		shouldAwait,
+		controller,
+		state,
+		reference,
+	});
+};
+
+const stopOnDisconnect = async (anyProcess, ipcEmitter, controller) => {
+	try {
+		await (0,external_node_events_.once)(ipcEmitter, 'disconnect', {signal: controller.signal});
+		controller.abort();
+	} catch {}
+};
+
+const abortOnStrictError = async ({ipcEmitter, isSubprocess, controller, state}) => {
+	try {
+		const [error] = await (0,external_node_events_.once)(ipcEmitter, 'strict:error', {signal: controller.signal});
+		state.error = getStrictResponseError(error, isSubprocess);
+		controller.abort();
+	} catch {}
+};
+
+const iterateOnMessages = async function * ({anyProcess, channel, ipcEmitter, isSubprocess, shouldAwait, controller, state, reference}) {
+	try {
+		for await (const [message] of (0,external_node_events_.on)(ipcEmitter, 'message', {signal: controller.signal})) {
+			throwIfStrictError(state);
+			yield message;
+		}
+	} catch {
+		throwIfStrictError(state);
+	} finally {
+		controller.abort();
+		removeReference(channel, reference);
+
+		if (!isSubprocess) {
+			disconnect(anyProcess);
+		}
+
+		if (shouldAwait) {
+			await anyProcess;
+		}
+	}
+};
+
+const throwIfStrictError = ({error}) => {
+	if (error) {
+		throw error;
+	}
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/ipc/methods.js
+
+
+
+
+
+
+// Add promise-based IPC methods in current process
+const addIpcMethods = (subprocess, {ipc}) => {
+	Object.assign(subprocess, getIpcMethods(subprocess, false, ipc));
+};
+
+// Get promise-based IPC in the subprocess
+const getIpcExport = () => {
+	const anyProcess = external_node_process_namespaceObject;
+	const isSubprocess = true;
+	const ipc = external_node_process_namespaceObject.channel !== undefined;
+
+	return {
+		...getIpcMethods(anyProcess, isSubprocess, ipc),
+		getCancelSignal: getCancelSignal.bind(undefined, {
+			anyProcess,
+			channel: anyProcess.channel,
+			isSubprocess,
+			ipc,
+		}),
+	};
+};
+
+// Retrieve the `ipc` shared by both the current process and the subprocess
+const getIpcMethods = (anyProcess, isSubprocess, ipc) => ({
+	sendMessage: sendMessage.bind(undefined, {
+		anyProcess,
+		channel: anyProcess.channel,
+		isSubprocess,
+		ipc,
+	}),
+	getOneMessage: getOneMessage.bind(undefined, {
+		anyProcess,
+		channel: anyProcess.channel,
+		isSubprocess,
+		ipc,
+	}),
+	getEachMessage: getEachMessage.bind(undefined, {
+		anyProcess,
+		channel: anyProcess.channel,
+		isSubprocess,
+		ipc,
+	}),
+});
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/return/early-error.js
+
+
+
+
+
+
+// When the subprocess fails to spawn.
+// We ensure the returned error is always both a promise and a subprocess.
+const handleEarlyError = ({error, command, escapedCommand, fileDescriptors, options, startTime, verboseInfo}) => {
+	cleanupCustomStreams(fileDescriptors);
+
+	const subprocess = new external_node_child_process_namespaceObject.ChildProcess();
+	createDummyStreams(subprocess, fileDescriptors);
+	Object.assign(subprocess, {readable, writable, duplex});
+
+	const earlyError = makeEarlyError({
+		error,
+		command,
+		escapedCommand,
+		fileDescriptors,
+		options,
+		startTime,
+		isSync: false,
+	});
+	const promise = handleDummyPromise(earlyError, verboseInfo, options);
+	return {subprocess, promise};
+};
+
+const createDummyStreams = (subprocess, fileDescriptors) => {
+	const stdin = createDummyStream();
+	const stdout = createDummyStream();
+	const stderr = createDummyStream();
+	const extraStdio = Array.from({length: fileDescriptors.length - 3}, createDummyStream);
+	const all = createDummyStream();
+	const stdio = [stdin, stdout, stderr, ...extraStdio];
+	Object.assign(subprocess, {
+		stdin,
+		stdout,
+		stderr,
+		all,
+		stdio,
+	});
+};
+
+const createDummyStream = () => {
+	const stream = new external_node_stream_.PassThrough();
+	stream.end();
+	return stream;
+};
+
+const readable = () => new external_node_stream_.Readable({read() {}});
+const writable = () => new external_node_stream_.Writable({write() {}});
+const duplex = () => new external_node_stream_.Duplex({read() {}, write() {}});
+
+const handleDummyPromise = async (error, verboseInfo, options) => handleResult(error, verboseInfo, options);
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/stdio/handle-async.js
+
+
+
+
+
+
+
+// Handle `input`, `inputFile`, `stdin`, `stdout` and `stderr` options, before spawning, in async mode
+const handleStdioAsync = (options, verboseInfo) => handleStdio(addPropertiesAsync, options, verboseInfo, false);
+
+const forbiddenIfAsync = ({type, optionName}) => {
+	throw new TypeError(`The \`${optionName}\` option cannot be ${TYPE_TO_MESSAGE[type]}.`);
+};
+
+// Create streams used internally for piping when using specific values for the `std*` options, in async mode.
+// For example, `stdout: {file}` creates a file stream, which is piped from/to.
+const handle_async_addProperties = {
+	fileNumber: forbiddenIfAsync,
+	generator: generatorToStream,
+	asyncGenerator: generatorToStream,
+	nodeStream: ({value}) => ({stream: value}),
+	webTransform({value: {transform, writableObjectMode, readableObjectMode}}) {
+		const objectMode = writableObjectMode || readableObjectMode;
+		const stream = external_node_stream_.Duplex.fromWeb(transform, {objectMode});
+		return {stream};
+	},
+	duplex: ({value: {transform}}) => ({stream: transform}),
+	native() {},
+};
+
+const addPropertiesAsync = {
+	input: {
+		...handle_async_addProperties,
+		fileUrl: ({value}) => ({stream: (0,external_node_fs_namespaceObject.createReadStream)(value)}),
+		filePath: ({value: {file}}) => ({stream: (0,external_node_fs_namespaceObject.createReadStream)(file)}),
+		webStream: ({value}) => ({stream: external_node_stream_.Readable.fromWeb(value)}),
+		iterable: ({value}) => ({stream: external_node_stream_.Readable.from(value)}),
+		asyncIterable: ({value}) => ({stream: external_node_stream_.Readable.from(value)}),
+		string: ({value}) => ({stream: external_node_stream_.Readable.from(value)}),
+		uint8Array: ({value}) => ({stream: external_node_stream_.Readable.from(external_node_buffer_namespaceObject.Buffer.from(value))}),
+	},
+	output: {
+		...handle_async_addProperties,
+		fileUrl: ({value}) => ({stream: (0,external_node_fs_namespaceObject.createWriteStream)(value)}),
+		filePath: ({value: {file}}) => ({stream: (0,external_node_fs_namespaceObject.createWriteStream)(file)}),
+		webStream: ({value}) => ({stream: external_node_stream_.Writable.fromWeb(value)}),
+		iterable: forbiddenIfAsync,
+		asyncIterable: forbiddenIfAsync,
+		string: forbiddenIfAsync,
+		uint8Array: forbiddenIfAsync,
+	},
+};
+
+;// CONCATENATED MODULE: external "node:stream/promises"
+const external_node_stream_promises_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:stream/promises");
+;// CONCATENATED MODULE: ./node_modules/@sindresorhus/merge-streams/index.js
+
+
+
+
+function mergeStreams(streams) {
+	if (!Array.isArray(streams)) {
+		throw new TypeError(`Expected an array, got \`${typeof streams}\`.`);
+	}
+
+	for (const stream of streams) {
+		validateStream(stream);
+	}
+
+	const objectMode = streams.some(({readableObjectMode}) => readableObjectMode);
+	const highWaterMark = getHighWaterMark(streams, objectMode);
+	const passThroughStream = new MergedStream({
+		objectMode,
+		writableHighWaterMark: highWaterMark,
+		readableHighWaterMark: highWaterMark,
+	});
+
+	for (const stream of streams) {
+		passThroughStream.add(stream);
+	}
+
+	return passThroughStream;
+}
+
+const getHighWaterMark = (streams, objectMode) => {
+	if (streams.length === 0) {
+		return (0,external_node_stream_.getDefaultHighWaterMark)(objectMode);
+	}
+
+	const highWaterMarks = streams
+		.filter(({readableObjectMode}) => readableObjectMode === objectMode)
+		.map(({readableHighWaterMark}) => readableHighWaterMark);
+	return Math.max(...highWaterMarks);
+};
+
+class MergedStream extends external_node_stream_.PassThrough {
+	#streams = new Set([]);
+	#ended = new Set([]);
+	#aborted = new Set([]);
+	#onFinished;
+	#unpipeEvent = Symbol('unpipe');
+	#streamPromises = new WeakMap();
+
+	add(stream) {
+		validateStream(stream);
+
+		if (this.#streams.has(stream)) {
+			return;
+		}
+
+		this.#streams.add(stream);
+
+		this.#onFinished ??= onMergedStreamFinished(this, this.#streams, this.#unpipeEvent);
+		const streamPromise = endWhenStreamsDone({
+			passThroughStream: this,
+			stream,
+			streams: this.#streams,
+			ended: this.#ended,
+			aborted: this.#aborted,
+			onFinished: this.#onFinished,
+			unpipeEvent: this.#unpipeEvent,
+		});
+		this.#streamPromises.set(stream, streamPromise);
+
+		stream.pipe(this, {end: false});
+	}
+
+	async remove(stream) {
+		validateStream(stream);
+
+		if (!this.#streams.has(stream)) {
+			return false;
+		}
+
+		const streamPromise = this.#streamPromises.get(stream);
+		if (streamPromise === undefined) {
+			return false;
+		}
+
+		this.#streamPromises.delete(stream);
+
+		stream.unpipe(this);
+		await streamPromise;
+		return true;
+	}
+}
+
+const onMergedStreamFinished = async (passThroughStream, streams, unpipeEvent) => {
+	updateMaxListeners(passThroughStream, PASSTHROUGH_LISTENERS_COUNT);
+	const controller = new AbortController();
+
+	try {
+		await Promise.race([
+			onMergedStreamEnd(passThroughStream, controller),
+			onInputStreamsUnpipe(passThroughStream, streams, unpipeEvent, controller),
+		]);
+	} finally {
+		controller.abort();
+		updateMaxListeners(passThroughStream, -PASSTHROUGH_LISTENERS_COUNT);
+	}
+};
+
+const onMergedStreamEnd = async (passThroughStream, {signal}) => {
+	try {
+		await (0,external_node_stream_promises_namespaceObject.finished)(passThroughStream, {signal, cleanup: true});
+	} catch (error) {
+		errorOrAbortStream(passThroughStream, error);
+		throw error;
+	}
+};
+
+const onInputStreamsUnpipe = async (passThroughStream, streams, unpipeEvent, {signal}) => {
+	for await (const [unpipedStream] of (0,external_node_events_.on)(passThroughStream, 'unpipe', {signal})) {
+		if (streams.has(unpipedStream)) {
+			unpipedStream.emit(unpipeEvent);
+		}
+	}
+};
+
+const validateStream = stream => {
+	if (typeof stream?.pipe !== 'function') {
+		throw new TypeError(`Expected a readable stream, got: \`${typeof stream}\`.`);
+	}
+};
+
+const endWhenStreamsDone = async ({passThroughStream, stream, streams, ended, aborted, onFinished, unpipeEvent}) => {
+	updateMaxListeners(passThroughStream, PASSTHROUGH_LISTENERS_PER_STREAM);
+	const controller = new AbortController();
+
+	try {
+		await Promise.race([
+			afterMergedStreamFinished(onFinished, stream, controller),
+			onInputStreamEnd({
+				passThroughStream,
+				stream,
+				streams,
+				ended,
+				aborted,
+				controller,
+			}),
+			onInputStreamUnpipe({
+				stream,
+				streams,
+				ended,
+				aborted,
+				unpipeEvent,
+				controller,
+			}),
+		]);
+	} finally {
+		controller.abort();
+		updateMaxListeners(passThroughStream, -PASSTHROUGH_LISTENERS_PER_STREAM);
+	}
+
+	if (streams.size > 0 && streams.size === ended.size + aborted.size) {
+		if (ended.size === 0 && aborted.size > 0) {
+			abortStream(passThroughStream);
+		} else {
+			endStream(passThroughStream);
+		}
+	}
+};
+
+const afterMergedStreamFinished = async (onFinished, stream, {signal}) => {
+	try {
+		await onFinished;
+		if (!signal.aborted) {
+			abortStream(stream);
+		}
+	} catch (error) {
+		if (!signal.aborted) {
+			errorOrAbortStream(stream, error);
+		}
+	}
+};
+
+const onInputStreamEnd = async ({passThroughStream, stream, streams, ended, aborted, controller: {signal}}) => {
+	try {
+		await (0,external_node_stream_promises_namespaceObject.finished)(stream, {
+			signal,
+			cleanup: true,
+			readable: true,
+			writable: false,
+		});
+		if (streams.has(stream)) {
+			ended.add(stream);
+		}
+	} catch (error) {
+		if (signal.aborted || !streams.has(stream)) {
+			return;
+		}
+
+		if (isAbortError(error)) {
+			aborted.add(stream);
+		} else {
+			errorStream(passThroughStream, error);
+		}
+	}
+};
+
+const onInputStreamUnpipe = async ({stream, streams, ended, aborted, unpipeEvent, controller: {signal}}) => {
+	await (0,external_node_events_.once)(stream, unpipeEvent, {signal});
+
+	if (!stream.readable) {
+		return (0,external_node_events_.once)(signal, 'abort', {signal});
+	}
+
+	streams.delete(stream);
+	ended.delete(stream);
+	aborted.delete(stream);
+};
+
+const endStream = stream => {
+	if (stream.writable) {
+		stream.end();
+	}
+};
+
+const errorOrAbortStream = (stream, error) => {
+	if (isAbortError(error)) {
+		abortStream(stream);
+	} else {
+		errorStream(stream, error);
+	}
+};
+
+// This is the error thrown by `finished()` on `stream.destroy()`
+const isAbortError = error => error?.code === 'ERR_STREAM_PREMATURE_CLOSE';
+
+const abortStream = stream => {
+	if (stream.readable || stream.writable) {
+		stream.destroy();
+	}
+};
+
+// `stream.destroy(error)` crashes the process with `uncaughtException` if no `error` event listener exists on `stream`.
+// We take care of error handling on user behalf, so we do not want this to happen.
+const errorStream = (stream, error) => {
+	if (!stream.destroyed) {
+		stream.once('error', noop);
+		stream.destroy(error);
+	}
+};
+
+const noop = () => {};
+
+const updateMaxListeners = (passThroughStream, increment) => {
+	const maxListeners = passThroughStream.getMaxListeners();
+	if (maxListeners !== 0 && maxListeners !== Number.POSITIVE_INFINITY) {
+		passThroughStream.setMaxListeners(maxListeners + increment);
+	}
+};
+
+// Number of times `passThroughStream.on()` is called regardless of streams:
+//  - once due to `finished(passThroughStream)`
+//  - once due to `on(passThroughStream)`
+const PASSTHROUGH_LISTENERS_COUNT = 2;
+
+// Number of times `passThroughStream.on()` is called per stream:
+//  - once due to `stream.pipe(passThroughStream)`
+const PASSTHROUGH_LISTENERS_PER_STREAM = 1;
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/io/pipeline.js
+
+
+
+// Similar to `Stream.pipeline(source, destination)`, but does not destroy standard streams
+const pipeStreams = (source, destination) => {
+	source.pipe(destination);
+	onSourceFinish(source, destination);
+	onDestinationFinish(source, destination);
+};
+
+// `source.pipe(destination)` makes `destination` end when `source` ends.
+// But it does not propagate aborts or errors. This function does it.
+const onSourceFinish = async (source, destination) => {
+	if (isStandardStream(source) || isStandardStream(destination)) {
+		return;
+	}
+
+	try {
+		await (0,external_node_stream_promises_namespaceObject.finished)(source, {cleanup: true, readable: true, writable: false});
+	} catch {}
+
+	endDestinationStream(destination);
+};
+
+const endDestinationStream = destination => {
+	if (destination.writable) {
+		destination.end();
+	}
+};
+
+// We do the same thing in the other direction as well.
+const onDestinationFinish = async (source, destination) => {
+	if (isStandardStream(source) || isStandardStream(destination)) {
+		return;
+	}
+
+	try {
+		await (0,external_node_stream_promises_namespaceObject.finished)(destination, {cleanup: true, readable: false, writable: true});
+	} catch {}
+
+	abortSourceStream(source);
+};
+
+const abortSourceStream = source => {
+	if (source.readable) {
+		source.destroy();
+	}
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/io/output-async.js
+
+
+
+
+
+
+// Handle `input`, `inputFile`, `stdin`, `stdout` and `stderr` options, after spawning, in async mode
+// When multiple input streams are used, we merge them to ensure the output stream ends only once each input stream has ended
+const pipeOutputAsync = (subprocess, fileDescriptors, controller) => {
+	const pipeGroups = new Map();
+
+	for (const [fdNumber, {stdioItems, direction}] of Object.entries(fileDescriptors)) {
+		for (const {stream} of stdioItems.filter(({type}) => TRANSFORM_TYPES.has(type))) {
+			pipeTransform(subprocess, stream, direction, fdNumber);
+		}
+
+		for (const {stream} of stdioItems.filter(({type}) => !TRANSFORM_TYPES.has(type))) {
+			pipeStdioItem({
+				subprocess,
+				stream,
+				direction,
+				fdNumber,
+				pipeGroups,
+				controller,
+			});
+		}
+	}
+
+	for (const [outputStream, inputStreams] of pipeGroups.entries()) {
+		const inputStream = inputStreams.length === 1 ? inputStreams[0] : mergeStreams(inputStreams);
+		pipeStreams(inputStream, outputStream);
+	}
+};
+
+// When using transforms, `subprocess.stdin|stdout|stderr|stdio` is directly mutated
+const pipeTransform = (subprocess, stream, direction, fdNumber) => {
+	if (direction === 'output') {
+		pipeStreams(subprocess.stdio[fdNumber], stream);
+	} else {
+		pipeStreams(stream, subprocess.stdio[fdNumber]);
+	}
+
+	const streamProperty = SUBPROCESS_STREAM_PROPERTIES[fdNumber];
+	if (streamProperty !== undefined) {
+		subprocess[streamProperty] = stream;
+	}
+
+	subprocess.stdio[fdNumber] = stream;
+};
+
+const SUBPROCESS_STREAM_PROPERTIES = ['stdin', 'stdout', 'stderr'];
+
+// Most `std*` option values involve piping `subprocess.std*` to a stream.
+// The stream is either passed by the user or created internally.
+const pipeStdioItem = ({subprocess, stream, direction, fdNumber, pipeGroups, controller}) => {
+	if (stream === undefined) {
+		return;
+	}
+
+	setStandardStreamMaxListeners(stream, controller);
+
+	const [inputStream, outputStream] = direction === 'output'
+		? [stream, subprocess.stdio[fdNumber]]
+		: [subprocess.stdio[fdNumber], stream];
+	const outputStreams = pipeGroups.get(inputStream) ?? [];
+	pipeGroups.set(inputStream, [...outputStreams, outputStream]);
+};
+
+// Multiple subprocesses might be piping from/to `process.std*` at the same time.
+// This is not necessarily an error and should not print a `maxListeners` warning.
+const setStandardStreamMaxListeners = (stream, {signal}) => {
+	if (isStandardStream(stream)) {
+		incrementMaxListeners(stream, MAX_LISTENERS_INCREMENT, signal);
+	}
+};
+
+// `source.pipe(destination)` adds at most 1 listener for each event.
+// If `stdin` option is an array, the values might be combined with `merge-streams`.
+// That library also listens for `source` end, which adds 1 more listener.
+const MAX_LISTENERS_INCREMENT = 2;
+
+;// CONCATENATED MODULE: ./node_modules/signal-exit/dist/mjs/signals.js
 /**
  * This is not the set of all possible signals.
  *
@@ -35912,7 +45252,7 @@ if (process.platform === 'linux') {
     signals.push('SIGIO', 'SIGPOLL', 'SIGPWR', 'SIGSTKFLT');
 }
 //# sourceMappingURL=signals.js.map
-;// CONCATENATED MODULE: ./node_modules/execa/node_modules/signal-exit/dist/mjs/index.js
+;// CONCATENATED MODULE: ./node_modules/signal-exit/dist/mjs/index.js
 // Note: since nyc uses this module to output coverage, any lines
 // that are in the direct sync flow of nyc's outputCoverage are
 // ignored, since we can never get coverage for them.
@@ -36188,311 +45528,370 @@ load,
  */
 unload, } = signalExitWrap(processOk(mjs_process) ? new SignalExit(mjs_process) : new SignalExitFallback());
 //# sourceMappingURL=index.js.map
-;// CONCATENATED MODULE: ./node_modules/execa/lib/kill.js
+;// CONCATENATED MODULE: ./node_modules/execa/lib/terminate/cleanup.js
 
 
 
-const DEFAULT_FORCE_KILL_TIMEOUT = 1000 * 5;
-
-// Monkey-patches `childProcess.kill()` to add `forceKillAfterTimeout` behavior
-const spawnedKill = (kill, signal = 'SIGTERM', options = {}) => {
-	const killResult = kill(signal);
-	setKillTimeout(kill, signal, options, killResult);
-	return killResult;
-};
-
-const setKillTimeout = (kill, signal, options, killResult) => {
-	if (!shouldForceKill(signal, options, killResult)) {
+// If the `cleanup` option is used, call `subprocess.kill()` when the parent process exits
+const cleanupOnExit = (subprocess, {cleanup, detached}, {signal}) => {
+	if (!cleanup || detached) {
 		return;
 	}
 
-	const timeout = getForceKillAfterTimeout(options);
-	const t = setTimeout(() => {
-		kill('SIGKILL');
-	}, timeout);
-
-	// Guarded because there's no `.unref()` when `execa` is used in the renderer
-	// process in Electron. This cannot be tested since we don't run tests in
-	// Electron.
-	// istanbul ignore else
-	if (t.unref) {
-		t.unref();
-	}
-};
-
-const shouldForceKill = (signal, {forceKillAfterTimeout}, killResult) => isSigterm(signal) && forceKillAfterTimeout !== false && killResult;
-
-const isSigterm = signal => signal === external_node_os_namespaceObject.constants.signals.SIGTERM
-		|| (typeof signal === 'string' && signal.toUpperCase() === 'SIGTERM');
-
-const getForceKillAfterTimeout = ({forceKillAfterTimeout = true}) => {
-	if (forceKillAfterTimeout === true) {
-		return DEFAULT_FORCE_KILL_TIMEOUT;
-	}
-
-	if (!Number.isFinite(forceKillAfterTimeout) || forceKillAfterTimeout < 0) {
-		throw new TypeError(`Expected the \`forceKillAfterTimeout\` option to be a non-negative integer, got \`${forceKillAfterTimeout}\` (${typeof forceKillAfterTimeout})`);
-	}
-
-	return forceKillAfterTimeout;
-};
-
-// `childProcess.cancel()`
-const spawnedCancel = (spawned, context) => {
-	const killResult = spawned.kill();
-
-	if (killResult) {
-		context.isCanceled = true;
-	}
-};
-
-const timeoutKill = (spawned, signal, reject) => {
-	spawned.kill(signal);
-	reject(Object.assign(new Error('Timed out'), {timedOut: true, signal}));
-};
-
-// `timeout` option handling
-const setupTimeout = (spawned, {timeout, killSignal = 'SIGTERM'}, spawnedPromise) => {
-	if (timeout === 0 || timeout === undefined) {
-		return spawnedPromise;
-	}
-
-	let timeoutId;
-	const timeoutPromise = new Promise((resolve, reject) => {
-		timeoutId = setTimeout(() => {
-			timeoutKill(spawned, killSignal, reject);
-		}, timeout);
-	});
-
-	const safeSpawnedPromise = spawnedPromise.finally(() => {
-		clearTimeout(timeoutId);
-	});
-
-	return Promise.race([timeoutPromise, safeSpawnedPromise]);
-};
-
-const validateTimeout = ({timeout}) => {
-	if (timeout !== undefined && (!Number.isFinite(timeout) || timeout < 0)) {
-		throw new TypeError(`Expected the \`timeout\` option to be a non-negative integer, got \`${timeout}\` (${typeof timeout})`);
-	}
-};
-
-// `cleanup` option handling
-const setExitHandler = async (spawned, {cleanup, detached}, timedPromise) => {
-	if (!cleanup || detached) {
-		return timedPromise;
-	}
-
 	const removeExitHandler = onExit(() => {
-		spawned.kill();
+		subprocess.kill();
 	});
-
-	return timedPromise.finally(() => {
+	(0,external_node_events_.addAbortListener)(signal, () => {
 		removeExitHandler();
 	});
 };
 
-;// CONCATENATED MODULE: external "node:fs"
-const external_node_fs_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs");
-;// CONCATENATED MODULE: ./node_modules/is-stream/index.js
-function isStream(stream) {
-	return stream !== null
-		&& typeof stream === 'object'
-		&& typeof stream.pipe === 'function';
-}
-
-function isWritableStream(stream) {
-	return isStream(stream)
-		&& stream.writable !== false
-		&& typeof stream._write === 'function'
-		&& typeof stream._writableState === 'object';
-}
-
-function isReadableStream(stream) {
-	return isStream(stream)
-		&& stream.readable !== false
-		&& typeof stream._read === 'function'
-		&& typeof stream._readableState === 'object';
-}
-
-function isDuplexStream(stream) {
-	return isWritableStream(stream)
-		&& isReadableStream(stream);
-}
-
-function isTransformStream(stream) {
-	return isDuplexStream(stream)
-		&& typeof stream._transform === 'function';
-}
-
-;// CONCATENATED MODULE: ./node_modules/execa/lib/pipe.js
+;// CONCATENATED MODULE: ./node_modules/execa/lib/pipe/pipe-arguments.js
 
 
 
 
-const isExecaChildProcess = target => target instanceof external_node_child_process_namespaceObject.ChildProcess && typeof target.then === 'function';
-
-const pipeToTarget = (spawned, streamName, target) => {
-	if (typeof target === 'string') {
-		spawned[streamName].pipe((0,external_node_fs_namespaceObject.createWriteStream)(target));
-		return spawned;
-	}
-
-	if (isWritableStream(target)) {
-		spawned[streamName].pipe(target);
-		return spawned;
-	}
-
-	if (!isExecaChildProcess(target)) {
-		throw new TypeError('The second argument must be a string, a stream or an Execa child process.');
-	}
-
-	if (!isWritableStream(target.stdin)) {
-		throw new TypeError('The target child process\'s stdin must be available.');
-	}
-
-	spawned[streamName].pipe(target.stdin);
-	return target;
+// Normalize and validate arguments passed to `source.pipe(destination)`
+const normalizePipeArguments = ({source, sourcePromise, boundOptions, createNested}, ...pipeArguments) => {
+	const startTime = getStartTime();
+	const {
+		destination,
+		destinationStream,
+		destinationError,
+		from,
+		unpipeSignal,
+	} = getDestinationStream(boundOptions, createNested, pipeArguments);
+	const {sourceStream, sourceError} = getSourceStream(source, from);
+	const {options: sourceOptions, fileDescriptors} = SUBPROCESS_OPTIONS.get(source);
+	return {
+		sourcePromise,
+		sourceStream,
+		sourceOptions,
+		sourceError,
+		destination,
+		destinationStream,
+		destinationError,
+		unpipeSignal,
+		fileDescriptors,
+		startTime,
+	};
 };
 
-const addPipeMethods = spawned => {
-	if (spawned.stdout !== null) {
-		spawned.pipeStdout = pipeToTarget.bind(undefined, spawned, 'stdout');
-	}
-
-	if (spawned.stderr !== null) {
-		spawned.pipeStderr = pipeToTarget.bind(undefined, spawned, 'stderr');
-	}
-
-	if (spawned.all !== undefined) {
-		spawned.pipeAll = pipeToTarget.bind(undefined, spawned, 'all');
-	}
-};
-
-;// CONCATENATED MODULE: external "node:timers/promises"
-const promises_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:timers/promises");
-;// CONCATENATED MODULE: ./node_modules/execa/node_modules/get-stream/source/contents.js
-const contents_getStreamContents = async (stream, {init, convertChunk, getSize, truncateChunk, addChunk, getFinalChunk, finalize}, {maxBuffer = Number.POSITIVE_INFINITY} = {}) => {
-	if (!isAsyncIterable(stream)) {
-		throw new Error('The first argument must be a Readable, a ReadableStream, or an async iterable.');
-	}
-
-	const state = init();
-	state.length = 0;
-
+const getDestinationStream = (boundOptions, createNested, pipeArguments) => {
 	try {
-		for await (const chunk of stream) {
-			const chunkType = getChunkType(chunk);
-			const convertedChunk = convertChunk[chunkType](chunk, state);
-			appendChunk({convertedChunk, state, getSize, truncateChunk, addChunk, maxBuffer});
+		const {
+			destination,
+			pipeOptions: {from, to, unpipeSignal} = {},
+		} = getDestination(boundOptions, createNested, ...pipeArguments);
+		const destinationStream = getToStream(destination, to);
+		return {
+			destination,
+			destinationStream,
+			from,
+			unpipeSignal,
+		};
+	} catch (error) {
+		return {destinationError: error};
+	}
+};
+
+// Piping subprocesses can use three syntaxes:
+//  - source.pipe('command', commandArguments, pipeOptionsOrDestinationOptions)
+//  - source.pipe`command commandArgument` or source.pipe(pipeOptionsOrDestinationOptions)`command commandArgument`
+//  - source.pipe(execa(...), pipeOptions)
+const getDestination = (boundOptions, createNested, firstArgument, ...pipeArguments) => {
+	if (Array.isArray(firstArgument)) {
+		const destination = createNested(mapDestinationArguments, boundOptions)(firstArgument, ...pipeArguments);
+		return {destination, pipeOptions: boundOptions};
+	}
+
+	if (typeof firstArgument === 'string' || firstArgument instanceof URL) {
+		if (Object.keys(boundOptions).length > 0) {
+			throw new TypeError('Please use .pipe("file", ..., options) or .pipe(execa("file", ..., options)) instead of .pipe(options)("file", ...).');
 		}
 
-		appendFinalChunk({state, convertChunk, getSize, truncateChunk, addChunk, getFinalChunk, maxBuffer});
-		return finalize(state);
+		const [rawFile, rawArguments, rawOptions] = normalizeParameters(firstArgument, ...pipeArguments);
+		const destination = createNested(mapDestinationArguments)(rawFile, rawArguments, rawOptions);
+		return {destination, pipeOptions: rawOptions};
+	}
+
+	if (SUBPROCESS_OPTIONS.has(firstArgument)) {
+		if (Object.keys(boundOptions).length > 0) {
+			throw new TypeError('Please use .pipe(options)`command` or .pipe($(options)`command`) instead of .pipe(options)($`command`).');
+		}
+
+		return {destination: firstArgument, pipeOptions: pipeArguments[0]};
+	}
+
+	throw new TypeError(`The first argument must be a template string, an options object, or an Execa subprocess: ${firstArgument}`);
+};
+
+// Force `stdin: 'pipe'` with the destination subprocess
+const mapDestinationArguments = ({options}) => ({options: {...options, stdin: 'pipe', piped: true}});
+
+const getSourceStream = (source, from) => {
+	try {
+		const sourceStream = getFromStream(source, from);
+		return {sourceStream};
 	} catch (error) {
-		error.bufferedData = finalize(state);
-		throw error;
+		return {sourceError: error};
 	}
 };
 
-const appendFinalChunk = ({state, getSize, truncateChunk, addChunk, getFinalChunk, maxBuffer}) => {
-	const convertedChunk = getFinalChunk(state);
-	if (convertedChunk !== undefined) {
-		appendChunk({convertedChunk, state, getSize, truncateChunk, addChunk, maxBuffer});
+;// CONCATENATED MODULE: ./node_modules/execa/lib/pipe/throw.js
+
+
+
+// When passing invalid arguments to `source.pipe()`, throw asynchronously.
+// We also abort both subprocesses.
+const handlePipeArgumentsError = ({
+	sourceStream,
+	sourceError,
+	destinationStream,
+	destinationError,
+	fileDescriptors,
+	sourceOptions,
+	startTime,
+}) => {
+	const error = getPipeArgumentsError({
+		sourceStream,
+		sourceError,
+		destinationStream,
+		destinationError,
+	});
+	if (error !== undefined) {
+		throw createNonCommandError({
+			error,
+			fileDescriptors,
+			sourceOptions,
+			startTime,
+		});
 	}
 };
 
-const appendChunk = ({convertedChunk, state, getSize, truncateChunk, addChunk, maxBuffer}) => {
-	const chunkSize = getSize(convertedChunk);
-	const newLength = state.length + chunkSize;
-
-	if (newLength <= maxBuffer) {
-		addNewChunk(convertedChunk, state, addChunk, newLength);
-		return;
+const getPipeArgumentsError = ({sourceStream, sourceError, destinationStream, destinationError}) => {
+	if (sourceError !== undefined && destinationError !== undefined) {
+		return destinationError;
 	}
 
-	const truncatedChunk = truncateChunk(convertedChunk, maxBuffer - state.length);
-
-	if (truncatedChunk !== undefined) {
-		addNewChunk(truncatedChunk, state, addChunk, maxBuffer);
+	if (destinationError !== undefined) {
+		abortSourceStream(sourceStream);
+		return destinationError;
 	}
 
-	throw new MaxBufferError();
+	if (sourceError !== undefined) {
+		endDestinationStream(destinationStream);
+		return sourceError;
+	}
 };
 
-const addNewChunk = (convertedChunk, state, addChunk, newLength) => {
-	state.contents = addChunk(convertedChunk, state, newLength);
-	state.length = newLength;
+// Specific error return value when passing invalid arguments to `subprocess.pipe()` or when using `unpipeSignal`
+const createNonCommandError = ({error, fileDescriptors, sourceOptions, startTime}) => makeEarlyError({
+	error,
+	command: PIPE_COMMAND_MESSAGE,
+	escapedCommand: PIPE_COMMAND_MESSAGE,
+	fileDescriptors,
+	options: sourceOptions,
+	startTime,
+	isSync: false,
+});
+
+const PIPE_COMMAND_MESSAGE = 'source.pipe(destination)';
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/pipe/sequence.js
+// Like Bash, we await both subprocesses. This is unlike some other shells which only await the destination subprocess.
+// Like Bash with the `pipefail` option, if either subprocess fails, the whole pipe fails.
+// Like Bash, if both subprocesses fail, we return the failure of the destination.
+// This ensures both subprocesses' errors are present, using `error.pipedFrom`.
+const waitForBothSubprocesses = async subprocessPromises => {
+	const [
+		{status: sourceStatus, reason: sourceReason, value: sourceResult = sourceReason},
+		{status: destinationStatus, reason: destinationReason, value: destinationResult = destinationReason},
+	] = await subprocessPromises;
+
+	if (!destinationResult.pipedFrom.includes(sourceResult)) {
+		destinationResult.pipedFrom.push(sourceResult);
+	}
+
+	if (destinationStatus === 'rejected') {
+		throw destinationResult;
+	}
+
+	if (sourceStatus === 'rejected') {
+		throw sourceResult;
+	}
+
+	return destinationResult;
 };
 
-const isAsyncIterable = stream => typeof stream === 'object' && stream !== null && typeof stream[Symbol.asyncIterator] === 'function';
+;// CONCATENATED MODULE: ./node_modules/execa/lib/pipe/streaming.js
 
-const getChunkType = chunk => {
-	const typeOfChunk = typeof chunk;
 
-	if (typeOfChunk === 'string') {
-		return 'string';
-	}
 
-	if (typeOfChunk !== 'object' || chunk === null) {
-		return 'others';
-	}
 
-	// eslint-disable-next-line n/prefer-global/buffer
-	if (globalThis.Buffer?.isBuffer(chunk)) {
-		return 'buffer';
-	}
 
-	const prototypeName = objectToString.call(chunk);
-
-	if (prototypeName === '[object ArrayBuffer]') {
-		return 'arrayBuffer';
-	}
-
-	if (prototypeName === '[object DataView]') {
-		return 'dataView';
-	}
-
-	if (
-		Number.isInteger(chunk.byteLength)
-		&& Number.isInteger(chunk.byteOffset)
-		&& objectToString.call(chunk.buffer) === '[object ArrayBuffer]'
-	) {
-		return 'typedArray';
-	}
-
-	return 'others';
+// The piping behavior is like Bash.
+// In particular, when one subprocess exits, the other is not terminated by a signal.
+// Instead, its stdout (for the source) or stdin (for the destination) closes.
+// If the subprocess uses it, it will make it error with SIGPIPE or EPIPE (for the source) or end (for the destination).
+// If it does not use it, it will continue running.
+// This allows for subprocesses to gracefully exit and lower the coupling between subprocesses.
+const pipeSubprocessStream = (sourceStream, destinationStream, maxListenersController) => {
+	const mergedStream = MERGED_STREAMS.has(destinationStream)
+		? pipeMoreSubprocessStream(sourceStream, destinationStream)
+		: pipeFirstSubprocessStream(sourceStream, destinationStream);
+	incrementMaxListeners(sourceStream, SOURCE_LISTENERS_PER_PIPE, maxListenersController.signal);
+	incrementMaxListeners(destinationStream, DESTINATION_LISTENERS_PER_PIPE, maxListenersController.signal);
+	cleanupMergedStreamsMap(destinationStream);
+	return mergedStream;
 };
 
-const {toString: objectToString} = Object.prototype;
+// We use `merge-streams` to allow for multiple sources to pipe to the same destination.
+const pipeFirstSubprocessStream = (sourceStream, destinationStream) => {
+	const mergedStream = mergeStreams([sourceStream]);
+	pipeStreams(mergedStream, destinationStream);
+	MERGED_STREAMS.set(destinationStream, mergedStream);
+	return mergedStream;
+};
 
-class MaxBufferError extends Error {
-	name = 'MaxBufferError';
+const pipeMoreSubprocessStream = (sourceStream, destinationStream) => {
+	const mergedStream = MERGED_STREAMS.get(destinationStream);
+	mergedStream.add(sourceStream);
+	return mergedStream;
+};
 
-	constructor() {
-		super('maxBuffer exceeded');
+const cleanupMergedStreamsMap = async destinationStream => {
+	try {
+		await (0,external_node_stream_promises_namespaceObject.finished)(destinationStream, {cleanup: true, readable: false, writable: true});
+	} catch {}
+
+	MERGED_STREAMS.delete(destinationStream);
+};
+
+const MERGED_STREAMS = new WeakMap();
+
+// Number of listeners set up on `sourceStream` by each `sourceStream.pipe(destinationStream)`
+// Those are added by `merge-streams`
+const SOURCE_LISTENERS_PER_PIPE = 2;
+// Number of listeners set up on `destinationStream` by each `sourceStream.pipe(destinationStream)`
+// Those are added by `finished()` in `cleanupMergedStreamsMap()`
+const DESTINATION_LISTENERS_PER_PIPE = 1;
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/pipe/abort.js
+
+
+
+// When passing an `unpipeSignal` option, abort piping when the signal is aborted.
+// However, do not terminate the subprocesses.
+const unpipeOnAbort = (unpipeSignal, unpipeContext) => unpipeSignal === undefined
+	? []
+	: [unpipeOnSignalAbort(unpipeSignal, unpipeContext)];
+
+const unpipeOnSignalAbort = async (unpipeSignal, {sourceStream, mergedStream, fileDescriptors, sourceOptions, startTime}) => {
+	await (0,external_node_util_.aborted)(unpipeSignal, sourceStream);
+	await mergedStream.remove(sourceStream);
+	const error = new Error('Pipe canceled by `unpipeSignal` option.');
+	throw createNonCommandError({
+		error,
+		fileDescriptors,
+		sourceOptions,
+		startTime,
+	});
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/pipe/setup.js
+
+
+
+
+
+
+
+// Pipe a subprocess' `stdout`/`stderr`/`stdio` into another subprocess' `stdin`
+const pipeToSubprocess = (sourceInfo, ...pipeArguments) => {
+	if (isPlainObject(pipeArguments[0])) {
+		return pipeToSubprocess.bind(undefined, {
+			...sourceInfo,
+			boundOptions: {...sourceInfo.boundOptions, ...pipeArguments[0]},
+		});
 	}
-}
 
-;// CONCATENATED MODULE: ./node_modules/execa/node_modules/get-stream/source/utils.js
-const identity = value => value;
+	const {destination, ...normalizedInfo} = normalizePipeArguments(sourceInfo, ...pipeArguments);
+	const promise = handlePipePromise({...normalizedInfo, destination});
+	promise.pipe = pipeToSubprocess.bind(undefined, {
+		...sourceInfo,
+		source: destination,
+		sourcePromise: promise,
+		boundOptions: {},
+	});
+	return promise;
+};
 
-const noop = () => undefined;
+// Asynchronous logic when piping subprocesses
+const handlePipePromise = async ({
+	sourcePromise,
+	sourceStream,
+	sourceOptions,
+	sourceError,
+	destination,
+	destinationStream,
+	destinationError,
+	unpipeSignal,
+	fileDescriptors,
+	startTime,
+}) => {
+	const subprocessPromises = getSubprocessPromises(sourcePromise, destination);
+	handlePipeArgumentsError({
+		sourceStream,
+		sourceError,
+		destinationStream,
+		destinationError,
+		fileDescriptors,
+		sourceOptions,
+		startTime,
+	});
+	const maxListenersController = new AbortController();
+	try {
+		const mergedStream = pipeSubprocessStream(sourceStream, destinationStream, maxListenersController);
+		return await Promise.race([
+			waitForBothSubprocesses(subprocessPromises),
+			...unpipeOnAbort(unpipeSignal, {
+				sourceStream,
+				mergedStream,
+				sourceOptions,
+				fileDescriptors,
+				startTime,
+			}),
+		]);
+	} finally {
+		maxListenersController.abort();
+	}
+};
 
-const getContentsProp = ({contents}) => contents;
+// `.pipe()` awaits the subprocess promises.
+// When invalid arguments are passed to `.pipe()`, we throw an error, which prevents awaiting them.
+// We need to ensure this does not create unhandled rejections.
+const getSubprocessPromises = (sourcePromise, destination) => Promise.allSettled([sourcePromise, destination]);
+
+;// CONCATENATED MODULE: ./node_modules/get-stream/source/utils.js
+const utils_identity = value => value;
+
+const utils_noop = () => undefined;
+
+const getContentsProperty = ({contents}) => contents;
 
 const throwObjectStream = chunk => {
 	throw new Error(`Streams in object mode are not supported: ${String(chunk)}`);
 };
 
-const getLengthProp = convertedChunk => convertedChunk.length;
+const getLengthProperty = convertedChunk => convertedChunk.length;
 
-;// CONCATENATED MODULE: ./node_modules/execa/node_modules/get-stream/source/array.js
+;// CONCATENATED MODULE: ./node_modules/get-stream/source/array.js
 
 
 
 async function getStreamAsArray(stream, options) {
-	return getStreamContents(stream, arrayMethods, options);
+	return contents_getStreamContents(stream, arrayMethods, options);
 }
 
 const initArray = () => ({contents: []});
@@ -36507,21 +45906,21 @@ const addArrayChunk = (convertedChunk, {contents}) => {
 const arrayMethods = {
 	init: initArray,
 	convertChunk: {
-		string: identity,
-		buffer: identity,
-		arrayBuffer: identity,
-		dataView: identity,
-		typedArray: identity,
-		others: identity,
+		string: utils_identity,
+		buffer: utils_identity,
+		arrayBuffer: utils_identity,
+		dataView: utils_identity,
+		typedArray: utils_identity,
+		others: utils_identity,
 	},
 	getSize: increment,
-	truncateChunk: noop,
+	truncateChunk: utils_noop,
 	addChunk: addArrayChunk,
-	getFinalChunk: noop,
-	finalize: getContentsProp,
+	getFinalChunk: utils_noop,
+	finalize: getContentsProperty,
 };
 
-;// CONCATENATED MODULE: ./node_modules/execa/node_modules/get-stream/source/array-buffer.js
+;// CONCATENATED MODULE: ./node_modules/get-stream/source/array-buffer.js
 
 
 
@@ -36531,8 +45930,8 @@ async function getStreamAsArrayBuffer(stream, options) {
 
 const initArrayBuffer = () => ({contents: new ArrayBuffer(0)});
 
-const useTextEncoder = chunk => textEncoder.encode(chunk);
-const textEncoder = new TextEncoder();
+const useTextEncoder = chunk => array_buffer_textEncoder.encode(chunk);
+const array_buffer_textEncoder = new TextEncoder();
 
 const useUint8Array = chunk => new Uint8Array(chunk);
 
@@ -36600,36 +45999,14 @@ const arrayBufferMethods = {
 		typedArray: useUint8ArrayWithOffset,
 		others: throwObjectStream,
 	},
-	getSize: getLengthProp,
+	getSize: getLengthProperty,
 	truncateChunk: truncateArrayBufferChunk,
 	addChunk: addArrayBufferChunk,
-	getFinalChunk: noop,
+	getFinalChunk: utils_noop,
 	finalize: finalizeArrayBuffer,
 };
 
-;// CONCATENATED MODULE: ./node_modules/execa/node_modules/get-stream/source/buffer.js
-
-
-async function getStreamAsBuffer(stream, options) {
-	if (!('Buffer' in globalThis)) {
-		throw new Error('getStreamAsBuffer() is only supported in Node.js');
-	}
-
-	try {
-		return arrayBufferToNodeBuffer(await getStreamAsArrayBuffer(stream, options));
-	} catch (error) {
-		if (error.bufferedData !== undefined) {
-			error.bufferedData = arrayBufferToNodeBuffer(error.bufferedData);
-		}
-
-		throw error;
-	}
-}
-
-// eslint-disable-next-line n/prefer-global/buffer
-const arrayBufferToNodeBuffer = arrayBuffer => globalThis.Buffer.from(arrayBuffer);
-
-;// CONCATENATED MODULE: ./node_modules/execa/node_modules/get-stream/source/string.js
+;// CONCATENATED MODULE: ./node_modules/get-stream/source/string.js
 
 
 
@@ -36653,165 +46030,1035 @@ const getFinalStringChunk = ({textDecoder}) => {
 const stringMethods = {
 	init: initString,
 	convertChunk: {
-		string: identity,
+		string: utils_identity,
 		buffer: useTextDecoder,
 		arrayBuffer: useTextDecoder,
 		dataView: useTextDecoder,
 		typedArray: useTextDecoder,
 		others: throwObjectStream,
 	},
-	getSize: getLengthProp,
+	getSize: getLengthProperty,
 	truncateChunk: truncateStringChunk,
 	addChunk: addStringChunk,
 	getFinalChunk: getFinalStringChunk,
-	finalize: getContentsProp,
+	finalize: getContentsProperty,
 };
 
-;// CONCATENATED MODULE: ./node_modules/execa/node_modules/get-stream/source/index.js
+;// CONCATENATED MODULE: ./node_modules/execa/lib/io/iterate.js
 
 
 
 
 
 
-// EXTERNAL MODULE: ./node_modules/merge-stream/index.js
-var merge_stream = __nccwpck_require__(2621);
-;// CONCATENATED MODULE: ./node_modules/execa/lib/stream.js
+// Iterate over lines of `subprocess.stdout`, used by `subprocess.readable|duplex|iterable()`
+const iterateOnSubprocessStream = ({subprocessStdout, subprocess, binary, shouldEncode, encoding, preserveNewlines}) => {
+	const controller = new AbortController();
+	stopReadingOnExit(subprocess, controller);
+	return iterateOnStream({
+		stream: subprocessStdout,
+		controller,
+		binary,
+		shouldEncode: !subprocessStdout.readableObjectMode && shouldEncode,
+		encoding,
+		shouldSplit: !subprocessStdout.readableObjectMode,
+		preserveNewlines,
+	});
+};
 
-
-
-
-
-
-const validateInputOptions = input => {
-	if (input !== undefined) {
-		throw new TypeError('The `input` and `inputFile` options cannot be both set.');
+const stopReadingOnExit = async (subprocess, controller) => {
+	try {
+		await subprocess;
+	} catch {} finally {
+		controller.abort();
 	}
 };
 
-const getInputSync = ({input, inputFile}) => {
-	if (typeof inputFile !== 'string') {
-		return input;
-	}
-
-	validateInputOptions(input);
-	return (0,external_node_fs_namespaceObject.readFileSync)(inputFile);
+// Iterate over lines of `subprocess.stdout`, used by `result.stdout` and the `verbose: 'full'` option.
+// Applies the `lines` and `encoding` options.
+const iterateForResult = ({stream, onStreamEnd, lines, encoding, stripFinalNewline, allMixed}) => {
+	const controller = new AbortController();
+	stopReadingOnStreamEnd(onStreamEnd, controller, stream);
+	const objectMode = stream.readableObjectMode && !allMixed;
+	return iterateOnStream({
+		stream,
+		controller,
+		binary: encoding === 'buffer',
+		shouldEncode: !objectMode,
+		encoding,
+		shouldSplit: !objectMode && lines,
+		preserveNewlines: !stripFinalNewline,
+	});
 };
 
-// `input` and `inputFile` option in sync mode
-const handleInputSync = options => {
-	const input = getInputSync(options);
-
-	if (isStream(input)) {
-		throw new TypeError('The `input` option cannot be a stream in sync mode');
+const stopReadingOnStreamEnd = async (onStreamEnd, controller, stream) => {
+	try {
+		await onStreamEnd;
+	} catch {
+		stream.destroy();
+	} finally {
+		controller.abort();
 	}
-
-	return input;
 };
 
-const getInput = ({input, inputFile}) => {
-	if (typeof inputFile !== 'string') {
-		return input;
-	}
-
-	validateInputOptions(input);
-	return (0,external_node_fs_namespaceObject.createReadStream)(inputFile);
+const iterateOnStream = ({stream, controller, binary, shouldEncode, encoding, shouldSplit, preserveNewlines}) => {
+	const onStdoutChunk = (0,external_node_events_.on)(stream, 'data', {
+		signal: controller.signal,
+		highWaterMark: HIGH_WATER_MARK,
+		// Backward compatibility with older name for this option
+		// See https://github.com/nodejs/node/pull/52080#discussion_r1525227861
+		// @todo Remove after removing support for Node 21
+		highWatermark: HIGH_WATER_MARK,
+	});
+	return iterateOnData({
+		onStdoutChunk,
+		controller,
+		binary,
+		shouldEncode,
+		encoding,
+		shouldSplit,
+		preserveNewlines,
+	});
 };
 
-// `input` and `inputFile` option in async mode
-const handleInput = (spawned, options) => {
-	const input = getInput(options);
+const DEFAULT_OBJECT_HIGH_WATER_MARK = (0,external_node_stream_.getDefaultHighWaterMark)(true);
 
-	if (input === undefined) {
+// The `highWaterMark` of `events.on()` is measured in number of events, not in bytes.
+// Not knowing the average amount of bytes per `data` event, we use the same heuristic as streams in objectMode, since they have the same issue.
+// Therefore, we use the value of `getDefaultHighWaterMark(true)`.
+// Note: this option does not exist on Node 18, but this is ok since the logic works without it. It just consumes more memory.
+const HIGH_WATER_MARK = DEFAULT_OBJECT_HIGH_WATER_MARK;
+
+const iterateOnData = async function * ({onStdoutChunk, controller, binary, shouldEncode, encoding, shouldSplit, preserveNewlines}) {
+	const generators = getGenerators({
+		binary,
+		shouldEncode,
+		encoding,
+		shouldSplit,
+		preserveNewlines,
+	});
+
+	try {
+		for await (const [chunk] of onStdoutChunk) {
+			yield * transformChunkSync(chunk, generators, 0);
+		}
+	} catch (error) {
+		if (!controller.signal.aborted) {
+			throw error;
+		}
+	} finally {
+		yield * finalChunksSync(generators);
+	}
+};
+
+const getGenerators = ({binary, shouldEncode, encoding, shouldSplit, preserveNewlines}) => [
+	getEncodingTransformGenerator(binary, encoding, !shouldEncode),
+	getSplitLinesGenerator(binary, preserveNewlines, !shouldSplit, {}),
+].filter(Boolean);
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/io/contents.js
+
+
+
+
+
+
+
+
+// Retrieve `result.stdout|stderr|all|stdio[*]`
+const getStreamOutput = async ({stream, onStreamEnd, fdNumber, encoding, buffer, maxBuffer, lines, allMixed, stripFinalNewline, verboseInfo, streamInfo: {fileDescriptors}}) => {
+	if (shouldLogOutput({
+		stdioItems: fileDescriptors[fdNumber]?.stdioItems,
+		encoding,
+		verboseInfo,
+		fdNumber,
+	})) {
+		const linesIterable = iterateForResult({
+			stream,
+			onStreamEnd,
+			lines: true,
+			encoding,
+			stripFinalNewline: true,
+			allMixed,
+		});
+		logLines(linesIterable, stream, verboseInfo);
+	}
+
+	if (!buffer) {
+		await resumeStream(stream);
 		return;
 	}
 
-	if (isStream(input)) {
-		input.pipe(spawned.stdin);
-	} else {
-		spawned.stdin.end(input);
+	const stripFinalNewlineValue = getStripFinalNewline(stripFinalNewline, fdNumber);
+	const iterable = iterateForResult({
+		stream,
+		onStreamEnd,
+		lines,
+		encoding,
+		stripFinalNewline: stripFinalNewlineValue,
+		allMixed,
+	});
+	return io_contents_getStreamContents({
+		stream,
+		iterable,
+		fdNumber,
+		encoding,
+		maxBuffer,
+		lines,
+	});
+};
+
+// When using `buffer: false`, users need to read `subprocess.stdout|stderr|all` right away
+// See https://github.com/sindresorhus/execa/issues/730 and https://github.com/sindresorhus/execa/pull/729#discussion_r1465496310
+const resumeStream = async stream => {
+	await (0,promises_namespaceObject.setImmediate)();
+	if (stream.readableFlowing === null) {
+		stream.resume();
 	}
 };
 
-// `all` interleaves `stdout` and `stderr`
-const makeAllStream = (spawned, {all}) => {
-	if (!all || (!spawned.stdout && !spawned.stderr)) {
-		return;
+const io_contents_getStreamContents = async ({stream, stream: {readableObjectMode}, iterable, fdNumber, encoding, maxBuffer, lines}) => {
+	try {
+		if (readableObjectMode || lines) {
+			return await getStreamAsArray(iterable, {maxBuffer});
+		}
+
+		if (encoding === 'buffer') {
+			return new Uint8Array(await getStreamAsArrayBuffer(iterable, {maxBuffer}));
+		}
+
+		return await getStreamAsString(iterable, {maxBuffer});
+	} catch (error) {
+		return handleBufferedData(handleMaxBuffer({
+			error,
+			stream,
+			readableObjectMode,
+			lines,
+			encoding,
+			fdNumber,
+		}));
 	}
-
-	const mixed = merge_stream();
-
-	if (spawned.stdout) {
-		mixed.add(spawned.stdout);
-	}
-
-	if (spawned.stderr) {
-		mixed.add(spawned.stderr);
-	}
-
-	return mixed;
 };
 
 // On failure, `result.stdout|stderr|all` should contain the currently buffered stream
-const getBufferedData = async (stream, streamPromise) => {
-	// When `buffer` is `false`, `streamPromise` is `undefined` and there is no buffered data to retrieve
-	if (!stream || streamPromise === undefined) {
-		return;
-	}
-
-	// Wait for the `all` stream to receive the last chunk before destroying the stream
-	await (0,promises_namespaceObject.setTimeout)(0);
-
-	stream.destroy();
-
+// They are automatically closed and flushed by Node.js when the subprocess exits
+// When `buffer` is `false`, `streamPromise` is `undefined` and there is no buffered data to retrieve
+const getBufferedData = async streamPromise => {
 	try {
 		return await streamPromise;
 	} catch (error) {
-		return error.bufferedData;
+		return handleBufferedData(error);
 	}
 };
 
-const getStreamPromise = (stream, {encoding, buffer, maxBuffer}) => {
-	if (!stream || !buffer) {
+// Ensure we are returning Uint8Arrays when using `encoding: 'buffer'`
+const handleBufferedData = ({bufferedData}) => isArrayBuffer(bufferedData)
+	? new Uint8Array(bufferedData)
+	: bufferedData;
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/resolve/wait-stream.js
+
+
+// Wraps `finished(stream)` to handle the following case:
+//  - When the subprocess exits, Node.js automatically calls `subprocess.stdin.destroy()`, which we need to ignore.
+//  - However, we still need to throw if `subprocess.stdin.destroy()` is called before subprocess exit.
+const waitForStream = async (stream, fdNumber, streamInfo, {isSameDirection, stopOnExit = false} = {}) => {
+	const state = handleStdinDestroy(stream, streamInfo);
+	const abortController = new AbortController();
+	try {
+		await Promise.race([
+			...(stopOnExit ? [streamInfo.exitPromise] : []),
+			(0,external_node_stream_promises_namespaceObject.finished)(stream, {cleanup: true, signal: abortController.signal}),
+		]);
+	} catch (error) {
+		if (!state.stdinCleanedUp) {
+			handleStreamError(error, fdNumber, streamInfo, isSameDirection);
+		}
+	} finally {
+		abortController.abort();
+	}
+};
+
+// If `subprocess.stdin` is destroyed before being fully written to, it is considered aborted and should throw an error.
+// This can happen for example when user called `subprocess.stdin.destroy()` before `subprocess.stdin.end()`.
+// However, Node.js calls `subprocess.stdin.destroy()` on exit for cleanup purposes.
+// https://github.com/nodejs/node/blob/0b4cdb4b42956cbd7019058e409e06700a199e11/lib/internal/child_process.js#L278
+// This is normal and should not throw an error.
+// Therefore, we need to differentiate between both situations to know whether to throw an error.
+// Unfortunately, events (`close`, `error`, `end`, `exit`) cannot be used because `.destroy()` can take an arbitrary amount of time.
+// For example, `stdin: 'pipe'` is implemented as a TCP socket, and its `.destroy()` method waits for TCP disconnection.
+// Therefore `.destroy()` might end before or after subprocess exit, based on OS speed and load.
+// The only way to detect this is to spy on `subprocess.stdin._destroy()` by wrapping it.
+// If `subprocess.exitCode` or `subprocess.signalCode` is set, it means `.destroy()` is being called by Node.js itself.
+const handleStdinDestroy = (stream, {originalStreams: [originalStdin], subprocess}) => {
+	const state = {stdinCleanedUp: false};
+	if (stream === originalStdin) {
+		spyOnStdinDestroy(stream, subprocess, state);
+	}
+
+	return state;
+};
+
+const spyOnStdinDestroy = (subprocessStdin, subprocess, state) => {
+	const {_destroy} = subprocessStdin;
+	subprocessStdin._destroy = (...destroyArguments) => {
+		setStdinCleanedUp(subprocess, state);
+		_destroy.call(subprocessStdin, ...destroyArguments);
+	};
+};
+
+const setStdinCleanedUp = ({exitCode, signalCode}, state) => {
+	if (exitCode !== null || signalCode !== null) {
+		state.stdinCleanedUp = true;
+	}
+};
+
+// We ignore EPIPEs on writable streams and aborts on readable streams since those can happen normally.
+// When one stream errors, the error is propagated to the other streams on the same file descriptor.
+// Those other streams might have a different direction due to the above.
+// When this happens, the direction of both the initial stream and the others should then be taken into account.
+// Therefore, we keep track of whether a stream error is currently propagating.
+const handleStreamError = (error, fdNumber, streamInfo, isSameDirection) => {
+	if (!shouldIgnoreStreamError(error, fdNumber, streamInfo, isSameDirection)) {
+		throw error;
+	}
+};
+
+const shouldIgnoreStreamError = (error, fdNumber, streamInfo, isSameDirection = true) => {
+	if (streamInfo.propagating) {
+		return isStreamEpipe(error) || isStreamAbort(error);
+	}
+
+	streamInfo.propagating = true;
+	return isInputFileDescriptor(streamInfo, fdNumber) === isSameDirection
+		? isStreamEpipe(error)
+		: isStreamAbort(error);
+};
+
+// Unfortunately, we cannot use the stream's class or properties to know whether it is readable or writable.
+// For example, `subprocess.stdin` is technically a Duplex, but can only be used as a writable.
+// Therefore, we need to use the file descriptor's direction (`stdin` is input, `stdout` is output, etc.).
+// However, while `subprocess.std*` and transforms follow that direction, any stream passed the `std*` option has the opposite direction.
+// For example, `subprocess.stdin` is a writable, but the `stdin` option is a readable.
+const isInputFileDescriptor = ({fileDescriptors}, fdNumber) => fdNumber !== 'all' && fileDescriptors[fdNumber].direction === 'input';
+
+// When `stream.destroy()` is called without an `error` argument, stream is aborted.
+// This is the only way to abort a readable stream, which can be useful in some instances.
+// Therefore, we ignore this error on readable streams.
+const isStreamAbort = error => error?.code === 'ERR_STREAM_PREMATURE_CLOSE';
+
+// When `stream.write()` is called but the underlying source has been closed, `EPIPE` is emitted.
+// When piping subprocesses, the source subprocess usually decides when to stop piping.
+// However, there are some instances when the destination does instead, such as `... | head -n1`.
+// It notifies the source by using `EPIPE`.
+// Therefore, we ignore this error on writable streams.
+const isStreamEpipe = error => error?.code === 'EPIPE';
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/resolve/stdio.js
+
+
+
+// Read the contents of `subprocess.std*` and|or wait for its completion
+const waitForStdioStreams = ({subprocess, encoding, buffer, maxBuffer, lines, stripFinalNewline, verboseInfo, streamInfo}) => subprocess.stdio.map((stream, fdNumber) => waitForSubprocessStream({
+	stream,
+	fdNumber,
+	encoding,
+	buffer: buffer[fdNumber],
+	maxBuffer: maxBuffer[fdNumber],
+	lines: lines[fdNumber],
+	allMixed: false,
+	stripFinalNewline,
+	verboseInfo,
+	streamInfo,
+}));
+
+// Read the contents of `subprocess.std*` or `subprocess.all` and|or wait for its completion
+const waitForSubprocessStream = async ({stream, fdNumber, encoding, buffer, maxBuffer, lines, allMixed, stripFinalNewline, verboseInfo, streamInfo}) => {
+	if (!stream) {
 		return;
 	}
 
-	// eslint-disable-next-line unicorn/text-encoding-identifier-case
-	if (encoding === 'utf8' || encoding === 'utf-8') {
-		return getStreamAsString(stream, {maxBuffer});
+	const onStreamEnd = waitForStream(stream, fdNumber, streamInfo);
+	if (isInputFileDescriptor(streamInfo, fdNumber)) {
+		await onStreamEnd;
+		return;
 	}
 
-	if (encoding === null || encoding === 'buffer') {
-		return getStreamAsBuffer(stream, {maxBuffer});
+	const [output] = await Promise.all([
+		getStreamOutput({
+			stream,
+			onStreamEnd,
+			fdNumber,
+			encoding,
+			buffer,
+			maxBuffer,
+			lines,
+			allMixed,
+			stripFinalNewline,
+			verboseInfo,
+			streamInfo,
+		}),
+		onStreamEnd,
+	]);
+	return output;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/resolve/all-async.js
+
+
+
+// `all` interleaves `stdout` and `stderr`
+const makeAllStream = ({stdout, stderr}, {all}) => all && (stdout || stderr)
+	? mergeStreams([stdout, stderr].filter(Boolean))
+	: undefined;
+
+// Read the contents of `subprocess.all` and|or wait for its completion
+const waitForAllStream = ({subprocess, encoding, buffer, maxBuffer, lines, stripFinalNewline, verboseInfo, streamInfo}) => waitForSubprocessStream({
+	...getAllStream(subprocess, buffer),
+	fdNumber: 'all',
+	encoding,
+	maxBuffer: maxBuffer[1] + maxBuffer[2],
+	lines: lines[1] || lines[2],
+	allMixed: getAllMixed(subprocess),
+	stripFinalNewline,
+	verboseInfo,
+	streamInfo,
+});
+
+const getAllStream = ({stdout, stderr, all}, [, bufferStdout, bufferStderr]) => {
+	const buffer = bufferStdout || bufferStderr;
+	if (!buffer) {
+		return {stream: all, buffer};
 	}
 
-	return applyEncoding(stream, maxBuffer, encoding);
+	if (!bufferStdout) {
+		return {stream: stderr, buffer};
+	}
+
+	if (!bufferStderr) {
+		return {stream: stdout, buffer};
+	}
+
+	return {stream: all, buffer};
 };
 
-const applyEncoding = async (stream, maxBuffer, encoding) => {
-	const buffer = await getStreamAsBuffer(stream, {maxBuffer});
-	return buffer.toString(encoding);
+// When `subprocess.stdout` is in objectMode but not `subprocess.stderr` (or the opposite), we need to use both:
+//  - `getStreamAsArray()` for the chunks in objectMode, to return as an array without changing each chunk
+//  - `getStreamAsArrayBuffer()` or `getStream()` for the chunks not in objectMode, to convert them from Buffers to string or Uint8Array
+// We do this by emulating the Buffer -> string|Uint8Array conversion performed by `get-stream` with our own, which is identical.
+const getAllMixed = ({all, stdout, stderr}) => all
+	&& stdout
+	&& stderr
+	&& stdout.readableObjectMode !== stderr.readableObjectMode;
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/verbose/ipc.js
+
+
+// When `verbose` is `'full'`, print IPC messages from the subprocess
+const shouldLogIpc = ({verbose}) => verbose.at(-1) === 'full';
+
+const logIpcOutput = (message, {verboseId}) => {
+	verboseLog(serializeLogMessage(message), verboseId, 'ipc');
 };
 
-// Retrieve result of child process: exit code, signal, error, streams (stdout/stderr/all)
-const getSpawnedResult = async ({stdout, stderr, all}, {encoding, buffer, maxBuffer}, processDone) => {
-	const stdoutPromise = getStreamPromise(stdout, {encoding, buffer, maxBuffer});
-	const stderrPromise = getStreamPromise(stderr, {encoding, buffer, maxBuffer});
-	const allPromise = getStreamPromise(all, {encoding, buffer, maxBuffer: maxBuffer * 2});
+;// CONCATENATED MODULE: ./node_modules/execa/lib/ipc/buffer-messages.js
+
+
+
+
+// Iterate through IPC messages sent by the subprocess
+const waitForIpcOutput = async ({
+	subprocess,
+	buffer: bufferArray,
+	maxBuffer: maxBufferArray,
+	ipc,
+	ipcOutput,
+	verboseInfo,
+}) => {
+	if (!ipc) {
+		return ipcOutput;
+	}
+
+	const isVerbose = shouldLogIpc(verboseInfo);
+	const buffer = bufferArray.at(-1);
+	const maxBuffer = maxBufferArray.at(-1);
+
+	for await (const message of loopOnMessages({
+		anyProcess: subprocess,
+		channel: subprocess.channel,
+		isSubprocess: false,
+		ipc,
+		shouldAwait: false,
+		reference: true,
+	})) {
+		if (buffer) {
+			checkIpcMaxBuffer(subprocess, ipcOutput, maxBuffer);
+			ipcOutput.push(message);
+		}
+
+		if (isVerbose) {
+			logIpcOutput(message, verboseInfo);
+		}
+	}
+
+	return ipcOutput;
+};
+
+const getBufferedIpcOutput = async (ipcOutputPromise, ipcOutput) => {
+	await Promise.allSettled([ipcOutputPromise]);
+	return ipcOutput;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/resolve/wait-subprocess.js
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Retrieve result of subprocess: exit code, signal, error, streams (stdout/stderr/all)
+const waitForSubprocessResult = async ({
+	subprocess,
+	options: {
+		encoding,
+		buffer,
+		maxBuffer,
+		lines,
+		timeoutDuration: timeout,
+		cancelSignal,
+		gracefulCancel,
+		forceKillAfterDelay,
+		stripFinalNewline,
+		ipc,
+		ipcInput,
+	},
+	context,
+	verboseInfo,
+	fileDescriptors,
+	originalStreams,
+	onInternalError,
+	controller,
+}) => {
+	const exitPromise = waitForExit(subprocess, context);
+	const streamInfo = {
+		originalStreams,
+		fileDescriptors,
+		subprocess,
+		exitPromise,
+		propagating: false,
+	};
+
+	const stdioPromises = waitForStdioStreams({
+		subprocess,
+		encoding,
+		buffer,
+		maxBuffer,
+		lines,
+		stripFinalNewline,
+		verboseInfo,
+		streamInfo,
+	});
+	const allPromise = waitForAllStream({
+		subprocess,
+		encoding,
+		buffer,
+		maxBuffer,
+		lines,
+		stripFinalNewline,
+		verboseInfo,
+		streamInfo,
+	});
+	const ipcOutput = [];
+	const ipcOutputPromise = waitForIpcOutput({
+		subprocess,
+		buffer,
+		maxBuffer,
+		ipc,
+		ipcOutput,
+		verboseInfo,
+	});
+	const originalPromises = waitForOriginalStreams(originalStreams, subprocess, streamInfo);
+	const customStreamsEndPromises = waitForCustomStreamsEnd(fileDescriptors, streamInfo);
 
 	try {
-		return await Promise.all([processDone, stdoutPromise, stderrPromise, allPromise]);
+		return await Promise.race([
+			Promise.all([
+				{},
+				waitForSuccessfulExit(exitPromise),
+				Promise.all(stdioPromises),
+				allPromise,
+				ipcOutputPromise,
+				sendIpcInput(subprocess, ipcInput),
+				...originalPromises,
+				...customStreamsEndPromises,
+			]),
+			onInternalError,
+			throwOnSubprocessError(subprocess, controller),
+			...throwOnTimeout(subprocess, timeout, context, controller),
+			...throwOnCancel({
+				subprocess,
+				cancelSignal,
+				gracefulCancel,
+				context,
+				controller,
+			}),
+			...throwOnGracefulCancel({
+				subprocess,
+				cancelSignal,
+				gracefulCancel,
+				forceKillAfterDelay,
+				context,
+				controller,
+			}),
+		]);
 	} catch (error) {
+		context.terminationReason ??= 'other';
 		return Promise.all([
-			{error, signal: error.signal, timedOut: error.timedOut},
-			getBufferedData(stdout, stdoutPromise),
-			getBufferedData(stderr, stderrPromise),
-			getBufferedData(all, allPromise),
+			{error},
+			exitPromise,
+			Promise.all(stdioPromises.map(stdioPromise => getBufferedData(stdioPromise))),
+			getBufferedData(allPromise),
+			getBufferedIpcOutput(ipcOutputPromise, ipcOutput),
+			Promise.allSettled(originalPromises),
+			Promise.allSettled(customStreamsEndPromises),
 		]);
 	}
 };
 
-;// CONCATENATED MODULE: ./node_modules/execa/lib/promise.js
+// Transforms replace `subprocess.std*`, which means they are not exposed to users.
+// However, we still want to wait for their completion.
+const waitForOriginalStreams = (originalStreams, subprocess, streamInfo) =>
+	originalStreams.map((stream, fdNumber) => stream === subprocess.stdio[fdNumber]
+		? undefined
+		: waitForStream(stream, fdNumber, streamInfo));
+
+// Some `stdin`/`stdout`/`stderr` options create a stream, e.g. when passing a file path.
+// The `.pipe()` method automatically ends that stream when `subprocess` ends.
+// This makes sure we wait for the completion of those streams, in order to catch any error.
+const waitForCustomStreamsEnd = (fileDescriptors, streamInfo) => fileDescriptors.flatMap(({stdioItems}, fdNumber) => stdioItems
+	.filter(({value, stream = value}) => isStream(stream, {checkOpen: false}) && !isStandardStream(stream))
+	.map(({type, value, stream = value}) => waitForStream(stream, fdNumber, streamInfo, {
+		isSameDirection: TRANSFORM_TYPES.has(type),
+		stopOnExit: type === 'native',
+	})));
+
+// Fails when the subprocess emits an `error` event
+const throwOnSubprocessError = async (subprocess, {signal}) => {
+	const [error] = await (0,external_node_events_.once)(subprocess, 'error', {signal});
+	throw error;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/convert/concurrent.js
+
+
+// When using multiple `.readable()`/`.writable()`/`.duplex()`, `final` and `destroy` should wait for other streams
+const initializeConcurrentStreams = () => ({
+	readableDestroy: new WeakMap(),
+	writableFinal: new WeakMap(),
+	writableDestroy: new WeakMap(),
+});
+
+// Each file descriptor + `waitName` has its own array of promises.
+// Each promise is a single `.readable()`/`.writable()`/`.duplex()` call.
+const addConcurrentStream = (concurrentStreams, stream, waitName) => {
+	const weakMap = concurrentStreams[waitName];
+	if (!weakMap.has(stream)) {
+		weakMap.set(stream, []);
+	}
+
+	const promises = weakMap.get(stream);
+	const promise = createDeferred();
+	promises.push(promise);
+	const resolve = promise.resolve.bind(promise);
+	return {resolve, promises};
+};
+
+// Wait for other streams, but stop waiting when subprocess ends
+const waitForConcurrentStreams = async ({resolve, promises}, subprocess) => {
+	resolve();
+	const [isSubprocessExit] = await Promise.race([
+		Promise.allSettled([true, subprocess]),
+		Promise.all([false, ...promises]),
+	]);
+	return !isSubprocessExit;
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/convert/shared.js
+
+
+
+const safeWaitForSubprocessStdin = async subprocessStdin => {
+	if (subprocessStdin === undefined) {
+		return;
+	}
+
+	try {
+		await waitForSubprocessStdin(subprocessStdin);
+	} catch {}
+};
+
+const safeWaitForSubprocessStdout = async subprocessStdout => {
+	if (subprocessStdout === undefined) {
+		return;
+	}
+
+	try {
+		await waitForSubprocessStdout(subprocessStdout);
+	} catch {}
+};
+
+const waitForSubprocessStdin = async subprocessStdin => {
+	await (0,external_node_stream_promises_namespaceObject.finished)(subprocessStdin, {cleanup: true, readable: false, writable: true});
+};
+
+const waitForSubprocessStdout = async subprocessStdout => {
+	await (0,external_node_stream_promises_namespaceObject.finished)(subprocessStdout, {cleanup: true, readable: true, writable: false});
+};
+
+// When `readable` or `writable` aborts/errors, awaits the subprocess, for the reason mentioned above
+const waitForSubprocess = async (subprocess, error) => {
+	await subprocess;
+	if (error) {
+		throw error;
+	}
+};
+
+const destroyOtherStream = (stream, isOpen, error) => {
+	if (error && !isStreamAbort(error)) {
+		stream.destroy(error);
+	} else if (isOpen) {
+		stream.destroy();
+	}
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/convert/readable.js
+
+
+
+
+
+
+
+
+
+// Create a `Readable` stream that forwards from `stdout` and awaits the subprocess
+const createReadable = ({subprocess, concurrentStreams, encoding}, {from, binary: binaryOption = true, preserveNewlines = true} = {}) => {
+	const binary = binaryOption || BINARY_ENCODINGS.has(encoding);
+	const {subprocessStdout, waitReadableDestroy} = getSubprocessStdout(subprocess, from, concurrentStreams);
+	const {readableEncoding, readableObjectMode, readableHighWaterMark} = getReadableOptions(subprocessStdout, binary);
+	const {read, onStdoutDataDone} = getReadableMethods({
+		subprocessStdout,
+		subprocess,
+		binary,
+		encoding,
+		preserveNewlines,
+	});
+	const readable = new external_node_stream_.Readable({
+		read,
+		destroy: (0,external_node_util_.callbackify)(onReadableDestroy.bind(undefined, {subprocessStdout, subprocess, waitReadableDestroy})),
+		highWaterMark: readableHighWaterMark,
+		objectMode: readableObjectMode,
+		encoding: readableEncoding,
+	});
+	onStdoutFinished({
+		subprocessStdout,
+		onStdoutDataDone,
+		readable,
+		subprocess,
+	});
+	return readable;
+};
+
+// Retrieve `stdout` (or other stream depending on `from`)
+const getSubprocessStdout = (subprocess, from, concurrentStreams) => {
+	const subprocessStdout = getFromStream(subprocess, from);
+	const waitReadableDestroy = addConcurrentStream(concurrentStreams, subprocessStdout, 'readableDestroy');
+	return {subprocessStdout, waitReadableDestroy};
+};
+
+const getReadableOptions = ({readableEncoding, readableObjectMode, readableHighWaterMark}, binary) => binary
+	? {readableEncoding, readableObjectMode, readableHighWaterMark}
+	: {readableEncoding, readableObjectMode: true, readableHighWaterMark: DEFAULT_OBJECT_HIGH_WATER_MARK};
+
+const getReadableMethods = ({subprocessStdout, subprocess, binary, encoding, preserveNewlines}) => {
+	const onStdoutDataDone = createDeferred();
+	const onStdoutData = iterateOnSubprocessStream({
+		subprocessStdout,
+		subprocess,
+		binary,
+		shouldEncode: !binary,
+		encoding,
+		preserveNewlines,
+	});
+
+	return {
+		read() {
+			onRead(this, onStdoutData, onStdoutDataDone);
+		},
+		onStdoutDataDone,
+	};
+};
+
+// Forwards data from `stdout` to `readable`
+const onRead = async (readable, onStdoutData, onStdoutDataDone) => {
+	try {
+		const {value, done} = await onStdoutData.next();
+		if (done) {
+			onStdoutDataDone.resolve();
+		} else {
+			readable.push(value);
+		}
+	} catch {}
+};
+
+// When `subprocess.stdout` ends/aborts/errors, do the same on `readable`.
+// Await the subprocess, for the same reason as above.
+const onStdoutFinished = async ({subprocessStdout, onStdoutDataDone, readable, subprocess, subprocessStdin}) => {
+	try {
+		await waitForSubprocessStdout(subprocessStdout);
+		await subprocess;
+		await safeWaitForSubprocessStdin(subprocessStdin);
+		await onStdoutDataDone;
+
+		if (readable.readable) {
+			readable.push(null);
+		}
+	} catch (error) {
+		await safeWaitForSubprocessStdin(subprocessStdin);
+		destroyOtherReadable(readable, error);
+	}
+};
+
+// When `readable` aborts/errors, do the same on `subprocess.stdout`
+const onReadableDestroy = async ({subprocessStdout, subprocess, waitReadableDestroy}, error) => {
+	if (await waitForConcurrentStreams(waitReadableDestroy, subprocess)) {
+		destroyOtherReadable(subprocessStdout, error);
+		await waitForSubprocess(subprocess, error);
+	}
+};
+
+const destroyOtherReadable = (stream, error) => {
+	destroyOtherStream(stream, stream.readable, error);
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/convert/writable.js
+
+
+
+
+
+
+// Create a `Writable` stream that forwards to `stdin` and awaits the subprocess
+const createWritable = ({subprocess, concurrentStreams}, {to} = {}) => {
+	const {subprocessStdin, waitWritableFinal, waitWritableDestroy} = getSubprocessStdin(subprocess, to, concurrentStreams);
+	const writable = new external_node_stream_.Writable({
+		...getWritableMethods(subprocessStdin, subprocess, waitWritableFinal),
+		destroy: (0,external_node_util_.callbackify)(onWritableDestroy.bind(undefined, {
+			subprocessStdin,
+			subprocess,
+			waitWritableFinal,
+			waitWritableDestroy,
+		})),
+		highWaterMark: subprocessStdin.writableHighWaterMark,
+		objectMode: subprocessStdin.writableObjectMode,
+	});
+	onStdinFinished(subprocessStdin, writable);
+	return writable;
+};
+
+// Retrieve `stdin` (or other stream depending on `to`)
+const getSubprocessStdin = (subprocess, to, concurrentStreams) => {
+	const subprocessStdin = getToStream(subprocess, to);
+	const waitWritableFinal = addConcurrentStream(concurrentStreams, subprocessStdin, 'writableFinal');
+	const waitWritableDestroy = addConcurrentStream(concurrentStreams, subprocessStdin, 'writableDestroy');
+	return {subprocessStdin, waitWritableFinal, waitWritableDestroy};
+};
+
+const getWritableMethods = (subprocessStdin, subprocess, waitWritableFinal) => ({
+	write: onWrite.bind(undefined, subprocessStdin),
+	final: (0,external_node_util_.callbackify)(onWritableFinal.bind(undefined, subprocessStdin, subprocess, waitWritableFinal)),
+});
+
+// Forwards data from `writable` to `stdin`
+const onWrite = (subprocessStdin, chunk, encoding, done) => {
+	if (subprocessStdin.write(chunk, encoding)) {
+		done();
+	} else {
+		subprocessStdin.once('drain', done);
+	}
+};
+
+// Ensures that the writable `final` and readable `end` events awaits the subprocess.
+// Like this, any subprocess failure is propagated as a stream `error` event, instead of being lost.
+// The user does not need to `await` the subprocess anymore, but now needs to await the stream completion or error.
+// When multiple writables are targeting the same stream, they wait for each other, unless the subprocess ends first.
+const onWritableFinal = async (subprocessStdin, subprocess, waitWritableFinal) => {
+	if (await waitForConcurrentStreams(waitWritableFinal, subprocess)) {
+		if (subprocessStdin.writable) {
+			subprocessStdin.end();
+		}
+
+		await subprocess;
+	}
+};
+
+// When `subprocess.stdin` ends/aborts/errors, do the same on `writable`.
+const onStdinFinished = async (subprocessStdin, writable, subprocessStdout) => {
+	try {
+		await waitForSubprocessStdin(subprocessStdin);
+		if (writable.writable) {
+			writable.end();
+		}
+	} catch (error) {
+		await safeWaitForSubprocessStdout(subprocessStdout);
+		destroyOtherWritable(writable, error);
+	}
+};
+
+// When `writable` aborts/errors, do the same on `subprocess.stdin`
+const onWritableDestroy = async ({subprocessStdin, subprocess, waitWritableFinal, waitWritableDestroy}, error) => {
+	await waitForConcurrentStreams(waitWritableFinal, subprocess);
+	if (await waitForConcurrentStreams(waitWritableDestroy, subprocess)) {
+		destroyOtherWritable(subprocessStdin, error);
+		await waitForSubprocess(subprocess, error);
+	}
+};
+
+const destroyOtherWritable = (stream, error) => {
+	destroyOtherStream(stream, stream.writable, error);
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/convert/duplex.js
+
+
+
+
+
+
+// Create a `Duplex` stream combining both `subprocess.readable()` and `subprocess.writable()`
+const createDuplex = ({subprocess, concurrentStreams, encoding}, {from, to, binary: binaryOption = true, preserveNewlines = true} = {}) => {
+	const binary = binaryOption || BINARY_ENCODINGS.has(encoding);
+	const {subprocessStdout, waitReadableDestroy} = getSubprocessStdout(subprocess, from, concurrentStreams);
+	const {subprocessStdin, waitWritableFinal, waitWritableDestroy} = getSubprocessStdin(subprocess, to, concurrentStreams);
+	const {readableEncoding, readableObjectMode, readableHighWaterMark} = getReadableOptions(subprocessStdout, binary);
+	const {read, onStdoutDataDone} = getReadableMethods({
+		subprocessStdout,
+		subprocess,
+		binary,
+		encoding,
+		preserveNewlines,
+	});
+	const duplex = new external_node_stream_.Duplex({
+		read,
+		...getWritableMethods(subprocessStdin, subprocess, waitWritableFinal),
+		destroy: (0,external_node_util_.callbackify)(onDuplexDestroy.bind(undefined, {
+			subprocessStdout,
+			subprocessStdin,
+			subprocess,
+			waitReadableDestroy,
+			waitWritableFinal,
+			waitWritableDestroy,
+		})),
+		readableHighWaterMark,
+		writableHighWaterMark: subprocessStdin.writableHighWaterMark,
+		readableObjectMode,
+		writableObjectMode: subprocessStdin.writableObjectMode,
+		encoding: readableEncoding,
+	});
+	onStdoutFinished({
+		subprocessStdout,
+		onStdoutDataDone,
+		readable: duplex,
+		subprocess,
+		subprocessStdin,
+	});
+	onStdinFinished(subprocessStdin, duplex, subprocessStdout);
+	return duplex;
+};
+
+const onDuplexDestroy = async ({subprocessStdout, subprocessStdin, subprocess, waitReadableDestroy, waitWritableFinal, waitWritableDestroy}, error) => {
+	await Promise.all([
+		onReadableDestroy({subprocessStdout, subprocess, waitReadableDestroy}, error),
+		onWritableDestroy({
+			subprocessStdin,
+			subprocess,
+			waitWritableFinal,
+			waitWritableDestroy,
+		}, error),
+	]);
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/convert/iterable.js
+
+
+
+
+// Convert the subprocess to an async iterable
+const createIterable = (subprocess, encoding, {
+	from,
+	binary: binaryOption = false,
+	preserveNewlines = false,
+} = {}) => {
+	const binary = binaryOption || BINARY_ENCODINGS.has(encoding);
+	const subprocessStdout = getFromStream(subprocess, from);
+	const onStdoutData = iterateOnSubprocessStream({
+		subprocessStdout,
+		subprocess,
+		binary,
+		shouldEncode: true,
+		encoding,
+		preserveNewlines,
+	});
+	return iterateOnStdoutData(onStdoutData, subprocessStdout, subprocess);
+};
+
+const iterateOnStdoutData = async function * (onStdoutData, subprocessStdout, subprocess) {
+	try {
+		yield * onStdoutData;
+	} finally {
+		if (subprocessStdout.readable) {
+			subprocessStdout.destroy();
+		}
+
+		await subprocess;
+	}
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/convert/add.js
+
+
+
+
+
+
+// Add methods to convert the subprocess to a stream or iterable
+const addConvertedStreams = (subprocess, {encoding}) => {
+	const concurrentStreams = initializeConcurrentStreams();
+	subprocess.readable = createReadable.bind(undefined, {subprocess, concurrentStreams, encoding});
+	subprocess.writable = createWritable.bind(undefined, {subprocess, concurrentStreams});
+	subprocess.duplex = createDuplex.bind(undefined, {subprocess, concurrentStreams, encoding});
+	subprocess.iterable = createIterable.bind(undefined, subprocess, encoding);
+	subprocess[Symbol.asyncIterator] = createIterable.bind(undefined, subprocess, encoding, {});
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/methods/promise.js
+// The return value is a mixin of `subprocess` and `Promise`
+const mergePromise = (subprocess, promise) => {
+	for (const [property, descriptor] of descriptors) {
+		const value = descriptor.value.bind(promise);
+		Reflect.defineProperty(subprocess, property, {...descriptor, value});
+	}
+};
+
 // eslint-disable-next-line unicorn/prefer-top-level-await
 const nativePromisePrototype = (async () => {})().constructor.prototype;
 
@@ -36820,67 +47067,330 @@ const descriptors = ['then', 'catch', 'finally'].map(property => [
 	Reflect.getOwnPropertyDescriptor(nativePromisePrototype, property),
 ]);
 
-// The return value is a mixin of `childProcess` and `Promise`
-const mergePromise = (spawned, promise) => {
-	for (const [property, descriptor] of descriptors) {
-		// Starting the main `promise` is deferred to avoid consuming streams
-		const value = typeof promise === 'function'
-			? (...args) => Reflect.apply(descriptor.value, promise(), args)
-			: descriptor.value.bind(promise);
+;// CONCATENATED MODULE: ./node_modules/execa/lib/methods/main-async.js
 
-		Reflect.defineProperty(spawned, property, {...descriptor, value});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Main shared logic for all async methods: `execa()`, `$`, `execaNode()`
+const execaCoreAsync = (rawFile, rawArguments, rawOptions, createNested) => {
+	const {file, commandArguments, command, escapedCommand, startTime, verboseInfo, options, fileDescriptors} = handleAsyncArguments(rawFile, rawArguments, rawOptions);
+	const {subprocess, promise} = spawnSubprocessAsync({
+		file,
+		commandArguments,
+		options,
+		startTime,
+		verboseInfo,
+		command,
+		escapedCommand,
+		fileDescriptors,
+	});
+	subprocess.pipe = pipeToSubprocess.bind(undefined, {
+		source: subprocess,
+		sourcePromise: promise,
+		boundOptions: {},
+		createNested,
+	});
+	mergePromise(subprocess, promise);
+	SUBPROCESS_OPTIONS.set(subprocess, {options, fileDescriptors});
+	return subprocess;
+};
+
+// Compute arguments to pass to `child_process.spawn()`
+const handleAsyncArguments = (rawFile, rawArguments, rawOptions) => {
+	const {command, escapedCommand, startTime, verboseInfo} = handleCommand(rawFile, rawArguments, rawOptions);
+
+	try {
+		const {file, commandArguments, options: normalizedOptions} = normalizeOptions(rawFile, rawArguments, rawOptions);
+		const options = handleAsyncOptions(normalizedOptions);
+		const fileDescriptors = handleStdioAsync(options, verboseInfo);
+		return {
+			file,
+			commandArguments,
+			command,
+			escapedCommand,
+			startTime,
+			verboseInfo,
+			options,
+			fileDescriptors,
+		};
+	} catch (error) {
+		logEarlyResult(error, startTime, verboseInfo);
+		throw error;
 	}
 };
 
-// Use promises instead of `child_process` events
-const getSpawnedPromise = spawned => new Promise((resolve, reject) => {
-	spawned.on('exit', (exitCode, signal) => {
-		resolve({exitCode, signal});
-	});
+// Options normalization logic specific to async methods.
+// Prevent passing the `timeout` option directly to `child_process.spawn()`.
+const handleAsyncOptions = ({timeout, signal, ...options}) => {
+	if (signal !== undefined) {
+		throw new TypeError('The "signal" option has been renamed to "cancelSignal" instead.');
+	}
 
-	spawned.on('error', error => {
-		reject(error);
-	});
+	return {...options, timeoutDuration: timeout};
+};
 
-	if (spawned.stdin) {
-		spawned.stdin.on('error', error => {
-			reject(error);
+const spawnSubprocessAsync = ({file, commandArguments, options, startTime, verboseInfo, command, escapedCommand, fileDescriptors}) => {
+	let subprocess;
+	try {
+		subprocess = (0,external_node_child_process_namespaceObject.spawn)(file, commandArguments, options);
+	} catch (error) {
+		return handleEarlyError({
+			error,
+			command,
+			escapedCommand,
+			fileDescriptors,
+			options,
+			startTime,
+			verboseInfo,
 		});
 	}
-});
 
-;// CONCATENATED MODULE: ./node_modules/execa/lib/command.js
+	const controller = new AbortController();
+	(0,external_node_events_.setMaxListeners)(Number.POSITIVE_INFINITY, controller.signal);
 
+	const originalStreams = [...subprocess.stdio];
+	pipeOutputAsync(subprocess, fileDescriptors, controller);
+	cleanupOnExit(subprocess, options, controller);
 
+	const context = {};
+	const onInternalError = createDeferred();
+	subprocess.kill = subprocessKill.bind(undefined, {
+		kill: subprocess.kill.bind(subprocess),
+		options,
+		onInternalError,
+		context,
+		controller,
+	});
+	subprocess.all = makeAllStream(subprocess, options);
+	addConvertedStreams(subprocess, options);
+	addIpcMethods(subprocess, options);
 
-const normalizeArgs = (file, args = []) => {
-	if (!Array.isArray(args)) {
-		return [file];
-	}
-
-	return [file, ...args];
+	const promise = handlePromise({
+		subprocess,
+		options,
+		startTime,
+		verboseInfo,
+		fileDescriptors,
+		originalStreams,
+		command,
+		escapedCommand,
+		context,
+		onInternalError,
+		controller,
+	});
+	return {subprocess, promise};
 };
 
-const NO_ESCAPE_REGEXP = /^[\w.-]+$/;
+// Asynchronous logic, as opposed to the previous logic which can be run synchronously, i.e. can be returned to user right away
+const handlePromise = async ({subprocess, options, startTime, verboseInfo, fileDescriptors, originalStreams, command, escapedCommand, context, onInternalError, controller}) => {
+	const [
+		errorInfo,
+		[exitCode, signal],
+		stdioResults,
+		allResult,
+		ipcOutput,
+	] = await waitForSubprocessResult({
+		subprocess,
+		options,
+		context,
+		verboseInfo,
+		fileDescriptors,
+		originalStreams,
+		onInternalError,
+		controller,
+	});
+	controller.abort();
+	onInternalError.resolve();
 
-const escapeArg = arg => {
-	if (typeof arg !== 'string' || NO_ESCAPE_REGEXP.test(arg)) {
-		return arg;
-	}
-
-	return `"${arg.replaceAll('"', '\\"')}"`;
+	const stdio = stdioResults.map((stdioResult, fdNumber) => stripNewline(stdioResult, options, fdNumber));
+	const all = stripNewline(allResult, options, 'all');
+	const result = getAsyncResult({
+		errorInfo,
+		exitCode,
+		signal,
+		stdio,
+		all,
+		ipcOutput,
+		context,
+		options,
+		command,
+		escapedCommand,
+		startTime,
+	});
+	return handleResult(result, verboseInfo, options);
 };
 
-const joinCommand = (file, args) => normalizeArgs(file, args).join(' ');
+const getAsyncResult = ({errorInfo, exitCode, signal, stdio, all, ipcOutput, context, options, command, escapedCommand, startTime}) => 'error' in errorInfo
+	? makeError({
+		error: errorInfo.error,
+		command,
+		escapedCommand,
+		timedOut: context.terminationReason === 'timeout',
+		isCanceled: context.terminationReason === 'cancel' || context.terminationReason === 'gracefulCancel',
+		isGracefullyCanceled: context.terminationReason === 'gracefulCancel',
+		isMaxBuffer: errorInfo.error instanceof MaxBufferError,
+		isForcefullyTerminated: context.isForcefullyTerminated,
+		exitCode,
+		signal,
+		stdio,
+		all,
+		ipcOutput,
+		options,
+		startTime,
+		isSync: false,
+	})
+	: makeSuccessResult({
+		command,
+		escapedCommand,
+		stdio,
+		all,
+		ipcOutput,
+		options,
+		startTime,
+	});
 
-const getEscapedCommand = (file, args) => normalizeArgs(file, args).map(arg => escapeArg(arg)).join(' ');
+;// CONCATENATED MODULE: ./node_modules/execa/lib/methods/bind.js
 
-const SPACES_REGEXP = / +/g;
 
-// Handle `execaCommand()`
-const command_parseCommand = command => {
+
+// Deep merge specific options like `env`. Shallow merge the other ones.
+const mergeOptions = (boundOptions, options) => {
+	const newOptions = Object.fromEntries(
+		Object.entries(options).map(([optionName, optionValue]) => [
+			optionName,
+			mergeOption(optionName, boundOptions[optionName], optionValue),
+		]),
+	);
+	return {...boundOptions, ...newOptions};
+};
+
+const mergeOption = (optionName, boundOptionValue, optionValue) => {
+	if (DEEP_OPTIONS.has(optionName) && isPlainObject(boundOptionValue) && isPlainObject(optionValue)) {
+		return {...boundOptionValue, ...optionValue};
+	}
+
+	return optionValue;
+};
+
+const DEEP_OPTIONS = new Set(['env', ...FD_SPECIFIC_OPTIONS]);
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/methods/create.js
+
+
+
+
+
+
+
+// Wraps every exported methods to provide the following features:
+//  - template string syntax: execa`command argument`
+//  - options binding: boundExeca = execa(options)
+//  - optional argument/options: execa(file), execa(file, args), execa(file, options), execa(file, args, options)
+// `mapArguments()` and `setBoundExeca()` allows for method-specific logic.
+const createExeca = (mapArguments, boundOptions, deepOptions, setBoundExeca) => {
+	const createNested = (mapArguments, boundOptions, setBoundExeca) => createExeca(mapArguments, boundOptions, deepOptions, setBoundExeca);
+	const boundExeca = (...execaArguments) => callBoundExeca({
+		mapArguments,
+		deepOptions,
+		boundOptions,
+		setBoundExeca,
+		createNested,
+	}, ...execaArguments);
+
+	if (setBoundExeca !== undefined) {
+		setBoundExeca(boundExeca, createNested, boundOptions);
+	}
+
+	return boundExeca;
+};
+
+const callBoundExeca = ({mapArguments, deepOptions = {}, boundOptions = {}, setBoundExeca, createNested}, firstArgument, ...nextArguments) => {
+	if (isPlainObject(firstArgument)) {
+		return createNested(mapArguments, mergeOptions(boundOptions, firstArgument), setBoundExeca);
+	}
+
+	const {file, commandArguments, options, isSync} = parseArguments({
+		mapArguments,
+		firstArgument,
+		nextArguments,
+		deepOptions,
+		boundOptions,
+	});
+	return isSync
+		? execaCoreSync(file, commandArguments, options)
+		: execaCoreAsync(file, commandArguments, options, createNested);
+};
+
+const parseArguments = ({mapArguments, firstArgument, nextArguments, deepOptions, boundOptions}) => {
+	const callArguments = isTemplateString(firstArgument)
+		? parseTemplates(firstArgument, nextArguments)
+		: [firstArgument, ...nextArguments];
+	const [initialFile, initialArguments, initialOptions] = normalizeParameters(...callArguments);
+	const mergedOptions = mergeOptions(mergeOptions(deepOptions, boundOptions), initialOptions);
+	const {
+		file = initialFile,
+		commandArguments = initialArguments,
+		options = mergedOptions,
+		isSync = false,
+	} = mapArguments({file: initialFile, commandArguments: initialArguments, options: mergedOptions});
+	return {
+		file,
+		commandArguments,
+		options,
+		isSync,
+	};
+};
+
+;// CONCATENATED MODULE: ./node_modules/execa/lib/methods/command.js
+// Main logic for `execaCommand()`
+const mapCommandAsync = ({file, commandArguments}) => parseCommand(file, commandArguments);
+
+// Main logic for `execaCommandSync()`
+const mapCommandSync = ({file, commandArguments}) => ({...parseCommand(file, commandArguments), isSync: true});
+
+// Convert `execaCommand(command)` into `execa(file, ...commandArguments)`
+const parseCommand = (command, unusedArguments) => {
+	if (unusedArguments.length > 0) {
+		throw new TypeError(`The command and its arguments must be passed as a single string: ${command} ${unusedArguments}.`);
+	}
+
+	const [file, ...commandArguments] = parseCommandString(command);
+	return {file, commandArguments};
+};
+
+// Convert `command` string into an array of file or arguments to pass to $`${...fileOrCommandArguments}`
+const parseCommandString = command => {
+	if (typeof command !== 'string') {
+		throw new TypeError(`The command must be a string: ${String(command)}.`);
+	}
+
+	const trimmedCommand = command.trim();
+	if (trimmedCommand === '') {
+		return [];
+	}
+
 	const tokens = [];
-	for (const token of command.trim().split(SPACES_REGEXP)) {
+	for (const token of trimmedCommand.split(SPACES_REGEXP)) {
 		// Allow spaces to be escaped by a backslash if not meant as a delimiter
 		const previousToken = tokens.at(-1);
 		if (previousToken && previousToken.endsWith('\\')) {
@@ -36894,104 +47404,31 @@ const command_parseCommand = command => {
 	return tokens;
 };
 
-const parseExpression = expression => {
-	const typeOfExpression = typeof expression;
+const SPACES_REGEXP = / +/g;
 
-	if (typeOfExpression === 'string') {
-		return expression;
-	}
-
-	if (typeOfExpression === 'number') {
-		return String(expression);
-	}
-
-	if (
-		typeOfExpression === 'object'
-		&& expression !== null
-		&& !(expression instanceof external_node_child_process_namespaceObject.ChildProcess)
-		&& 'stdout' in expression
-	) {
-		const typeOfStdout = typeof expression.stdout;
-
-		if (typeOfStdout === 'string') {
-			return expression.stdout;
-		}
-
-		if (external_node_buffer_namespaceObject.Buffer.isBuffer(expression.stdout)) {
-			return expression.stdout.toString();
-		}
-
-		throw new TypeError(`Unexpected "${typeOfStdout}" stdout in template expression`);
-	}
-
-	throw new TypeError(`Unexpected "${typeOfExpression}" in template expression`);
+;// CONCATENATED MODULE: ./node_modules/execa/lib/methods/script.js
+// Sets `$.sync` and `$.s`
+const setScriptSync = (boundExeca, createNested, boundOptions) => {
+	boundExeca.sync = createNested(mapScriptSync, boundOptions);
+	boundExeca.s = boundExeca.sync;
 };
 
-const concatTokens = (tokens, nextTokens, isNew) => isNew || tokens.length === 0 || nextTokens.length === 0
-	? [...tokens, ...nextTokens]
-	: [
-		...tokens.slice(0, -1),
-		`${tokens.at(-1)}${nextTokens[0]}`,
-		...nextTokens.slice(1),
-	];
+// Main logic for `$`
+const mapScriptAsync = ({options}) => getScriptOptions(options);
 
-const parseTemplate = ({templates, expressions, tokens, index, template}) => {
-	const templateString = template ?? templates.raw[index];
-	const templateTokens = templateString.split(SPACES_REGEXP).filter(Boolean);
-	const newTokens = concatTokens(
-		tokens,
-		templateTokens,
-		templateString.startsWith(' '),
-	);
+// Main logic for `$.sync`
+const mapScriptSync = ({options}) => ({...getScriptOptions(options), isSync: true});
 
-	if (index === expressions.length) {
-		return newTokens;
-	}
+// `$` is like `execa` but with script-friendly options: `{stdin: 'inherit', preferLocal: true}`
+const getScriptOptions = options => ({options: {...getScriptStdinOption(options), ...options}});
 
-	const expression = expressions[index];
-	const expressionTokens = Array.isArray(expression)
-		? expression.map(expression => parseExpression(expression))
-		: [parseExpression(expression)];
-	return concatTokens(
-		newTokens,
-		expressionTokens,
-		templateString.endsWith(' '),
-	);
-};
+const getScriptStdinOption = ({input, inputFile, stdio}) => input === undefined && inputFile === undefined && stdio === undefined
+	? {stdin: 'inherit'}
+	: {};
 
-const parseTemplates = (templates, expressions) => {
-	let tokens = [];
-
-	for (const [index, template] of templates.entries()) {
-		tokens = parseTemplate({templates, expressions, tokens, index, template});
-	}
-
-	return tokens;
-};
-
-
-// EXTERNAL MODULE: external "node:util"
-var external_node_util_ = __nccwpck_require__(7261);
-;// CONCATENATED MODULE: ./node_modules/execa/lib/verbose.js
-
-
-
-const verboseDefault = (0,external_node_util_.debuglog)('execa').enabled;
-
-const padField = (field, padding) => String(field).padStart(padding, '0');
-
-const getTimestamp = () => {
-	const date = new Date();
-	return `${padField(date.getHours(), 2)}:${padField(date.getMinutes(), 2)}:${padField(date.getSeconds(), 2)}.${padField(date.getMilliseconds(), 3)}`;
-};
-
-const logCommand = (escapedCommand, {verbose}) => {
-	if (!verbose) {
-		return;
-	}
-
-	external_node_process_namespaceObject.stderr.write(`[${getTimestamp()}] ${escapedCommand}\n`);
-};
+// When using $(...).pipe(...), most script-friendly options should apply to both commands.
+// However, some options (like `stdin: 'inherit'`) would create issues with piping, i.e. cannot be deep.
+const deepScriptOptions = {preferLocal: true};
 
 ;// CONCATENATED MODULE: ./node_modules/execa/index.js
 
@@ -37003,306 +47440,20 @@ const logCommand = (escapedCommand, {verbose}) => {
 
 
 
+const execa = createExeca(() => ({}));
+const execaSync = createExeca(() => ({isSync: true}));
+const execaCommand = createExeca(mapCommandAsync);
+const execaCommandSync = createExeca(mapCommandSync);
+const execaNode = createExeca(mapNode);
+const $ = createExeca(mapScriptAsync, {}, deepScriptOptions, setScriptSync);
 
+const {
+	sendMessage: execa_sendMessage,
+	getOneMessage: execa_getOneMessage,
+	getEachMessage: execa_getEachMessage,
+	getCancelSignal: execa_getCancelSignal,
+} = getIpcExport();
 
-
-
-
-
-
-
-const DEFAULT_MAX_BUFFER = 1000 * 1000 * 100;
-
-const getEnv = ({env: envOption, extendEnv, preferLocal, localDir, execPath}) => {
-	const env = extendEnv ? {...external_node_process_namespaceObject.env, ...envOption} : envOption;
-
-	if (preferLocal) {
-		return npmRunPathEnv({env, cwd: localDir, execPath});
-	}
-
-	return env;
-};
-
-const handleArguments = (file, args, options = {}) => {
-	const parsed = cross_spawn._parse(file, args, options);
-	file = parsed.command;
-	args = parsed.args;
-	options = parsed.options;
-
-	options = {
-		maxBuffer: DEFAULT_MAX_BUFFER,
-		buffer: true,
-		stripFinalNewline: true,
-		extendEnv: true,
-		preferLocal: false,
-		localDir: options.cwd || external_node_process_namespaceObject.cwd(),
-		execPath: external_node_process_namespaceObject.execPath,
-		encoding: 'utf8',
-		reject: true,
-		cleanup: true,
-		all: false,
-		windowsHide: true,
-		verbose: verboseDefault,
-		...options,
-	};
-
-	options.env = getEnv(options);
-
-	options.stdio = normalizeStdio(options);
-
-	if (external_node_process_namespaceObject.platform === 'win32' && external_node_path_namespaceObject.basename(file, '.exe') === 'cmd') {
-		// #116
-		args.unshift('/q');
-	}
-
-	return {file, args, options, parsed};
-};
-
-const handleOutput = (options, value, error) => {
-	if (typeof value !== 'string' && !external_node_buffer_namespaceObject.Buffer.isBuffer(value)) {
-		// When `execaSync()` errors, we normalize it to '' to mimic `execa()`
-		return error === undefined ? undefined : '';
-	}
-
-	if (options.stripFinalNewline) {
-		return stripFinalNewline(value);
-	}
-
-	return value;
-};
-
-function execa(file, args, options) {
-	const parsed = handleArguments(file, args, options);
-	const command = joinCommand(file, args);
-	const escapedCommand = getEscapedCommand(file, args);
-	logCommand(escapedCommand, parsed.options);
-
-	validateTimeout(parsed.options);
-
-	let spawned;
-	try {
-		spawned = external_node_child_process_namespaceObject.spawn(parsed.file, parsed.args, parsed.options);
-	} catch (error) {
-		// Ensure the returned error is always both a promise and a child process
-		const dummySpawned = new external_node_child_process_namespaceObject.ChildProcess();
-		const errorPromise = Promise.reject(makeError({
-			error,
-			stdout: '',
-			stderr: '',
-			all: '',
-			command,
-			escapedCommand,
-			parsed,
-			timedOut: false,
-			isCanceled: false,
-			killed: false,
-		}));
-		mergePromise(dummySpawned, errorPromise);
-		return dummySpawned;
-	}
-
-	const spawnedPromise = getSpawnedPromise(spawned);
-	const timedPromise = setupTimeout(spawned, parsed.options, spawnedPromise);
-	const processDone = setExitHandler(spawned, parsed.options, timedPromise);
-
-	const context = {isCanceled: false};
-
-	spawned.kill = spawnedKill.bind(null, spawned.kill.bind(spawned));
-	spawned.cancel = spawnedCancel.bind(null, spawned, context);
-
-	const handlePromise = async () => {
-		const [{error, exitCode, signal, timedOut}, stdoutResult, stderrResult, allResult] = await getSpawnedResult(spawned, parsed.options, processDone);
-		const stdout = handleOutput(parsed.options, stdoutResult);
-		const stderr = handleOutput(parsed.options, stderrResult);
-		const all = handleOutput(parsed.options, allResult);
-
-		if (error || exitCode !== 0 || signal !== null) {
-			const returnedError = makeError({
-				error,
-				exitCode,
-				signal,
-				stdout,
-				stderr,
-				all,
-				command,
-				escapedCommand,
-				parsed,
-				timedOut,
-				isCanceled: context.isCanceled || (parsed.options.signal ? parsed.options.signal.aborted : false),
-				killed: spawned.killed,
-			});
-
-			if (!parsed.options.reject) {
-				return returnedError;
-			}
-
-			throw returnedError;
-		}
-
-		return {
-			command,
-			escapedCommand,
-			exitCode: 0,
-			stdout,
-			stderr,
-			all,
-			failed: false,
-			timedOut: false,
-			isCanceled: false,
-			killed: false,
-		};
-	};
-
-	const handlePromiseOnce = node_modules_onetime(handlePromise);
-
-	handleInput(spawned, parsed.options);
-
-	spawned.all = makeAllStream(spawned, parsed.options);
-
-	addPipeMethods(spawned);
-	mergePromise(spawned, handlePromiseOnce);
-	return spawned;
-}
-
-function execaSync(file, args, options) {
-	const parsed = handleArguments(file, args, options);
-	const command = joinCommand(file, args);
-	const escapedCommand = getEscapedCommand(file, args);
-	logCommand(escapedCommand, parsed.options);
-
-	const input = handleInputSync(parsed.options);
-
-	let result;
-	try {
-		result = external_node_child_process_namespaceObject.spawnSync(parsed.file, parsed.args, {...parsed.options, input});
-	} catch (error) {
-		throw makeError({
-			error,
-			stdout: '',
-			stderr: '',
-			all: '',
-			command,
-			escapedCommand,
-			parsed,
-			timedOut: false,
-			isCanceled: false,
-			killed: false,
-		});
-	}
-
-	const stdout = handleOutput(parsed.options, result.stdout, result.error);
-	const stderr = handleOutput(parsed.options, result.stderr, result.error);
-
-	if (result.error || result.status !== 0 || result.signal !== null) {
-		const error = makeError({
-			stdout,
-			stderr,
-			error: result.error,
-			signal: result.signal,
-			exitCode: result.status,
-			command,
-			escapedCommand,
-			parsed,
-			timedOut: result.error && result.error.code === 'ETIMEDOUT',
-			isCanceled: false,
-			killed: result.signal !== null,
-		});
-
-		if (!parsed.options.reject) {
-			return error;
-		}
-
-		throw error;
-	}
-
-	return {
-		command,
-		escapedCommand,
-		exitCode: 0,
-		stdout,
-		stderr,
-		failed: false,
-		timedOut: false,
-		isCanceled: false,
-		killed: false,
-	};
-}
-
-const normalizeScriptStdin = ({input, inputFile, stdio}) => input === undefined && inputFile === undefined && stdio === undefined
-	? {stdin: 'inherit'}
-	: {};
-
-const normalizeScriptOptions = (options = {}) => ({
-	preferLocal: true,
-	...normalizeScriptStdin(options),
-	...options,
-});
-
-function create$(options) {
-	function $(templatesOrOptions, ...expressions) {
-		if (!Array.isArray(templatesOrOptions)) {
-			return create$({...options, ...templatesOrOptions});
-		}
-
-		const [file, ...args] = parseTemplates(templatesOrOptions, expressions);
-		return execa(file, args, normalizeScriptOptions(options));
-	}
-
-	$.sync = (templates, ...expressions) => {
-		if (!Array.isArray(templates)) {
-			throw new TypeError('Please use $(options).sync`command` instead of $.sync(options)`command`.');
-		}
-
-		const [file, ...args] = parseTemplates(templates, expressions);
-		return execaSync(file, args, normalizeScriptOptions(options));
-	};
-
-	return $;
-}
-
-const $ = create$();
-
-function execaCommand(command, options) {
-	const [file, ...args] = command_parseCommand(command);
-	return execa(file, args, options);
-}
-
-function execaCommandSync(command, options) {
-	const [file, ...args] = parseCommand(command);
-	return execaSync(file, args, options);
-}
-
-function execaNode(scriptPath, args, options = {}) {
-	if (args && !Array.isArray(args) && typeof args === 'object') {
-		options = args;
-		args = [];
-	}
-
-	const stdio = normalizeStdioNode(options);
-	const defaultExecArgv = process.execArgv.filter(arg => !arg.startsWith('--inspect'));
-
-	const {
-		nodePath = process.execPath,
-		nodeOptions = defaultExecArgv,
-	} = options;
-
-	return execa(
-		nodePath,
-		[
-			...nodeOptions,
-			scriptPath,
-			...(Array.isArray(args) ? args : []),
-		],
-		{
-			...options,
-			stdin: undefined,
-			stdout: undefined,
-			stderr: undefined,
-			stdio,
-			shell: false,
-		},
-	);
-}
 
 // EXTERNAL MODULE: external "fs"
 var external_fs_ = __nccwpck_require__(7147);
@@ -37369,14 +47520,55 @@ const primitiveTypeNames = [
 function isPrimitiveTypeName(name) {
     return primitiveTypeNames.includes(name);
 }
-// eslint-disable-next-line @typescript-eslint/ban-types
-function isOfType(type) {
-    return (value) => typeof value === type;
-}
-const { toString: dist_toString } = Object.prototype;
+const assertionTypeDescriptions = [
+    'positive number',
+    'negative number',
+    'Class',
+    'string with a number',
+    'null or undefined',
+    'Iterable',
+    'AsyncIterable',
+    'native Promise',
+    'EnumCase',
+    'string with a URL',
+    'truthy',
+    'falsy',
+    'primitive',
+    'integer',
+    'plain object',
+    'TypedArray',
+    'array-like',
+    'tuple-like',
+    'Node.js Stream',
+    'infinite number',
+    'empty array',
+    'non-empty array',
+    'empty string',
+    'empty string or whitespace',
+    'non-empty string',
+    'non-empty string and not whitespace',
+    'empty object',
+    'non-empty object',
+    'empty set',
+    'non-empty set',
+    'empty map',
+    'non-empty map',
+    'PropertyKey',
+    'even integer',
+    'odd integer',
+    'T',
+    'in range',
+    'predicate returns truthy for any value',
+    'predicate returns truthy for all values',
+    'valid Date',
+    'valid length',
+    'whitespace string',
+    ...objectTypeNames,
+    ...primitiveTypeNames,
+];
 const getObjectType = (value) => {
-    const objectTypeName = dist_toString.call(value).slice(8, -1);
-    if (/HTML\w+Element/.test(objectTypeName) && is.domElement(value)) {
+    const objectTypeName = Object.prototype.toString.call(value).slice(8, -1);
+    if (/HTML\w+Element/.test(objectTypeName) && isHtmlElement(value)) {
         return 'HTMLElement';
     }
     if (isObjectTypeName(objectTypeName)) {
@@ -37384,8 +47576,7 @@ const getObjectType = (value) => {
     }
     return undefined;
 };
-const isObjectOfType = (type) => (value) => getObjectType(value) === type;
-function is(value) {
+function detect(value) {
     if (value === null) {
         return 'null';
     }
@@ -37413,13 +47604,13 @@ function is(value) {
         }
         default:
     }
-    if (is.observable(value)) {
+    if (isObservable(value)) {
         return 'Observable';
     }
-    if (is.array(value)) {
+    if (isArray(value)) {
         return 'Array';
     }
-    if (is.buffer(value)) {
+    if (isBuffer(value)) {
         return 'Buffer';
     }
     const tagType = getObjectType(value);
@@ -37431,122 +47622,237 @@ function is(value) {
     }
     return 'Object';
 }
-is.undefined = isOfType('undefined');
-is.string = isOfType('string');
-const isNumberType = isOfType('number');
-is.number = (value) => isNumberType(value) && !is.nan(value);
-is.positiveNumber = (value) => is.number(value) && value > 0;
-is.negativeNumber = (value) => is.number(value) && value < 0;
-is.bigint = isOfType('bigint');
-// eslint-disable-next-line @typescript-eslint/ban-types
-is.function_ = isOfType('function');
-// eslint-disable-next-line @typescript-eslint/ban-types
-is.null_ = (value) => value === null;
-is.class_ = (value) => is.function_(value) && value.toString().startsWith('class ');
-is.boolean = (value) => value === true || value === false;
-is.symbol = isOfType('symbol');
-is.numericString = (value) => is.string(value) && !is.emptyStringOrWhitespace(value) && !Number.isNaN(Number(value));
-is.array = (value, assertion) => {
+function hasPromiseApi(value) {
+    return isFunction(value?.then) && isFunction(value?.catch);
+}
+const is = Object.assign(detect, {
+    all: isAll,
+    any: isAny,
+    array: isArray,
+    arrayBuffer: dist_isArrayBuffer,
+    arrayLike: isArrayLike,
+    asyncFunction: isAsyncFunction,
+    asyncGenerator: dist_isAsyncGenerator,
+    asyncGeneratorFunction: isAsyncGeneratorFunction,
+    asyncIterable: isAsyncIterable,
+    bigint: isBigint,
+    bigInt64Array: isBigInt64Array,
+    bigUint64Array: isBigUint64Array,
+    blob: isBlob,
+    boolean: isBoolean,
+    boundFunction: isBoundFunction,
+    buffer: isBuffer,
+    class: isClass,
+    /** @deprecated Renamed to `class`. */
+    class_: isClass,
+    dataView: isDataView,
+    date: isDate,
+    detect,
+    directInstanceOf: isDirectInstanceOf,
+    /** @deprecated Renamed to `htmlElement` */
+    domElement: isHtmlElement,
+    emptyArray: isEmptyArray,
+    emptyMap: isEmptyMap,
+    emptyObject: isEmptyObject,
+    emptySet: isEmptySet,
+    emptyString: isEmptyString,
+    emptyStringOrWhitespace: isEmptyStringOrWhitespace,
+    enumCase: isEnumCase,
+    error: isError,
+    evenInteger: isEvenInteger,
+    falsy: isFalsy,
+    float32Array: isFloat32Array,
+    float64Array: isFloat64Array,
+    formData: isFormData,
+    function: isFunction,
+    /** @deprecated Renamed to `function`. */
+    function_: isFunction,
+    generator: dist_isGenerator,
+    generatorFunction: isGeneratorFunction,
+    htmlElement: isHtmlElement,
+    infinite: isInfinite,
+    inRange: isInRange,
+    int16Array: isInt16Array,
+    int32Array: isInt32Array,
+    int8Array: isInt8Array,
+    integer: isInteger,
+    iterable: isIterable,
+    map: isMap,
+    nan: isNan,
+    nativePromise: isNativePromise,
+    negativeNumber: isNegativeNumber,
+    nodeStream: isNodeStream,
+    nonEmptyArray: isNonEmptyArray,
+    nonEmptyMap: isNonEmptyMap,
+    nonEmptyObject: isNonEmptyObject,
+    nonEmptySet: isNonEmptySet,
+    nonEmptyString: isNonEmptyString,
+    nonEmptyStringAndNotWhitespace: isNonEmptyStringAndNotWhitespace,
+    null: isNull,
+    /** @deprecated Renamed to `null`. */
+    null_: isNull,
+    nullOrUndefined: isNullOrUndefined,
+    number: isNumber,
+    numericString: isNumericString,
+    object: dist_isObject,
+    observable: isObservable,
+    oddInteger: isOddInteger,
+    plainObject: dist_isPlainObject,
+    positiveNumber: isPositiveNumber,
+    primitive: isPrimitive,
+    promise: isPromise,
+    propertyKey: isPropertyKey,
+    regExp: isRegExp,
+    safeInteger: isSafeInteger,
+    set: isSet,
+    sharedArrayBuffer: isSharedArrayBuffer,
+    string: isString,
+    symbol: isSymbol,
+    truthy: isTruthy,
+    tupleLike: isTupleLike,
+    typedArray: isTypedArray,
+    uint16Array: isUint16Array,
+    uint32Array: isUint32Array,
+    uint8Array: dist_isUint8Array,
+    uint8ClampedArray: isUint8ClampedArray,
+    undefined: isUndefined,
+    urlInstance: isUrlInstance,
+    urlSearchParams: isUrlSearchParams,
+    urlString: isUrlString,
+    validDate: isValidDate,
+    validLength: isValidLength,
+    weakMap: isWeakMap,
+    weakRef: isWeakRef,
+    weakSet: isWeakSet,
+    whitespaceString: isWhitespaceString,
+});
+function isAbsoluteMod2(remainder) {
+    return (value) => isInteger(value) && Math.abs(value % 2) === remainder;
+}
+function isAll(predicate, ...values) {
+    return predicateOnArray(Array.prototype.every, predicate, values);
+}
+function isAny(predicate, ...values) {
+    const predicates = isArray(predicate) ? predicate : [predicate];
+    return predicates.some(singlePredicate => predicateOnArray(Array.prototype.some, singlePredicate, values));
+}
+function isArray(value, assertion) {
     if (!Array.isArray(value)) {
         return false;
     }
-    if (!is.function_(assertion)) {
+    if (!isFunction(assertion)) {
         return true;
     }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return value.every(element => assertion(element));
-};
-// eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
-is.buffer = (value) => value?.constructor?.isBuffer?.(value) ?? false;
-is.blob = (value) => isObjectOfType('Blob')(value);
-is.nullOrUndefined = (value) => is.null_(value) || is.undefined(value); // eslint-disable-line @typescript-eslint/ban-types
-is.object = (value) => !is.null_(value) && (typeof value === 'object' || is.function_(value)); // eslint-disable-line @typescript-eslint/ban-types
-is.iterable = (value) => is.function_(value?.[Symbol.iterator]);
-is.asyncIterable = (value) => is.function_(value?.[Symbol.asyncIterator]);
-is.generator = (value) => is.iterable(value) && is.function_(value?.next) && is.function_(value?.throw);
-is.asyncGenerator = (value) => is.asyncIterable(value) && is.function_(value.next) && is.function_(value.throw);
-is.nativePromise = (value) => isObjectOfType('Promise')(value);
-const hasPromiseApi = (value) => is.function_(value?.then)
-    && is.function_(value?.catch);
-is.promise = (value) => is.nativePromise(value) || hasPromiseApi(value);
-is.generatorFunction = isObjectOfType('GeneratorFunction');
-is.asyncGeneratorFunction = (value) => getObjectType(value) === 'AsyncGeneratorFunction';
-is.asyncFunction = (value) => getObjectType(value) === 'AsyncFunction';
-// eslint-disable-next-line no-prototype-builtins, @typescript-eslint/ban-types
-is.boundFunction = (value) => is.function_(value) && !value.hasOwnProperty('prototype');
-is.regExp = isObjectOfType('RegExp');
-is.date = isObjectOfType('Date');
-is.error = isObjectOfType('Error');
-is.map = (value) => isObjectOfType('Map')(value);
-is.set = (value) => isObjectOfType('Set')(value);
-is.weakMap = (value) => isObjectOfType('WeakMap')(value); // eslint-disable-line @typescript-eslint/ban-types
-is.weakSet = (value) => isObjectOfType('WeakSet')(value); // eslint-disable-line @typescript-eslint/ban-types
-is.weakRef = (value) => isObjectOfType('WeakRef')(value); // eslint-disable-line @typescript-eslint/ban-types
-is.int8Array = isObjectOfType('Int8Array');
-is.uint8Array = isObjectOfType('Uint8Array');
-is.uint8ClampedArray = isObjectOfType('Uint8ClampedArray');
-is.int16Array = isObjectOfType('Int16Array');
-is.uint16Array = isObjectOfType('Uint16Array');
-is.int32Array = isObjectOfType('Int32Array');
-is.uint32Array = isObjectOfType('Uint32Array');
-is.float32Array = isObjectOfType('Float32Array');
-is.float64Array = isObjectOfType('Float64Array');
-is.bigInt64Array = isObjectOfType('BigInt64Array');
-is.bigUint64Array = isObjectOfType('BigUint64Array');
-is.arrayBuffer = isObjectOfType('ArrayBuffer');
-is.sharedArrayBuffer = isObjectOfType('SharedArrayBuffer');
-is.dataView = isObjectOfType('DataView');
-// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-is.enumCase = (value, targetEnum) => Object.values(targetEnum).includes(value);
-is.directInstanceOf = (instance, class_) => Object.getPrototypeOf(instance) === class_.prototype;
-is.urlInstance = (value) => isObjectOfType('URL')(value);
-is.urlString = (value) => {
-    if (!is.string(value)) {
+}
+function dist_isArrayBuffer(value) {
+    return getObjectType(value) === 'ArrayBuffer';
+}
+function isArrayLike(value) {
+    return !isNullOrUndefined(value) && !isFunction(value) && isValidLength(value.length);
+}
+function isAsyncFunction(value) {
+    return getObjectType(value) === 'AsyncFunction';
+}
+function dist_isAsyncGenerator(value) {
+    return isAsyncIterable(value) && isFunction(value.next) && isFunction(value.throw);
+}
+function isAsyncGeneratorFunction(value) {
+    return getObjectType(value) === 'AsyncGeneratorFunction';
+}
+function isAsyncIterable(value) {
+    return isFunction(value?.[Symbol.asyncIterator]);
+}
+function isBigint(value) {
+    return typeof value === 'bigint';
+}
+function isBigInt64Array(value) {
+    return getObjectType(value) === 'BigInt64Array';
+}
+function isBigUint64Array(value) {
+    return getObjectType(value) === 'BigUint64Array';
+}
+function isBlob(value) {
+    return getObjectType(value) === 'Blob';
+}
+function isBoolean(value) {
+    return value === true || value === false;
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function isBoundFunction(value) {
+    return isFunction(value) && !Object.prototype.hasOwnProperty.call(value, 'prototype');
+}
+function isBuffer(value) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
+    return value?.constructor?.isBuffer?.(value) ?? false;
+}
+function isClass(value) {
+    return isFunction(value) && value.toString().startsWith('class ');
+}
+function isDataView(value) {
+    return getObjectType(value) === 'DataView';
+}
+function isDate(value) {
+    return getObjectType(value) === 'Date';
+}
+function isDirectInstanceOf(instance, class_) {
+    if (instance === undefined || instance === null) {
         return false;
     }
-    try {
-        new URL(value); // eslint-disable-line no-new
-        return true;
-    }
-    catch {
-        return false;
-    }
-};
-// Example: `is.truthy = (value: unknown): value is (not false | not 0 | not '' | not undefined | not null) => Boolean(value);`
-is.truthy = (value) => Boolean(value); // eslint-disable-line unicorn/prefer-native-coercion-functions
+    return Object.getPrototypeOf(instance) === class_.prototype;
+}
+function isEmptyArray(value) {
+    return isArray(value) && value.length === 0;
+}
+function isEmptyMap(value) {
+    return isMap(value) && value.size === 0;
+}
+function isEmptyObject(value) {
+    return dist_isObject(value) && !isMap(value) && !isSet(value) && Object.keys(value).length === 0;
+}
+function isEmptySet(value) {
+    return isSet(value) && value.size === 0;
+}
+function isEmptyString(value) {
+    return isString(value) && value.length === 0;
+}
+function isEmptyStringOrWhitespace(value) {
+    return isEmptyString(value) || isWhitespaceString(value);
+}
+function isEnumCase(value, targetEnum) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    return Object.values(targetEnum).includes(value);
+}
+function isError(value) {
+    return getObjectType(value) === 'Error';
+}
+function isEvenInteger(value) {
+    return isAbsoluteMod2(0)(value);
+}
 // Example: `is.falsy = (value: unknown): value is (not true | 0 | '' | undefined | null) => Boolean(value);`
-is.falsy = (value) => !value;
-is.nan = (value) => Number.isNaN(value);
-is.primitive = (value) => is.null_(value) || isPrimitiveTypeName(typeof value);
-is.integer = (value) => Number.isInteger(value);
-is.safeInteger = (value) => Number.isSafeInteger(value);
-is.plainObject = (value) => {
-    // From: https://github.com/sindresorhus/is-plain-obj/blob/main/index.js
-    if (typeof value !== 'object' || value === null) {
-        return false;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const prototype = Object.getPrototypeOf(value);
-    return (prototype === null || prototype === Object.prototype || Object.getPrototypeOf(prototype) === null) && !(Symbol.toStringTag in value) && !(Symbol.iterator in value);
-};
-is.typedArray = (value) => isTypedArrayName(getObjectType(value));
-const isValidLength = (value) => is.safeInteger(value) && value >= 0;
-is.arrayLike = (value) => !is.nullOrUndefined(value) && !is.function_(value) && isValidLength(value.length);
-is.tupleLike = (value, guards) => {
-    if (is.array(guards) && is.array(value) && guards.length === value.length) {
-        return guards.every((guard, index) => guard(value[index]));
-    }
-    return false;
-};
-is.inRange = (value, range) => {
-    if (is.number(range)) {
-        return value >= Math.min(0, range) && value <= Math.max(range, 0);
-    }
-    if (is.array(range) && range.length === 2) {
-        return value >= Math.min(...range) && value <= Math.max(...range);
-    }
-    throw new TypeError(`Invalid range: ${JSON.stringify(range)}`);
-};
+function isFalsy(value) {
+    return !value;
+}
+function isFloat32Array(value) {
+    return getObjectType(value) === 'Float32Array';
+}
+function isFloat64Array(value) {
+    return getObjectType(value) === 'Float64Array';
+}
+function isFormData(value) {
+    return getObjectType(value) === 'FormData';
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function isFunction(value) {
+    return typeof value === 'function';
+}
+function dist_isGenerator(value) {
+    return isIterable(value) && isFunction(value?.next) && isFunction(value?.throw);
+}
+function isGeneratorFunction(value) {
+    return getObjectType(value) === 'GeneratorFunction';
+}
 // eslint-disable-next-line @typescript-eslint/naming-convention
 const NODE_TYPE_ELEMENT = 1;
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -37557,12 +47863,96 @@ const DOM_PROPERTIES_TO_CHECK = [
     'attributes',
     'nodeValue',
 ];
-is.domElement = (value) => is.object(value)
-    && value.nodeType === NODE_TYPE_ELEMENT
-    && is.string(value.nodeName)
-    && !is.plainObject(value)
-    && DOM_PROPERTIES_TO_CHECK.every(property => property in value);
-is.observable = (value) => {
+function isHtmlElement(value) {
+    return dist_isObject(value)
+        && value.nodeType === NODE_TYPE_ELEMENT
+        && isString(value.nodeName)
+        && !dist_isPlainObject(value)
+        && DOM_PROPERTIES_TO_CHECK.every(property => property in value);
+}
+function isInfinite(value) {
+    return value === Number.POSITIVE_INFINITY || value === Number.NEGATIVE_INFINITY;
+}
+function isInRange(value, range) {
+    if (isNumber(range)) {
+        return value >= Math.min(0, range) && value <= Math.max(range, 0);
+    }
+    if (isArray(range) && range.length === 2) {
+        return value >= Math.min(...range) && value <= Math.max(...range);
+    }
+    throw new TypeError(`Invalid range: ${JSON.stringify(range)}`);
+}
+function isInt16Array(value) {
+    return getObjectType(value) === 'Int16Array';
+}
+function isInt32Array(value) {
+    return getObjectType(value) === 'Int32Array';
+}
+function isInt8Array(value) {
+    return getObjectType(value) === 'Int8Array';
+}
+function isInteger(value) {
+    return Number.isInteger(value);
+}
+function isIterable(value) {
+    return isFunction(value?.[Symbol.iterator]);
+}
+function isMap(value) {
+    return getObjectType(value) === 'Map';
+}
+function isNan(value) {
+    return Number.isNaN(value);
+}
+function isNativePromise(value) {
+    return getObjectType(value) === 'Promise';
+}
+function isNegativeNumber(value) {
+    return isNumber(value) && value < 0;
+}
+function isNodeStream(value) {
+    return dist_isObject(value) && isFunction(value.pipe) && !isObservable(value);
+}
+function isNonEmptyArray(value) {
+    return isArray(value) && value.length > 0;
+}
+function isNonEmptyMap(value) {
+    return isMap(value) && value.size > 0;
+}
+// TODO: Use `not` operator here to remove `Map` and `Set` from type guard:
+// - https://github.com/Microsoft/TypeScript/pull/29317
+function isNonEmptyObject(value) {
+    return dist_isObject(value) && !isMap(value) && !isSet(value) && Object.keys(value).length > 0;
+}
+function isNonEmptySet(value) {
+    return isSet(value) && value.size > 0;
+}
+// TODO: Use `not ''` when the `not` operator is available.
+function isNonEmptyString(value) {
+    return isString(value) && value.length > 0;
+}
+// TODO: Use `not ''` when the `not` operator is available.
+function isNonEmptyStringAndNotWhitespace(value) {
+    return isString(value) && !isEmptyStringOrWhitespace(value);
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function isNull(value) {
+    return value === null;
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function isNullOrUndefined(value) {
+    return isNull(value) || isUndefined(value);
+}
+function isNumber(value) {
+    return typeof value === 'number' && !Number.isNaN(value);
+}
+function isNumericString(value) {
+    return isString(value) && !isEmptyStringOrWhitespace(value) && !Number.isNaN(Number(value));
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function dist_isObject(value) {
+    return !isNull(value) && (typeof value === 'object' || isFunction(value));
+}
+function isObservable(value) {
     if (!value) {
         return false;
     }
@@ -37575,195 +47965,806 @@ is.observable = (value) => {
         return true;
     }
     return false;
-};
-is.nodeStream = (value) => is.object(value) && is.function_(value.pipe) && !is.observable(value);
-is.infinite = (value) => value === Number.POSITIVE_INFINITY || value === Number.NEGATIVE_INFINITY;
-const isAbsoluteMod2 = (remainder) => (value) => is.integer(value) && Math.abs(value % 2) === remainder;
-is.evenInteger = isAbsoluteMod2(0);
-is.oddInteger = isAbsoluteMod2(1);
-is.emptyArray = (value) => is.array(value) && value.length === 0;
-is.nonEmptyArray = (value) => is.array(value) && value.length > 0;
-is.emptyString = (value) => is.string(value) && value.length === 0;
-const isWhiteSpaceString = (value) => is.string(value) && !/\S/.test(value);
-is.emptyStringOrWhitespace = (value) => is.emptyString(value) || isWhiteSpaceString(value);
-// TODO: Use `not ''` when the `not` operator is available.
-is.nonEmptyString = (value) => is.string(value) && value.length > 0;
-// TODO: Use `not ''` when the `not` operator is available.
-is.nonEmptyStringAndNotWhitespace = (value) => is.string(value) && !is.emptyStringOrWhitespace(value);
-// eslint-disable-next-line unicorn/no-array-callback-reference
-is.emptyObject = (value) => is.object(value) && !is.map(value) && !is.set(value) && Object.keys(value).length === 0;
-// TODO: Use `not` operator here to remove `Map` and `Set` from type guard:
-// - https://github.com/Microsoft/TypeScript/pull/29317
-// eslint-disable-next-line unicorn/no-array-callback-reference
-is.nonEmptyObject = (value) => is.object(value) && !is.map(value) && !is.set(value) && Object.keys(value).length > 0;
-is.emptySet = (value) => is.set(value) && value.size === 0;
-is.nonEmptySet = (value) => is.set(value) && value.size > 0;
-// eslint-disable-next-line unicorn/no-array-callback-reference
-is.emptyMap = (value) => is.map(value) && value.size === 0;
-// eslint-disable-next-line unicorn/no-array-callback-reference
-is.nonEmptyMap = (value) => is.map(value) && value.size > 0;
+}
+function isOddInteger(value) {
+    return isAbsoluteMod2(1)(value);
+}
+function dist_isPlainObject(value) {
+    // From: https://github.com/sindresorhus/is-plain-obj/blob/main/index.js
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const prototype = Object.getPrototypeOf(value);
+    return (prototype === null || prototype === Object.prototype || Object.getPrototypeOf(prototype) === null) && !(Symbol.toStringTag in value) && !(Symbol.iterator in value);
+}
+function isPositiveNumber(value) {
+    return isNumber(value) && value > 0;
+}
+function isPrimitive(value) {
+    return isNull(value) || isPrimitiveTypeName(typeof value);
+}
+function isPromise(value) {
+    return isNativePromise(value) || hasPromiseApi(value);
+}
 // `PropertyKey` is any value that can be used as an object key (string, number, or symbol)
-is.propertyKey = (value) => is.any([is.string, is.number, is.symbol], value);
-is.formData = (value) => isObjectOfType('FormData')(value);
-is.urlSearchParams = (value) => isObjectOfType('URLSearchParams')(value);
-const predicateOnArray = (method, predicate, values) => {
-    if (!is.function_(predicate)) {
+function isPropertyKey(value) {
+    return isAny([isString, isNumber, isSymbol], value);
+}
+function isRegExp(value) {
+    return getObjectType(value) === 'RegExp';
+}
+function isSafeInteger(value) {
+    return Number.isSafeInteger(value);
+}
+function isSet(value) {
+    return getObjectType(value) === 'Set';
+}
+function isSharedArrayBuffer(value) {
+    return getObjectType(value) === 'SharedArrayBuffer';
+}
+function isString(value) {
+    return typeof value === 'string';
+}
+function isSymbol(value) {
+    return typeof value === 'symbol';
+}
+// Example: `is.truthy = (value: unknown): value is (not false | not 0 | not '' | not undefined | not null) => Boolean(value);`
+// eslint-disable-next-line unicorn/prefer-native-coercion-functions
+function isTruthy(value) {
+    return Boolean(value);
+}
+function isTupleLike(value, guards) {
+    if (isArray(guards) && isArray(value) && guards.length === value.length) {
+        return guards.every((guard, index) => guard(value[index]));
+    }
+    return false;
+}
+function isTypedArray(value) {
+    return isTypedArrayName(getObjectType(value));
+}
+function isUint16Array(value) {
+    return getObjectType(value) === 'Uint16Array';
+}
+function isUint32Array(value) {
+    return getObjectType(value) === 'Uint32Array';
+}
+function dist_isUint8Array(value) {
+    return getObjectType(value) === 'Uint8Array';
+}
+function isUint8ClampedArray(value) {
+    return getObjectType(value) === 'Uint8ClampedArray';
+}
+function isUndefined(value) {
+    return value === undefined;
+}
+function isUrlInstance(value) {
+    return getObjectType(value) === 'URL';
+}
+// eslint-disable-next-line unicorn/prevent-abbreviations
+function isUrlSearchParams(value) {
+    return getObjectType(value) === 'URLSearchParams';
+}
+function isUrlString(value) {
+    if (!isString(value)) {
+        return false;
+    }
+    try {
+        new URL(value); // eslint-disable-line no-new
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+function isValidDate(value) {
+    return isDate(value) && !isNan(Number(value));
+}
+function isValidLength(value) {
+    return isSafeInteger(value) && value >= 0;
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function isWeakMap(value) {
+    return getObjectType(value) === 'WeakMap';
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function isWeakRef(value) {
+    return getObjectType(value) === 'WeakRef';
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function isWeakSet(value) {
+    return getObjectType(value) === 'WeakSet';
+}
+function isWhitespaceString(value) {
+    return isString(value) && /^\s+$/.test(value);
+}
+function predicateOnArray(method, predicate, values) {
+    if (!isFunction(predicate)) {
         throw new TypeError(`Invalid predicate: ${JSON.stringify(predicate)}`);
     }
     if (values.length === 0) {
         throw new TypeError('Invalid number of values');
     }
     return method.call(values, predicate);
-};
-is.any = (predicate, ...values) => {
-    const predicates = is.array(predicate) ? predicate : [predicate];
-    return predicates.some(singlePredicate => predicateOnArray(Array.prototype.some, singlePredicate, values));
-};
-is.all = (predicate, ...values) => predicateOnArray(Array.prototype.every, predicate, values);
-const assertType = (condition, description, value, options = {}) => {
-    if (!condition) {
-        const { multipleValues } = options;
-        const valuesMessage = multipleValues
-            ? `received values of types ${[
-                ...new Set(value.map(singleValue => `\`${is(singleValue)}\``)),
-            ].join(', ')}`
-            : `received value of type \`${is(value)}\``;
-        throw new TypeError(`Expected value which is \`${description}\`, ${valuesMessage}.`);
-    }
-};
-/* eslint-disable @typescript-eslint/no-confusing-void-expression */
+}
+function typeErrorMessage(description, value) {
+    return `Expected value which is \`${description}\`, received value of type \`${is(value)}\`.`;
+}
+function unique(values) {
+    // eslint-disable-next-line unicorn/prefer-spread
+    return Array.from(new Set(values));
+}
+const andFormatter = new Intl.ListFormat('en', { style: 'long', type: 'conjunction' });
+const orFormatter = new Intl.ListFormat('en', { style: 'long', type: 'disjunction' });
+function typeErrorMessageMultipleValues(expectedType, values) {
+    const uniqueExpectedTypes = unique((isArray(expectedType) ? expectedType : [expectedType]).map(value => `\`${value}\``));
+    const uniqueValueTypes = unique(values.map(value => `\`${is(value)}\``));
+    return `Expected values which are ${orFormatter.format(uniqueExpectedTypes)}. Received values of type${uniqueValueTypes.length > 1 ? 's' : ''} ${andFormatter.format(uniqueValueTypes)}.`;
+}
 const assert = {
-    // Unknowns.
-    undefined: (value) => assertType(is.undefined(value), 'undefined', value),
-    string: (value) => assertType(is.string(value), 'string', value),
-    number: (value) => assertType(is.number(value), 'number', value),
-    positiveNumber: (value) => assertType(is.positiveNumber(value), "positive number" /* AssertionTypeDescription.positiveNumber */, value),
-    negativeNumber: (value) => assertType(is.negativeNumber(value), "negative number" /* AssertionTypeDescription.negativeNumber */, value),
-    bigint: (value) => assertType(is.bigint(value), 'bigint', value),
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    function_: (value) => assertType(is.function_(value), 'Function', value),
-    null_: (value) => assertType(is.null_(value), 'null', value),
-    class_: (value) => assertType(is.class_(value), "Class" /* AssertionTypeDescription.class_ */, value),
-    boolean: (value) => assertType(is.boolean(value), 'boolean', value),
-    symbol: (value) => assertType(is.symbol(value), 'symbol', value),
-    numericString: (value) => assertType(is.numericString(value), "string with a number" /* AssertionTypeDescription.numericString */, value),
-    array: (value, assertion) => {
-        const assert = assertType;
-        assert(is.array(value), 'Array', value);
-        if (assertion) {
-            // eslint-disable-next-line unicorn/no-array-for-each, unicorn/no-array-callback-reference
-            value.forEach(assertion);
-        }
-    },
-    buffer: (value) => assertType(is.buffer(value), 'Buffer', value),
-    blob: (value) => assertType(is.blob(value), 'Blob', value),
-    nullOrUndefined: (value) => assertType(is.nullOrUndefined(value), "null or undefined" /* AssertionTypeDescription.nullOrUndefined */, value),
-    object: (value) => assertType(is.object(value), 'Object', value),
-    iterable: (value) => assertType(is.iterable(value), "Iterable" /* AssertionTypeDescription.iterable */, value),
-    asyncIterable: (value) => assertType(is.asyncIterable(value), "AsyncIterable" /* AssertionTypeDescription.asyncIterable */, value),
-    generator: (value) => assertType(is.generator(value), 'Generator', value),
-    asyncGenerator: (value) => assertType(is.asyncGenerator(value), 'AsyncGenerator', value),
-    nativePromise: (value) => assertType(is.nativePromise(value), "native Promise" /* AssertionTypeDescription.nativePromise */, value),
-    promise: (value) => assertType(is.promise(value), 'Promise', value),
-    generatorFunction: (value) => assertType(is.generatorFunction(value), 'GeneratorFunction', value),
-    asyncGeneratorFunction: (value) => assertType(is.asyncGeneratorFunction(value), 'AsyncGeneratorFunction', value),
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    asyncFunction: (value) => assertType(is.asyncFunction(value), 'AsyncFunction', value),
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    boundFunction: (value) => assertType(is.boundFunction(value), 'Function', value),
-    regExp: (value) => assertType(is.regExp(value), 'RegExp', value),
-    date: (value) => assertType(is.date(value), 'Date', value),
-    error: (value) => assertType(is.error(value), 'Error', value),
-    map: (value) => assertType(is.map(value), 'Map', value),
-    set: (value) => assertType(is.set(value), 'Set', value),
-    weakMap: (value) => assertType(is.weakMap(value), 'WeakMap', value),
-    weakSet: (value) => assertType(is.weakSet(value), 'WeakSet', value),
-    weakRef: (value) => assertType(is.weakRef(value), 'WeakRef', value),
-    int8Array: (value) => assertType(is.int8Array(value), 'Int8Array', value),
-    uint8Array: (value) => assertType(is.uint8Array(value), 'Uint8Array', value),
-    uint8ClampedArray: (value) => assertType(is.uint8ClampedArray(value), 'Uint8ClampedArray', value),
-    int16Array: (value) => assertType(is.int16Array(value), 'Int16Array', value),
-    uint16Array: (value) => assertType(is.uint16Array(value), 'Uint16Array', value),
-    int32Array: (value) => assertType(is.int32Array(value), 'Int32Array', value),
-    uint32Array: (value) => assertType(is.uint32Array(value), 'Uint32Array', value),
-    float32Array: (value) => assertType(is.float32Array(value), 'Float32Array', value),
-    float64Array: (value) => assertType(is.float64Array(value), 'Float64Array', value),
-    bigInt64Array: (value) => assertType(is.bigInt64Array(value), 'BigInt64Array', value),
-    bigUint64Array: (value) => assertType(is.bigUint64Array(value), 'BigUint64Array', value),
-    arrayBuffer: (value) => assertType(is.arrayBuffer(value), 'ArrayBuffer', value),
-    sharedArrayBuffer: (value) => assertType(is.sharedArrayBuffer(value), 'SharedArrayBuffer', value),
-    dataView: (value) => assertType(is.dataView(value), 'DataView', value),
-    enumCase: (value, targetEnum) => assertType(is.enumCase(value, targetEnum), 'EnumCase', value),
-    urlInstance: (value) => assertType(is.urlInstance(value), 'URL', value),
-    urlString: (value) => assertType(is.urlString(value), "string with a URL" /* AssertionTypeDescription.urlString */, value),
-    truthy: (value) => assertType(is.truthy(value), "truthy" /* AssertionTypeDescription.truthy */, value),
-    falsy: (value) => assertType(is.falsy(value), "falsy" /* AssertionTypeDescription.falsy */, value),
-    nan: (value) => assertType(is.nan(value), "NaN" /* AssertionTypeDescription.nan */, value),
-    primitive: (value) => assertType(is.primitive(value), "primitive" /* AssertionTypeDescription.primitive */, value),
-    integer: (value) => assertType(is.integer(value), "integer" /* AssertionTypeDescription.integer */, value),
-    safeInteger: (value) => assertType(is.safeInteger(value), "integer" /* AssertionTypeDescription.safeInteger */, value),
-    plainObject: (value) => assertType(is.plainObject(value), "plain object" /* AssertionTypeDescription.plainObject */, value),
-    typedArray: (value) => assertType(is.typedArray(value), "TypedArray" /* AssertionTypeDescription.typedArray */, value),
-    arrayLike: (value) => assertType(is.arrayLike(value), "array-like" /* AssertionTypeDescription.arrayLike */, value),
-    tupleLike: (value, guards) => assertType(is.tupleLike(value, guards), "tuple-like" /* AssertionTypeDescription.tupleLike */, value),
-    domElement: (value) => assertType(is.domElement(value), "HTMLElement" /* AssertionTypeDescription.domElement */, value),
-    observable: (value) => assertType(is.observable(value), 'Observable', value),
-    nodeStream: (value) => assertType(is.nodeStream(value), "Node.js Stream" /* AssertionTypeDescription.nodeStream */, value),
-    infinite: (value) => assertType(is.infinite(value), "infinite number" /* AssertionTypeDescription.infinite */, value),
-    emptyArray: (value) => assertType(is.emptyArray(value), "empty array" /* AssertionTypeDescription.emptyArray */, value),
-    nonEmptyArray: (value) => assertType(is.nonEmptyArray(value), "non-empty array" /* AssertionTypeDescription.nonEmptyArray */, value),
-    emptyString: (value) => assertType(is.emptyString(value), "empty string" /* AssertionTypeDescription.emptyString */, value),
-    emptyStringOrWhitespace: (value) => assertType(is.emptyStringOrWhitespace(value), "empty string or whitespace" /* AssertionTypeDescription.emptyStringOrWhitespace */, value),
-    nonEmptyString: (value) => assertType(is.nonEmptyString(value), "non-empty string" /* AssertionTypeDescription.nonEmptyString */, value),
-    nonEmptyStringAndNotWhitespace: (value) => assertType(is.nonEmptyStringAndNotWhitespace(value), "non-empty string and not whitespace" /* AssertionTypeDescription.nonEmptyStringAndNotWhitespace */, value),
-    emptyObject: (value) => assertType(is.emptyObject(value), "empty object" /* AssertionTypeDescription.emptyObject */, value),
-    nonEmptyObject: (value) => assertType(is.nonEmptyObject(value), "non-empty object" /* AssertionTypeDescription.nonEmptyObject */, value),
-    emptySet: (value) => assertType(is.emptySet(value), "empty set" /* AssertionTypeDescription.emptySet */, value),
-    nonEmptySet: (value) => assertType(is.nonEmptySet(value), "non-empty set" /* AssertionTypeDescription.nonEmptySet */, value),
-    emptyMap: (value) => assertType(is.emptyMap(value), "empty map" /* AssertionTypeDescription.emptyMap */, value),
-    nonEmptyMap: (value) => assertType(is.nonEmptyMap(value), "non-empty map" /* AssertionTypeDescription.nonEmptyMap */, value),
-    propertyKey: (value) => assertType(is.propertyKey(value), 'PropertyKey', value),
-    formData: (value) => assertType(is.formData(value), 'FormData', value),
-    urlSearchParams: (value) => assertType(is.urlSearchParams(value), 'URLSearchParams', value),
-    // Numbers.
-    evenInteger: (value) => assertType(is.evenInteger(value), "even integer" /* AssertionTypeDescription.evenInteger */, value),
-    oddInteger: (value) => assertType(is.oddInteger(value), "odd integer" /* AssertionTypeDescription.oddInteger */, value),
-    // Two arguments.
-    directInstanceOf: (instance, class_) => assertType(is.directInstanceOf(instance, class_), "T" /* AssertionTypeDescription.directInstanceOf */, instance),
-    inRange: (value, range) => assertType(is.inRange(value, range), "in range" /* AssertionTypeDescription.inRange */, value),
-    // Variadic functions.
-    any: (predicate, ...values) => assertType(is.any(predicate, ...values), "predicate returns truthy for any value" /* AssertionTypeDescription.any */, values, { multipleValues: true }),
-    all: (predicate, ...values) => assertType(is.all(predicate, ...values), "predicate returns truthy for all values" /* AssertionTypeDescription.all */, values, { multipleValues: true }),
+    all: assertAll,
+    any: assertAny,
+    array: assertArray,
+    arrayBuffer: assertArrayBuffer,
+    arrayLike: assertArrayLike,
+    asyncFunction: assertAsyncFunction,
+    asyncGenerator: assertAsyncGenerator,
+    asyncGeneratorFunction: assertAsyncGeneratorFunction,
+    asyncIterable: assertAsyncIterable,
+    bigint: assertBigint,
+    bigInt64Array: assertBigInt64Array,
+    bigUint64Array: assertBigUint64Array,
+    blob: assertBlob,
+    boolean: assertBoolean,
+    boundFunction: assertBoundFunction,
+    buffer: assertBuffer,
+    class: assertClass,
+    class_: assertClass,
+    dataView: assertDataView,
+    date: assertDate,
+    directInstanceOf: assertDirectInstanceOf,
+    domElement: assertHtmlElement,
+    emptyArray: assertEmptyArray,
+    emptyMap: assertEmptyMap,
+    emptyObject: assertEmptyObject,
+    emptySet: assertEmptySet,
+    emptyString: assertEmptyString,
+    emptyStringOrWhitespace: assertEmptyStringOrWhitespace,
+    enumCase: assertEnumCase,
+    error: assertError,
+    evenInteger: assertEvenInteger,
+    falsy: assertFalsy,
+    float32Array: assertFloat32Array,
+    float64Array: assertFloat64Array,
+    formData: assertFormData,
+    function: assertFunction,
+    function_: assertFunction,
+    generator: assertGenerator,
+    generatorFunction: assertGeneratorFunction,
+    htmlElement: assertHtmlElement,
+    infinite: assertInfinite,
+    inRange: assertInRange,
+    int16Array: assertInt16Array,
+    int32Array: assertInt32Array,
+    int8Array: assertInt8Array,
+    integer: assertInteger,
+    iterable: assertIterable,
+    map: assertMap,
+    nan: assertNan,
+    nativePromise: assertNativePromise,
+    negativeNumber: assertNegativeNumber,
+    nodeStream: assertNodeStream,
+    nonEmptyArray: assertNonEmptyArray,
+    nonEmptyMap: assertNonEmptyMap,
+    nonEmptyObject: assertNonEmptyObject,
+    nonEmptySet: assertNonEmptySet,
+    nonEmptyString: assertNonEmptyString,
+    nonEmptyStringAndNotWhitespace: assertNonEmptyStringAndNotWhitespace,
+    null: assertNull,
+    null_: assertNull,
+    nullOrUndefined: assertNullOrUndefined,
+    number: assertNumber,
+    numericString: assertNumericString,
+    object: assertObject,
+    observable: assertObservable,
+    oddInteger: assertOddInteger,
+    plainObject: assertPlainObject,
+    positiveNumber: assertPositiveNumber,
+    primitive: assertPrimitive,
+    promise: assertPromise,
+    propertyKey: assertPropertyKey,
+    regExp: assertRegExp,
+    safeInteger: assertSafeInteger,
+    set: assertSet,
+    sharedArrayBuffer: assertSharedArrayBuffer,
+    string: assertString,
+    symbol: assertSymbol,
+    truthy: assertTruthy,
+    tupleLike: assertTupleLike,
+    typedArray: assertTypedArray,
+    uint16Array: assertUint16Array,
+    uint32Array: assertUint32Array,
+    uint8Array: assertUint8Array,
+    uint8ClampedArray: assertUint8ClampedArray,
+    undefined: assertUndefined,
+    urlInstance: assertUrlInstance,
+    urlSearchParams: assertUrlSearchParams,
+    urlString: assertUrlString,
+    validDate: assertValidDate,
+    validLength: assertValidLength,
+    weakMap: assertWeakMap,
+    weakRef: assertWeakRef,
+    weakSet: assertWeakSet,
+    whitespaceString: assertWhitespaceString,
 };
-/* eslint-enable @typescript-eslint/no-confusing-void-expression */
-// Some few keywords are reserved, but we'll populate them for Node.js users
-// See https://github.com/Microsoft/TypeScript/issues/2536
-Object.defineProperties(is, {
-    class: {
-        value: is.class_,
-    },
-    function: {
-        value: is.function_,
-    },
-    null: {
-        value: is.null_,
-    },
-});
-Object.defineProperties(assert, {
-    class: {
-        value: assert.class_,
-    },
-    function: {
-        value: assert.function_,
-    },
-    null: {
-        value: assert.null_,
-    },
-});
+const methodTypeMap = {
+    isArray: 'Array',
+    isArrayBuffer: 'ArrayBuffer',
+    isArrayLike: 'array-like',
+    isAsyncFunction: 'AsyncFunction',
+    isAsyncGenerator: 'AsyncGenerator',
+    isAsyncGeneratorFunction: 'AsyncGeneratorFunction',
+    isAsyncIterable: 'AsyncIterable',
+    isBigint: 'bigint',
+    isBigInt64Array: 'BigInt64Array',
+    isBigUint64Array: 'BigUint64Array',
+    isBlob: 'Blob',
+    isBoolean: 'boolean',
+    isBoundFunction: 'Function',
+    isBuffer: 'Buffer',
+    isClass: 'Class',
+    isDataView: 'DataView',
+    isDate: 'Date',
+    isDirectInstanceOf: 'T',
+    /** @deprecated */
+    isDomElement: 'HTMLElement',
+    isEmptyArray: 'empty array',
+    isEmptyMap: 'empty map',
+    isEmptyObject: 'empty object',
+    isEmptySet: 'empty set',
+    isEmptyString: 'empty string',
+    isEmptyStringOrWhitespace: 'empty string or whitespace',
+    isEnumCase: 'EnumCase',
+    isError: 'Error',
+    isEvenInteger: 'even integer',
+    isFalsy: 'falsy',
+    isFloat32Array: 'Float32Array',
+    isFloat64Array: 'Float64Array',
+    isFormData: 'FormData',
+    isFunction: 'Function',
+    isGenerator: 'Generator',
+    isGeneratorFunction: 'GeneratorFunction',
+    isHtmlElement: 'HTMLElement',
+    isInfinite: 'infinite number',
+    isInRange: 'in range',
+    isInt16Array: 'Int16Array',
+    isInt32Array: 'Int32Array',
+    isInt8Array: 'Int8Array',
+    isInteger: 'integer',
+    isIterable: 'Iterable',
+    isMap: 'Map',
+    isNan: 'NaN',
+    isNativePromise: 'native Promise',
+    isNegativeNumber: 'negative number',
+    isNodeStream: 'Node.js Stream',
+    isNonEmptyArray: 'non-empty array',
+    isNonEmptyMap: 'non-empty map',
+    isNonEmptyObject: 'non-empty object',
+    isNonEmptySet: 'non-empty set',
+    isNonEmptyString: 'non-empty string',
+    isNonEmptyStringAndNotWhitespace: 'non-empty string and not whitespace',
+    isNull: 'null',
+    isNullOrUndefined: 'null or undefined',
+    isNumber: 'number',
+    isNumericString: 'string with a number',
+    isObject: 'Object',
+    isObservable: 'Observable',
+    isOddInteger: 'odd integer',
+    isPlainObject: 'plain object',
+    isPositiveNumber: 'positive number',
+    isPrimitive: 'primitive',
+    isPromise: 'Promise',
+    isPropertyKey: 'PropertyKey',
+    isRegExp: 'RegExp',
+    isSafeInteger: 'integer',
+    isSet: 'Set',
+    isSharedArrayBuffer: 'SharedArrayBuffer',
+    isString: 'string',
+    isSymbol: 'symbol',
+    isTruthy: 'truthy',
+    isTupleLike: 'tuple-like',
+    isTypedArray: 'TypedArray',
+    isUint16Array: 'Uint16Array',
+    isUint32Array: 'Uint32Array',
+    isUint8Array: 'Uint8Array',
+    isUint8ClampedArray: 'Uint8ClampedArray',
+    isUndefined: 'undefined',
+    isUrlInstance: 'URL',
+    isUrlSearchParams: 'URLSearchParams',
+    isUrlString: 'string with a URL',
+    isValidDate: 'valid Date',
+    isValidLength: 'valid length',
+    isWeakMap: 'WeakMap',
+    isWeakRef: 'WeakRef',
+    isWeakSet: 'WeakSet',
+    isWhitespaceString: 'whitespace string',
+};
+function keysOf(value) {
+    return Object.keys(value);
+}
+const isMethodNames = keysOf(methodTypeMap);
+function isIsMethodName(value) {
+    return isMethodNames.includes(value);
+}
+function assertAll(predicate, ...values) {
+    if (!isAll(predicate, ...values)) {
+        const expectedType = isIsMethodName(predicate.name) ? methodTypeMap[predicate.name] : 'predicate returns truthy for all values';
+        throw new TypeError(typeErrorMessageMultipleValues(expectedType, values));
+    }
+}
+function assertAny(predicate, ...values) {
+    if (!isAny(predicate, ...values)) {
+        const predicates = isArray(predicate) ? predicate : [predicate];
+        const expectedTypes = predicates.map(predicate => isIsMethodName(predicate.name) ? methodTypeMap[predicate.name] : 'predicate returns truthy for any value');
+        throw new TypeError(typeErrorMessageMultipleValues(expectedTypes, values));
+    }
+}
+function assertArray(value, assertion, message) {
+    if (!isArray(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Array', value));
+    }
+    if (assertion) {
+        // eslint-disable-next-line unicorn/no-array-for-each, unicorn/no-array-callback-reference
+        value.forEach(assertion);
+    }
+}
+function assertArrayBuffer(value, message) {
+    if (!dist_isArrayBuffer(value)) {
+        throw new TypeError(message ?? typeErrorMessage('ArrayBuffer', value));
+    }
+}
+function assertArrayLike(value, message) {
+    if (!isArrayLike(value)) {
+        throw new TypeError(message ?? typeErrorMessage('array-like', value));
+    }
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function assertAsyncFunction(value, message) {
+    if (!isAsyncFunction(value)) {
+        throw new TypeError(message ?? typeErrorMessage('AsyncFunction', value));
+    }
+}
+function assertAsyncGenerator(value, message) {
+    if (!dist_isAsyncGenerator(value)) {
+        throw new TypeError(message ?? typeErrorMessage('AsyncGenerator', value));
+    }
+}
+function assertAsyncGeneratorFunction(value, message) {
+    if (!isAsyncGeneratorFunction(value)) {
+        throw new TypeError(message ?? typeErrorMessage('AsyncGeneratorFunction', value));
+    }
+}
+function assertAsyncIterable(value, message) {
+    if (!isAsyncIterable(value)) {
+        throw new TypeError(message ?? typeErrorMessage('AsyncIterable', value));
+    }
+}
+function assertBigint(value, message) {
+    if (!isBigint(value)) {
+        throw new TypeError(message ?? typeErrorMessage('bigint', value));
+    }
+}
+function assertBigInt64Array(value, message) {
+    if (!isBigInt64Array(value)) {
+        throw new TypeError(message ?? typeErrorMessage('BigInt64Array', value));
+    }
+}
+function assertBigUint64Array(value, message) {
+    if (!isBigUint64Array(value)) {
+        throw new TypeError(message ?? typeErrorMessage('BigUint64Array', value));
+    }
+}
+function assertBlob(value, message) {
+    if (!isBlob(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Blob', value));
+    }
+}
+function assertBoolean(value, message) {
+    if (!isBoolean(value)) {
+        throw new TypeError(message ?? typeErrorMessage('boolean', value));
+    }
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function assertBoundFunction(value, message) {
+    if (!isBoundFunction(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Function', value));
+    }
+}
+function assertBuffer(value, message) {
+    if (!isBuffer(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Buffer', value));
+    }
+}
+function assertClass(value, message) {
+    if (!isClass(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Class', value));
+    }
+}
+function assertDataView(value, message) {
+    if (!isDataView(value)) {
+        throw new TypeError(message ?? typeErrorMessage('DataView', value));
+    }
+}
+function assertDate(value, message) {
+    if (!isDate(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Date', value));
+    }
+}
+function assertDirectInstanceOf(instance, class_, message) {
+    if (!isDirectInstanceOf(instance, class_)) {
+        throw new TypeError(message ?? typeErrorMessage('T', instance));
+    }
+}
+function assertEmptyArray(value, message) {
+    if (!isEmptyArray(value)) {
+        throw new TypeError(message ?? typeErrorMessage('empty array', value));
+    }
+}
+function assertEmptyMap(value, message) {
+    if (!isEmptyMap(value)) {
+        throw new TypeError(message ?? typeErrorMessage('empty map', value));
+    }
+}
+function assertEmptyObject(value, message) {
+    if (!isEmptyObject(value)) {
+        throw new TypeError(message ?? typeErrorMessage('empty object', value));
+    }
+}
+function assertEmptySet(value, message) {
+    if (!isEmptySet(value)) {
+        throw new TypeError(message ?? typeErrorMessage('empty set', value));
+    }
+}
+function assertEmptyString(value, message) {
+    if (!isEmptyString(value)) {
+        throw new TypeError(message ?? typeErrorMessage('empty string', value));
+    }
+}
+function assertEmptyStringOrWhitespace(value, message) {
+    if (!isEmptyStringOrWhitespace(value)) {
+        throw new TypeError(message ?? typeErrorMessage('empty string or whitespace', value));
+    }
+}
+function assertEnumCase(value, targetEnum, message) {
+    if (!isEnumCase(value, targetEnum)) {
+        throw new TypeError(message ?? typeErrorMessage('EnumCase', value));
+    }
+}
+function assertError(value, message) {
+    if (!isError(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Error', value));
+    }
+}
+function assertEvenInteger(value, message) {
+    if (!isEvenInteger(value)) {
+        throw new TypeError(message ?? typeErrorMessage('even integer', value));
+    }
+}
+function assertFalsy(value, message) {
+    if (!isFalsy(value)) {
+        throw new TypeError(message ?? typeErrorMessage('falsy', value));
+    }
+}
+function assertFloat32Array(value, message) {
+    if (!isFloat32Array(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Float32Array', value));
+    }
+}
+function assertFloat64Array(value, message) {
+    if (!isFloat64Array(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Float64Array', value));
+    }
+}
+function assertFormData(value, message) {
+    if (!isFormData(value)) {
+        throw new TypeError(message ?? typeErrorMessage('FormData', value));
+    }
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function assertFunction(value, message) {
+    if (!isFunction(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Function', value));
+    }
+}
+function assertGenerator(value, message) {
+    if (!dist_isGenerator(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Generator', value));
+    }
+}
+function assertGeneratorFunction(value, message) {
+    if (!isGeneratorFunction(value)) {
+        throw new TypeError(message ?? typeErrorMessage('GeneratorFunction', value));
+    }
+}
+function assertHtmlElement(value, message) {
+    if (!isHtmlElement(value)) {
+        throw new TypeError(message ?? typeErrorMessage('HTMLElement', value));
+    }
+}
+function assertInfinite(value, message) {
+    if (!isInfinite(value)) {
+        throw new TypeError(message ?? typeErrorMessage('infinite number', value));
+    }
+}
+function assertInRange(value, range, message) {
+    if (!isInRange(value, range)) {
+        throw new TypeError(message ?? typeErrorMessage('in range', value));
+    }
+}
+function assertInt16Array(value, message) {
+    if (!isInt16Array(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Int16Array', value));
+    }
+}
+function assertInt32Array(value, message) {
+    if (!isInt32Array(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Int32Array', value));
+    }
+}
+function assertInt8Array(value, message) {
+    if (!isInt8Array(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Int8Array', value));
+    }
+}
+function assertInteger(value, message) {
+    if (!isInteger(value)) {
+        throw new TypeError(message ?? typeErrorMessage('integer', value));
+    }
+}
+function assertIterable(value, message) {
+    if (!isIterable(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Iterable', value));
+    }
+}
+function assertMap(value, message) {
+    if (!isMap(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Map', value));
+    }
+}
+function assertNan(value, message) {
+    if (!isNan(value)) {
+        throw new TypeError(message ?? typeErrorMessage('NaN', value));
+    }
+}
+function assertNativePromise(value, message) {
+    if (!isNativePromise(value)) {
+        throw new TypeError(message ?? typeErrorMessage('native Promise', value));
+    }
+}
+function assertNegativeNumber(value, message) {
+    if (!isNegativeNumber(value)) {
+        throw new TypeError(message ?? typeErrorMessage('negative number', value));
+    }
+}
+function assertNodeStream(value, message) {
+    if (!isNodeStream(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Node.js Stream', value));
+    }
+}
+function assertNonEmptyArray(value, message) {
+    if (!isNonEmptyArray(value)) {
+        throw new TypeError(message ?? typeErrorMessage('non-empty array', value));
+    }
+}
+function assertNonEmptyMap(value, message) {
+    if (!isNonEmptyMap(value)) {
+        throw new TypeError(message ?? typeErrorMessage('non-empty map', value));
+    }
+}
+function assertNonEmptyObject(value, message) {
+    if (!isNonEmptyObject(value)) {
+        throw new TypeError(message ?? typeErrorMessage('non-empty object', value));
+    }
+}
+function assertNonEmptySet(value, message) {
+    if (!isNonEmptySet(value)) {
+        throw new TypeError(message ?? typeErrorMessage('non-empty set', value));
+    }
+}
+function assertNonEmptyString(value, message) {
+    if (!isNonEmptyString(value)) {
+        throw new TypeError(message ?? typeErrorMessage('non-empty string', value));
+    }
+}
+function assertNonEmptyStringAndNotWhitespace(value, message) {
+    if (!isNonEmptyStringAndNotWhitespace(value)) {
+        throw new TypeError(message ?? typeErrorMessage('non-empty string and not whitespace', value));
+    }
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function assertNull(value, message) {
+    if (!isNull(value)) {
+        throw new TypeError(message ?? typeErrorMessage('null', value));
+    }
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function assertNullOrUndefined(value, message) {
+    if (!isNullOrUndefined(value)) {
+        throw new TypeError(message ?? typeErrorMessage('null or undefined', value));
+    }
+}
+function assertNumber(value, message) {
+    if (!isNumber(value)) {
+        throw new TypeError(message ?? typeErrorMessage('number', value));
+    }
+}
+function assertNumericString(value, message) {
+    if (!isNumericString(value)) {
+        throw new TypeError(message ?? typeErrorMessage('string with a number', value));
+    }
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function assertObject(value, message) {
+    if (!dist_isObject(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Object', value));
+    }
+}
+function assertObservable(value, message) {
+    if (!isObservable(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Observable', value));
+    }
+}
+function assertOddInteger(value, message) {
+    if (!isOddInteger(value)) {
+        throw new TypeError(message ?? typeErrorMessage('odd integer', value));
+    }
+}
+function assertPlainObject(value, message) {
+    if (!dist_isPlainObject(value)) {
+        throw new TypeError(message ?? typeErrorMessage('plain object', value));
+    }
+}
+function assertPositiveNumber(value, message) {
+    if (!isPositiveNumber(value)) {
+        throw new TypeError(message ?? typeErrorMessage('positive number', value));
+    }
+}
+function assertPrimitive(value, message) {
+    if (!isPrimitive(value)) {
+        throw new TypeError(message ?? typeErrorMessage('primitive', value));
+    }
+}
+function assertPromise(value, message) {
+    if (!isPromise(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Promise', value));
+    }
+}
+function assertPropertyKey(value, message) {
+    if (!isPropertyKey(value)) {
+        throw new TypeError(message ?? typeErrorMessage('PropertyKey', value));
+    }
+}
+function assertRegExp(value, message) {
+    if (!isRegExp(value)) {
+        throw new TypeError(message ?? typeErrorMessage('RegExp', value));
+    }
+}
+function assertSafeInteger(value, message) {
+    if (!isSafeInteger(value)) {
+        throw new TypeError(message ?? typeErrorMessage('integer', value));
+    }
+}
+function assertSet(value, message) {
+    if (!isSet(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Set', value));
+    }
+}
+function assertSharedArrayBuffer(value, message) {
+    if (!isSharedArrayBuffer(value)) {
+        throw new TypeError(message ?? typeErrorMessage('SharedArrayBuffer', value));
+    }
+}
+function assertString(value, message) {
+    if (!isString(value)) {
+        throw new TypeError(message ?? typeErrorMessage('string', value));
+    }
+}
+function assertSymbol(value, message) {
+    if (!isSymbol(value)) {
+        throw new TypeError(message ?? typeErrorMessage('symbol', value));
+    }
+}
+function assertTruthy(value, message) {
+    if (!isTruthy(value)) {
+        throw new TypeError(message ?? typeErrorMessage('truthy', value));
+    }
+}
+function assertTupleLike(value, guards, message) {
+    if (!isTupleLike(value, guards)) {
+        throw new TypeError(message ?? typeErrorMessage('tuple-like', value));
+    }
+}
+function assertTypedArray(value, message) {
+    if (!isTypedArray(value)) {
+        throw new TypeError(message ?? typeErrorMessage('TypedArray', value));
+    }
+}
+function assertUint16Array(value, message) {
+    if (!isUint16Array(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Uint16Array', value));
+    }
+}
+function assertUint32Array(value, message) {
+    if (!isUint32Array(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Uint32Array', value));
+    }
+}
+function assertUint8Array(value, message) {
+    if (!dist_isUint8Array(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Uint8Array', value));
+    }
+}
+function assertUint8ClampedArray(value, message) {
+    if (!isUint8ClampedArray(value)) {
+        throw new TypeError(message ?? typeErrorMessage('Uint8ClampedArray', value));
+    }
+}
+function assertUndefined(value, message) {
+    if (!isUndefined(value)) {
+        throw new TypeError(message ?? typeErrorMessage('undefined', value));
+    }
+}
+function assertUrlInstance(value, message) {
+    if (!isUrlInstance(value)) {
+        throw new TypeError(message ?? typeErrorMessage('URL', value));
+    }
+}
+// eslint-disable-next-line unicorn/prevent-abbreviations
+function assertUrlSearchParams(value, message) {
+    if (!isUrlSearchParams(value)) {
+        throw new TypeError(message ?? typeErrorMessage('URLSearchParams', value));
+    }
+}
+function assertUrlString(value, message) {
+    if (!isUrlString(value)) {
+        throw new TypeError(message ?? typeErrorMessage('string with a URL', value));
+    }
+}
+function assertValidDate(value, message) {
+    if (!isValidDate(value)) {
+        throw new TypeError(message ?? typeErrorMessage('valid Date', value));
+    }
+}
+function assertValidLength(value, message) {
+    if (!isValidLength(value)) {
+        throw new TypeError(message ?? typeErrorMessage('valid length', value));
+    }
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function assertWeakMap(value, message) {
+    if (!isWeakMap(value)) {
+        throw new TypeError(message ?? typeErrorMessage('WeakMap', value));
+    }
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function assertWeakRef(value, message) {
+    if (!isWeakRef(value)) {
+        throw new TypeError(message ?? typeErrorMessage('WeakRef', value));
+    }
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+function assertWeakSet(value, message) {
+    if (!isWeakSet(value)) {
+        throw new TypeError(message ?? typeErrorMessage('WeakSet', value));
+    }
+}
+function assertWhitespaceString(value, message) {
+    if (!isWhitespaceString(value)) {
+        throw new TypeError(message ?? typeErrorMessage('whitespace string', value));
+    }
+}
 /* harmony default export */ const dist = (is);
 
-// EXTERNAL MODULE: external "node:events"
-var external_node_events_ = __nccwpck_require__(5673);
 ;// CONCATENATED MODULE: ./node_modules/p-cancelable/index.js
 class CancelError extends Error {
 	constructor(reason) {
@@ -37776,101 +48777,110 @@ class CancelError extends Error {
 	}
 }
 
-// TODO: Use private class fields when ESLint 8 is out.
+const promiseState = Object.freeze({
+	pending: Symbol('pending'),
+	canceled: Symbol('canceled'),
+	resolved: Symbol('resolved'),
+	rejected: Symbol('rejected'),
+});
 
 class PCancelable {
 	static fn(userFunction) {
-		return (...arguments_) => {
-			return new PCancelable((resolve, reject, onCancel) => {
-				arguments_.push(onCancel);
-				// eslint-disable-next-line promise/prefer-await-to-then
-				userFunction(...arguments_).then(resolve, reject);
-			});
-		};
+		return (...arguments_) => new PCancelable((resolve, reject, onCancel) => {
+			arguments_.push(onCancel);
+			userFunction(...arguments_).then(resolve, reject);
+		});
 	}
 
-	constructor(executor) {
-		this._cancelHandlers = [];
-		this._isPending = true;
-		this._isCanceled = false;
-		this._rejectOnCancel = true;
+	#cancelHandlers = [];
+	#rejectOnCancel = true;
+	#state = promiseState.pending;
+	#promise;
+	#reject;
 
-		this._promise = new Promise((resolve, reject) => {
-			this._reject = reject;
+	constructor(executor) {
+		this.#promise = new Promise((resolve, reject) => {
+			this.#reject = reject;
 
 			const onResolve = value => {
-				if (!this._isCanceled || !onCancel.shouldReject) {
-					this._isPending = false;
+				if (this.#state !== promiseState.canceled || !onCancel.shouldReject) {
 					resolve(value);
+					this.#setState(promiseState.resolved);
 				}
 			};
 
 			const onReject = error => {
-				this._isPending = false;
-				reject(error);
+				if (this.#state !== promiseState.canceled || !onCancel.shouldReject) {
+					reject(error);
+					this.#setState(promiseState.rejected);
+				}
 			};
 
 			const onCancel = handler => {
-				if (!this._isPending) {
-					throw new Error('The `onCancel` handler was attached after the promise settled.');
+				if (this.#state !== promiseState.pending) {
+					throw new Error(`The \`onCancel\` handler was attached after the promise ${this.#state.description}.`);
 				}
 
-				this._cancelHandlers.push(handler);
+				this.#cancelHandlers.push(handler);
 			};
 
 			Object.defineProperties(onCancel, {
 				shouldReject: {
-					get: () => this._rejectOnCancel,
+					get: () => this.#rejectOnCancel,
 					set: boolean => {
-						this._rejectOnCancel = boolean;
-					}
-				}
+						this.#rejectOnCancel = boolean;
+					},
+				},
 			});
 
 			executor(onResolve, onReject, onCancel);
 		});
 	}
 
+	// eslint-disable-next-line unicorn/no-thenable
 	then(onFulfilled, onRejected) {
-		// eslint-disable-next-line promise/prefer-await-to-then
-		return this._promise.then(onFulfilled, onRejected);
+		return this.#promise.then(onFulfilled, onRejected);
 	}
 
 	catch(onRejected) {
-		// eslint-disable-next-line promise/prefer-await-to-then
-		return this._promise.catch(onRejected);
+		return this.#promise.catch(onRejected);
 	}
 
 	finally(onFinally) {
-		// eslint-disable-next-line promise/prefer-await-to-then
-		return this._promise.finally(onFinally);
+		return this.#promise.finally(onFinally);
 	}
 
 	cancel(reason) {
-		if (!this._isPending || this._isCanceled) {
+		if (this.#state !== promiseState.pending) {
 			return;
 		}
 
-		this._isCanceled = true;
+		this.#setState(promiseState.canceled);
 
-		if (this._cancelHandlers.length > 0) {
+		if (this.#cancelHandlers.length > 0) {
 			try {
-				for (const handler of this._cancelHandlers) {
+				for (const handler of this.#cancelHandlers) {
 					handler();
 				}
 			} catch (error) {
-				this._reject(error);
+				this.#reject(error);
 				return;
 			}
 		}
 
-		if (this._rejectOnCancel) {
-			this._reject(new CancelError(reason));
+		if (this.#rejectOnCancel) {
+			this.#reject(new CancelError(reason));
 		}
 	}
 
 	get isCanceled() {
-		return this._isCanceled;
+		return this.#state === promiseState.canceled;
+	}
+
+	#setState(state) {
+		if (this.#state === promiseState.pending) {
+			this.#state = state;
+		}
 	}
 }
 
@@ -37887,44 +48897,14 @@ An error to be thrown when a request fails.
 Contains a `code` property with error class code, like `ECONNREFUSED`.
 */
 class RequestError extends Error {
+    input;
+    code;
+    stack;
+    response;
+    request;
+    timings;
     constructor(message, error, self) {
-        super(message);
-        Object.defineProperty(this, "input", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "code", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "stack", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "response", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "request", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "timings", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
+        super(message, { cause: error });
         Error.captureStackTrace(this, this.constructor);
         this.name = 'RequestError';
         this.code = error.code ?? 'ERR_GOT_REQUEST_ERROR';
@@ -37972,6 +48952,7 @@ class MaxRedirectsError extends RequestError {
 An error to be thrown when the server response code is not 2xx nor 3xx if `options.followRedirect` is `true`, but always except for 304.
 Includes a `response` property.
 */
+// TODO: Change `HTTPError<T = any>` to `HTTPError<T = unknown>` in the next major version to enforce type usage.
 // eslint-disable-next-line @typescript-eslint/naming-convention
 class HTTPError extends RequestError {
     constructor(response) {
@@ -38006,20 +48987,10 @@ An error to be thrown when the request is aborted due to a timeout.
 Includes an `event` and `timings` property.
 */
 class TimeoutError extends RequestError {
+    timings;
+    event;
     constructor(error, timings, request) {
         super(error.message, error, request);
-        Object.defineProperty(this, "timings", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "event", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
         this.name = 'TimeoutError';
         this.event = error.event;
         this.timings = timings;
@@ -38056,8 +49027,6 @@ class AbortError extends RequestError {
     }
 }
 
-// EXTERNAL MODULE: external "node:stream"
-var external_node_stream_ = __nccwpck_require__(4492);
 ;// CONCATENATED MODULE: external "node:http"
 const external_node_http_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:http");
 // EXTERNAL MODULE: external "events"
@@ -38192,7 +49161,10 @@ const supportedProtocols = new Set([
 const hasCustomProtocol = urlString => {
 	try {
 		const {protocol} = new URL(urlString);
-		return protocol.endsWith(':') && !supportedProtocols.has(protocol);
+
+		return protocol.endsWith(':')
+			&& !protocol.includes('.')
+			&& !supportedProtocols.has(protocol);
 	} catch {
 		return false;
 	}
@@ -38460,8 +49432,27 @@ function normalizeUrl(urlString, options) {
 	return urlString;
 }
 
-// EXTERNAL MODULE: ./node_modules/get-stream/index.js
-var get_stream = __nccwpck_require__(1766);
+;// CONCATENATED MODULE: ./node_modules/get-stream/source/buffer.js
+
+
+async function getStreamAsBuffer(stream, options) {
+	if (!('Buffer' in globalThis)) {
+		throw new Error('getStreamAsBuffer() is only supported in Node.js');
+	}
+
+	try {
+		return arrayBufferToNodeBuffer(await getStreamAsArrayBuffer(stream, options));
+	} catch (error) {
+		if (error.bufferedData !== undefined) {
+			error.bufferedData = arrayBufferToNodeBuffer(error.bufferedData);
+		}
+
+		throw error;
+	}
+}
+
+const arrayBufferToNodeBuffer = arrayBuffer => globalThis.Buffer.from(arrayBuffer);
+
 // EXTERNAL MODULE: ./node_modules/http-cache-semantics/index.js
 var http_cache_semantics = __nccwpck_require__(1002);
 ;// CONCATENATED MODULE: ./node_modules/lowercase-keys/index.js
@@ -38624,7 +49615,7 @@ class types_CacheError extends Error {
 class CacheableRequest {
     constructor(cacheRequest, cacheAdapter) {
         this.hooks = new Map();
-        this.request = () => (options, cb) => {
+        this.request = () => (options, callback) => {
             let url;
             if (typeof options === 'string') {
                 url = normalizeUrlObject(external_node_url_namespaceObject.parse(options));
@@ -38653,7 +49644,7 @@ class CacheableRequest {
             options.headers = Object.fromEntries(entries(options.headers).map(([key, value]) => [key.toLowerCase(), value]));
             const ee = new external_node_events_();
             const normalizedUrlString = normalizeUrl(external_node_url_namespaceObject.format(url), {
-                stripWWW: false,
+                stripWWW: false, // eslint-disable-line @typescript-eslint/naming-convention
                 removeTrailingSlash: false,
                 stripAuthentication: false,
             });
@@ -38698,7 +49689,9 @@ class CacheableRequest {
                                     .once('end', resolve);
                             });
                             const headers = convertHeaders(revalidatedPolicy.policy.responseHeaders());
-                            response = new Response({ statusCode: revalidate.statusCode, headers, body: revalidate.body, url: revalidate.url });
+                            response = new Response({
+                                statusCode: revalidate.statusCode, headers, body: revalidate.body, url: revalidate.url,
+                            });
                             response.cachePolicy = revalidatedPolicy.policy;
                             response.fromCache = true;
                         }
@@ -38712,10 +49705,10 @@ class CacheableRequest {
                         clonedResponse = cloneResponse(response);
                         (async () => {
                             try {
-                                const bodyPromise = get_stream.buffer(response);
+                                const bodyPromise = getStreamAsBuffer(response);
                                 await Promise.race([
                                     requestErrorPromise,
-                                    new Promise(resolve => response.once('end', resolve)),
+                                    new Promise(resolve => response.once('end', resolve)), // eslint-disable-line no-promise-executor-return
                                     new Promise(resolve => response.once('close', resolve)), // eslint-disable-line no-promise-executor-return
                                 ]);
                                 const body = await bodyPromise;
@@ -38754,8 +49747,8 @@ class CacheableRequest {
                         })();
                     }
                     ee.emit('response', clonedResponse ?? response);
-                    if (typeof cb === 'function') {
-                        cb(clonedResponse ?? response);
+                    if (typeof callback === 'function') {
+                        callback(clonedResponse ?? response);
                     }
                 };
                 try {
@@ -38780,12 +49773,14 @@ class CacheableRequest {
                     const policy = http_cache_semantics.fromObject(cacheEntry.cachePolicy);
                     if (policy.satisfiesWithoutRevalidation(options_) && !options_.forceRefresh) {
                         const headers = convertHeaders(policy.responseHeaders());
-                        const response = new Response({ statusCode: cacheEntry.statusCode, headers, body: cacheEntry.body, url: cacheEntry.url });
+                        const response = new Response({
+                            statusCode: cacheEntry.statusCode, headers, body: cacheEntry.body, url: cacheEntry.url,
+                        });
                         response.cachePolicy = policy;
                         response.fromCache = true;
                         ee.emit('response', response);
-                        if (typeof cb === 'function') {
-                            cb(response);
+                        if (typeof callback === 'function') {
+                            callback(response);
                         }
                     }
                     else if (policy.satisfiesWithoutRevalidation(options_) && Date.now() >= policy.timeToLive() && options_.forceRefresh) {
@@ -38818,14 +49813,14 @@ class CacheableRequest {
             })();
             return ee;
         };
-        this.addHook = (name, fn) => {
+        this.addHook = (name, function_) => {
             if (!this.hooks.has(name)) {
-                this.hooks.set(name, fn);
+                this.hooks.set(name, function_);
             }
         };
         this.removeHook = (name) => this.hooks.delete(name);
         this.getHook = (name) => this.hooks.get(name);
-        this.runHook = async (name, ...args) => this.hooks.get(name)?.(...args);
+        this.runHook = async (name, ...arguments_) => this.hooks.get(name)?.(...arguments_);
         if (cacheAdapter instanceof src) {
             this.cache = cacheAdapter;
         }
@@ -38887,244 +49882,671 @@ const onResponse = 'onResponse';
 //# sourceMappingURL=index.js.map
 // EXTERNAL MODULE: ./node_modules/decompress-response/index.js
 var decompress_response = __nccwpck_require__(2391);
-;// CONCATENATED MODULE: ./node_modules/form-data-encoder/lib/util/isFunction.js
-const isFunction = (value) => (typeof value === "function");
+;// CONCATENATED MODULE: ./node_modules/got/node_modules/get-stream/source/contents.js
+const source_contents_getStreamContents = async (stream, {init, convertChunk, getSize, truncateChunk, addChunk, getFinalChunk, finalize}, {maxBuffer = Number.POSITIVE_INFINITY} = {}) => {
+	if (!contents_isAsyncIterable(stream)) {
+		throw new Error('The first argument must be a Readable, a ReadableStream, or an async iterable.');
+	}
 
-;// CONCATENATED MODULE: ./node_modules/form-data-encoder/lib/util/isFormData.js
+	const state = init();
+	state.length = 0;
 
-const isFormData = (value) => Boolean(value
-    && isFunction(value.constructor)
-    && value[Symbol.toStringTag] === "FormData"
-    && isFunction(value.append)
-    && isFunction(value.getAll)
-    && isFunction(value.entries)
-    && isFunction(value[Symbol.iterator]));
+	try {
+		for await (const chunk of stream) {
+			const chunkType = contents_getChunkType(chunk);
+			const convertedChunk = convertChunk[chunkType](chunk, state);
+			contents_appendChunk({convertedChunk, state, getSize, truncateChunk, addChunk, maxBuffer});
+		}
 
-;// CONCATENATED MODULE: ./node_modules/form-data-encoder/lib/util/getStreamIterator.js
+		contents_appendFinalChunk({state, convertChunk, getSize, truncateChunk, addChunk, getFinalChunk, maxBuffer});
+		return finalize(state);
+	} catch (error) {
+		error.bufferedData = finalize(state);
+		throw error;
+	}
+};
 
-const getStreamIterator_isAsyncIterable = (value) => (isFunction(value[Symbol.asyncIterator]));
+const contents_appendFinalChunk = ({state, getSize, truncateChunk, addChunk, getFinalChunk, maxBuffer}) => {
+	const convertedChunk = getFinalChunk(state);
+	if (convertedChunk !== undefined) {
+		contents_appendChunk({convertedChunk, state, getSize, truncateChunk, addChunk, maxBuffer});
+	}
+};
+
+const contents_appendChunk = ({convertedChunk, state, getSize, truncateChunk, addChunk, maxBuffer}) => {
+	const chunkSize = getSize(convertedChunk);
+	const newLength = state.length + chunkSize;
+
+	if (newLength <= maxBuffer) {
+		contents_addNewChunk(convertedChunk, state, addChunk, newLength);
+		return;
+	}
+
+	const truncatedChunk = truncateChunk(convertedChunk, maxBuffer - state.length);
+
+	if (truncatedChunk !== undefined) {
+		contents_addNewChunk(truncatedChunk, state, addChunk, maxBuffer);
+	}
+
+	throw new contents_MaxBufferError();
+};
+
+const contents_addNewChunk = (convertedChunk, state, addChunk, newLength) => {
+	state.contents = addChunk(convertedChunk, state, newLength);
+	state.length = newLength;
+};
+
+const contents_isAsyncIterable = stream => typeof stream === 'object' && stream !== null && typeof stream[Symbol.asyncIterator] === 'function';
+
+const contents_getChunkType = chunk => {
+	const typeOfChunk = typeof chunk;
+
+	if (typeOfChunk === 'string') {
+		return 'string';
+	}
+
+	if (typeOfChunk !== 'object' || chunk === null) {
+		return 'others';
+	}
+
+	// eslint-disable-next-line n/prefer-global/buffer
+	if (globalThis.Buffer?.isBuffer(chunk)) {
+		return 'buffer';
+	}
+
+	const prototypeName = source_contents_objectToString.call(chunk);
+
+	if (prototypeName === '[object ArrayBuffer]') {
+		return 'arrayBuffer';
+	}
+
+	if (prototypeName === '[object DataView]') {
+		return 'dataView';
+	}
+
+	if (
+		Number.isInteger(chunk.byteLength)
+		&& Number.isInteger(chunk.byteOffset)
+		&& source_contents_objectToString.call(chunk.buffer) === '[object ArrayBuffer]'
+	) {
+		return 'typedArray';
+	}
+
+	return 'others';
+};
+
+const {toString: source_contents_objectToString} = Object.prototype;
+
+class contents_MaxBufferError extends Error {
+	name = 'MaxBufferError';
+
+	constructor() {
+		super('maxBuffer exceeded');
+	}
+}
+
+;// CONCATENATED MODULE: ./node_modules/got/node_modules/get-stream/source/utils.js
+const source_utils_identity = value => value;
+
+const source_utils_noop = () => undefined;
+
+const getContentsProp = ({contents}) => contents;
+
+const utils_throwObjectStream = chunk => {
+	throw new Error(`Streams in object mode are not supported: ${String(chunk)}`);
+};
+
+const getLengthProp = convertedChunk => convertedChunk.length;
+
+;// CONCATENATED MODULE: ./node_modules/got/node_modules/get-stream/source/array.js
+
+
+
+async function array_getStreamAsArray(stream, options) {
+	return getStreamContents(stream, array_arrayMethods, options);
+}
+
+const array_initArray = () => ({contents: []});
+
+const array_increment = () => 1;
+
+const array_addArrayChunk = (convertedChunk, {contents}) => {
+	contents.push(convertedChunk);
+	return contents;
+};
+
+const array_arrayMethods = {
+	init: array_initArray,
+	convertChunk: {
+		string: source_utils_identity,
+		buffer: source_utils_identity,
+		arrayBuffer: source_utils_identity,
+		dataView: source_utils_identity,
+		typedArray: source_utils_identity,
+		others: source_utils_identity,
+	},
+	getSize: array_increment,
+	truncateChunk: source_utils_noop,
+	addChunk: array_addArrayChunk,
+	getFinalChunk: source_utils_noop,
+	finalize: getContentsProp,
+};
+
+;// CONCATENATED MODULE: ./node_modules/got/node_modules/get-stream/source/array-buffer.js
+
+
+
+async function array_buffer_getStreamAsArrayBuffer(stream, options) {
+	return source_contents_getStreamContents(stream, array_buffer_arrayBufferMethods, options);
+}
+
+const array_buffer_initArrayBuffer = () => ({contents: new ArrayBuffer(0)});
+
+const array_buffer_useTextEncoder = chunk => source_array_buffer_textEncoder.encode(chunk);
+const source_array_buffer_textEncoder = new TextEncoder();
+
+const array_buffer_useUint8Array = chunk => new Uint8Array(chunk);
+
+const array_buffer_useUint8ArrayWithOffset = chunk => new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength);
+
+const array_buffer_truncateArrayBufferChunk = (convertedChunk, chunkSize) => convertedChunk.slice(0, chunkSize);
+
+// `contents` is an increasingly growing `Uint8Array`.
+const array_buffer_addArrayBufferChunk = (convertedChunk, {contents, length: previousLength}, length) => {
+	const newContents = array_buffer_hasArrayBufferResize() ? array_buffer_resizeArrayBuffer(contents, length) : array_buffer_resizeArrayBufferSlow(contents, length);
+	new Uint8Array(newContents).set(convertedChunk, previousLength);
+	return newContents;
+};
+
+// Without `ArrayBuffer.resize()`, `contents` size is always a power of 2.
+// This means its last bytes are zeroes (not stream data), which need to be
+// trimmed at the end with `ArrayBuffer.slice()`.
+const array_buffer_resizeArrayBufferSlow = (contents, length) => {
+	if (length <= contents.byteLength) {
+		return contents;
+	}
+
+	const arrayBuffer = new ArrayBuffer(array_buffer_getNewContentsLength(length));
+	new Uint8Array(arrayBuffer).set(new Uint8Array(contents), 0);
+	return arrayBuffer;
+};
+
+// With `ArrayBuffer.resize()`, `contents` size matches exactly the size of
+// the stream data. It does not include extraneous zeroes to trim at the end.
+// The underlying `ArrayBuffer` does allocate a number of bytes that is a power
+// of 2, but those bytes are only visible after calling `ArrayBuffer.resize()`.
+const array_buffer_resizeArrayBuffer = (contents, length) => {
+	if (length <= contents.maxByteLength) {
+		contents.resize(length);
+		return contents;
+	}
+
+	const arrayBuffer = new ArrayBuffer(length, {maxByteLength: array_buffer_getNewContentsLength(length)});
+	new Uint8Array(arrayBuffer).set(new Uint8Array(contents), 0);
+	return arrayBuffer;
+};
+
+// Retrieve the closest `length` that is both >= and a power of 2
+const array_buffer_getNewContentsLength = length => array_buffer_SCALE_FACTOR ** Math.ceil(Math.log(length) / Math.log(array_buffer_SCALE_FACTOR));
+
+const array_buffer_SCALE_FACTOR = 2;
+
+const array_buffer_finalizeArrayBuffer = ({contents, length}) => array_buffer_hasArrayBufferResize() ? contents : contents.slice(0, length);
+
+// `ArrayBuffer.slice()` is slow. When `ArrayBuffer.resize()` is available
+// (Node >=20.0.0, Safari >=16.4 and Chrome), we can use it instead.
+// eslint-disable-next-line no-warning-comments
+// TODO: remove after dropping support for Node 20.
+// eslint-disable-next-line no-warning-comments
+// TODO: use `ArrayBuffer.transferToFixedLength()` instead once it is available
+const array_buffer_hasArrayBufferResize = () => 'resize' in ArrayBuffer.prototype;
+
+const array_buffer_arrayBufferMethods = {
+	init: array_buffer_initArrayBuffer,
+	convertChunk: {
+		string: array_buffer_useTextEncoder,
+		buffer: array_buffer_useUint8Array,
+		arrayBuffer: array_buffer_useUint8Array,
+		dataView: array_buffer_useUint8ArrayWithOffset,
+		typedArray: array_buffer_useUint8ArrayWithOffset,
+		others: utils_throwObjectStream,
+	},
+	getSize: getLengthProp,
+	truncateChunk: array_buffer_truncateArrayBufferChunk,
+	addChunk: array_buffer_addArrayBufferChunk,
+	getFinalChunk: source_utils_noop,
+	finalize: array_buffer_finalizeArrayBuffer,
+};
+
+;// CONCATENATED MODULE: ./node_modules/got/node_modules/get-stream/source/buffer.js
+
+
+async function buffer_getStreamAsBuffer(stream, options) {
+	if (!('Buffer' in globalThis)) {
+		throw new Error('getStreamAsBuffer() is only supported in Node.js');
+	}
+
+	try {
+		return buffer_arrayBufferToNodeBuffer(await array_buffer_getStreamAsArrayBuffer(stream, options));
+	} catch (error) {
+		if (error.bufferedData !== undefined) {
+			error.bufferedData = buffer_arrayBufferToNodeBuffer(error.bufferedData);
+		}
+
+		throw error;
+	}
+}
+
+// eslint-disable-next-line n/prefer-global/buffer
+const buffer_arrayBufferToNodeBuffer = arrayBuffer => globalThis.Buffer.from(arrayBuffer);
+
+;// CONCATENATED MODULE: ./node_modules/got/node_modules/get-stream/source/string.js
+
+
+
+async function string_getStreamAsString(stream, options) {
+	return getStreamContents(stream, string_stringMethods, options);
+}
+
+const string_initString = () => ({contents: '', textDecoder: new TextDecoder()});
+
+const string_useTextDecoder = (chunk, {textDecoder}) => textDecoder.decode(chunk, {stream: true});
+
+const string_addStringChunk = (convertedChunk, {contents}) => contents + convertedChunk;
+
+const string_truncateStringChunk = (convertedChunk, chunkSize) => convertedChunk.slice(0, chunkSize);
+
+const string_getFinalStringChunk = ({textDecoder}) => {
+	const finalChunk = textDecoder.decode();
+	return finalChunk === '' ? undefined : finalChunk;
+};
+
+const string_stringMethods = {
+	init: string_initString,
+	convertChunk: {
+		string: source_utils_identity,
+		buffer: string_useTextDecoder,
+		arrayBuffer: string_useTextDecoder,
+		dataView: string_useTextDecoder,
+		typedArray: string_useTextDecoder,
+		others: utils_throwObjectStream,
+	},
+	getSize: getLengthProp,
+	truncateChunk: string_truncateStringChunk,
+	addChunk: string_addStringChunk,
+	getFinalChunk: string_getFinalStringChunk,
+	finalize: getContentsProp,
+};
+
+;// CONCATENATED MODULE: ./node_modules/got/node_modules/get-stream/source/index.js
+
+
+
+
+
+
+;// CONCATENATED MODULE: ./node_modules/form-data-encoder/lib/index.js
+var __accessCheck = (obj, member, msg) => {
+  if (!member.has(obj))
+    throw TypeError("Cannot " + msg);
+};
+var __privateGet = (obj, member, getter) => {
+  __accessCheck(obj, member, "read from private field");
+  return getter ? getter.call(obj) : member.get(obj);
+};
+var __privateAdd = (obj, member, value) => {
+  if (member.has(obj))
+    throw TypeError("Cannot add the same private member more than once");
+  member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+};
+var __privateSet = (obj, member, value, setter) => {
+  __accessCheck(obj, member, "write to private field");
+  setter ? setter.call(obj, value) : member.set(obj, value);
+  return value;
+};
+var __privateMethod = (obj, member, method) => {
+  __accessCheck(obj, member, "access private method");
+  return method;
+};
+
+// src/util/isFunction.ts
+var lib_isFunction = (value) => typeof value === "function";
+
+// src/util/isAsyncIterable.ts
+var lib_isAsyncIterable = (value) => lib_isFunction(value[Symbol.asyncIterator]);
+
+// src/util/chunk.ts
+var MAX_CHUNK_SIZE = 65536;
+function* chunk(value) {
+  if (value.byteLength <= MAX_CHUNK_SIZE) {
+    yield value;
+    return;
+  }
+  let offset = 0;
+  while (offset < value.byteLength) {
+    const size = Math.min(value.byteLength - offset, MAX_CHUNK_SIZE);
+    const buffer = value.buffer.slice(offset, offset + size);
+    offset += buffer.byteLength;
+    yield new Uint8Array(buffer);
+  }
+}
+
+// src/util/getStreamIterator.ts
 async function* readStream(readable) {
-    const reader = readable.getReader();
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-            break;
-        }
-        yield value;
+  const reader = readable.getReader();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
     }
+    yield value;
+  }
 }
-const getStreamIterator = (source) => {
-    if (getStreamIterator_isAsyncIterable(source)) {
-        return source;
-    }
-    if (isFunction(source.getReader)) {
-        return readStream(source);
-    }
-    throw new TypeError("Unsupported data source: Expected either ReadableStream or async iterable.");
+async function* chunkStream(stream) {
+  for await (const value of stream) {
+    yield* chunk(value);
+  }
+}
+var getStreamIterator = (source) => {
+  if (lib_isAsyncIterable(source)) {
+    return chunkStream(source);
+  }
+  if (lib_isFunction(source.getReader)) {
+    return chunkStream(readStream(source));
+  }
+  throw new TypeError(
+    "Unsupported data source: Expected either ReadableStream or async iterable."
+  );
 };
 
-;// CONCATENATED MODULE: ./node_modules/form-data-encoder/lib/util/createBoundary.js
-const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
+// src/util/createBoundary.ts
+var alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
 function createBoundary() {
-    let size = 16;
-    let res = "";
-    while (size--) {
-        res += alphabet[(Math.random() * alphabet.length) << 0];
-    }
-    return res;
+  let size = 16;
+  let res = "";
+  while (size--) {
+    res += alphabet[Math.random() * alphabet.length << 0];
+  }
+  return res;
 }
 
-;// CONCATENATED MODULE: ./node_modules/form-data-encoder/lib/util/normalizeValue.js
-const normalizeValue = (value) => String(value)
-    .replace(/\r|\n/g, (match, i, str) => {
-    if ((match === "\r" && str[i + 1] !== "\n")
-        || (match === "\n" && str[i - 1] !== "\r")) {
-        return "\r\n";
-    }
-    return match;
+// src/util/normalizeValue.ts
+var normalizeValue = (value) => String(value).replace(/\r|\n/g, (match, i, str) => {
+  if (match === "\r" && str[i + 1] !== "\n" || match === "\n" && str[i - 1] !== "\r") {
+    return "\r\n";
+  }
+  return match;
 });
 
-;// CONCATENATED MODULE: ./node_modules/form-data-encoder/lib/util/isPlainObject.js
-const getType = (value) => (Object.prototype.toString.call(value).slice(8, -1).toLowerCase());
-function isPlainObject(value) {
-    if (getType(value) !== "object") {
-        return false;
-    }
-    const pp = Object.getPrototypeOf(value);
-    if (pp === null || pp === undefined) {
-        return true;
-    }
-    const Ctor = pp.constructor && pp.constructor.toString();
-    return Ctor === Object.toString();
+// src/util/isPlainObject.ts
+var getType = (value) => Object.prototype.toString.call(value).slice(8, -1).toLowerCase();
+function lib_isPlainObject(value) {
+  if (getType(value) !== "object") {
+    return false;
+  }
+  const pp = Object.getPrototypeOf(value);
+  if (pp === null || pp === void 0) {
+    return true;
+  }
+  const Ctor = pp.constructor && pp.constructor.toString();
+  return Ctor === Object.toString();
 }
 
-;// CONCATENATED MODULE: ./node_modules/form-data-encoder/lib/util/proxyHeaders.js
+// src/util/proxyHeaders.ts
 function getProperty(target, prop) {
-    if (typeof prop === "string") {
-        for (const [name, value] of Object.entries(target)) {
-            if (prop.toLowerCase() === name.toLowerCase()) {
-                return value;
-            }
-        }
+  if (typeof prop === "string") {
+    for (const [name, value] of Object.entries(target)) {
+      if (prop.toLowerCase() === name.toLowerCase()) {
+        return value;
+      }
     }
-    return undefined;
+  }
+  return void 0;
 }
-const proxyHeaders = (object) => new Proxy(object, {
+var proxyHeaders = (object) => new Proxy(
+  object,
+  {
     get: (target, prop) => getProperty(target, prop),
-    has: (target, prop) => getProperty(target, prop) !== undefined
-});
+    has: (target, prop) => getProperty(target, prop) !== void 0
+  }
+);
 
-;// CONCATENATED MODULE: ./node_modules/form-data-encoder/lib/util/escapeName.js
-const escapeName = (name) => String(name)
-    .replace(/\r/g, "%0D")
-    .replace(/\n/g, "%0A")
-    .replace(/"/g, "%22");
+// src/util/isFormData.ts
+var lib_isFormData = (value) => Boolean(
+  value && lib_isFunction(value.constructor) && value[Symbol.toStringTag] === "FormData" && lib_isFunction(value.append) && lib_isFunction(value.getAll) && lib_isFunction(value.entries) && lib_isFunction(value[Symbol.iterator])
+);
 
-;// CONCATENATED MODULE: ./node_modules/form-data-encoder/lib/util/isFile.js
+// src/util/escapeName.ts
+var escapeName = (name) => String(name).replace(/\r/g, "%0D").replace(/\n/g, "%0A").replace(/"/g, "%22");
 
-const isFile = (value) => Boolean(value
-    && typeof value === "object"
-    && isFunction(value.constructor)
-    && value[Symbol.toStringTag] === "File"
-    && isFunction(value.stream)
-    && value.name != null);
-const isFileLike = (/* unused pure expression or super */ null && (isFile));
+// src/util/isFile.ts
+var isFile = (value) => Boolean(
+  value && typeof value === "object" && lib_isFunction(value.constructor) && value[Symbol.toStringTag] === "File" && lib_isFunction(value.stream) && value.name != null
+);
 
-;// CONCATENATED MODULE: ./node_modules/form-data-encoder/lib/FormDataEncoder.js
-var __classPrivateFieldSet = (undefined && undefined.__classPrivateFieldSet) || function (receiver, state, value, kind, f) {
-    if (kind === "m") throw new TypeError("Private method is not writable");
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
-    return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
+// src/FormDataEncoder.ts
+var defaultOptions = {
+  enableAdditionalHeaders: false
 };
-var __classPrivateFieldGet = (undefined && undefined.__classPrivateFieldGet) || function (receiver, state, kind, f) {
-    if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
-    if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
-    return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+var readonlyProp = { writable: false, configurable: false };
+var _CRLF, _CRLF_BYTES, _CRLF_BYTES_LENGTH, _DASHES, _encoder, _footer, _form, _options, _getFieldHeader, getFieldHeader_fn, _getContentLength, getContentLength_fn;
+var FormDataEncoder = class {
+  constructor(form, boundaryOrOptions, options) {
+    __privateAdd(this, _getFieldHeader);
+    /**
+     * Returns form-data content length
+     */
+    __privateAdd(this, _getContentLength);
+    __privateAdd(this, _CRLF, "\r\n");
+    __privateAdd(this, _CRLF_BYTES, void 0);
+    __privateAdd(this, _CRLF_BYTES_LENGTH, void 0);
+    __privateAdd(this, _DASHES, "-".repeat(2));
+    /**
+     * TextEncoder instance
+     */
+    __privateAdd(this, _encoder, new TextEncoder());
+    /**
+     * Returns form-data footer bytes
+     */
+    __privateAdd(this, _footer, void 0);
+    /**
+     * FormData instance
+     */
+    __privateAdd(this, _form, void 0);
+    /**
+     * Instance options
+     */
+    __privateAdd(this, _options, void 0);
+    if (!lib_isFormData(form)) {
+      throw new TypeError("Expected first argument to be a FormData instance.");
+    }
+    let boundary;
+    if (lib_isPlainObject(boundaryOrOptions)) {
+      options = boundaryOrOptions;
+    } else {
+      boundary = boundaryOrOptions;
+    }
+    if (!boundary) {
+      boundary = createBoundary();
+    }
+    if (typeof boundary !== "string") {
+      throw new TypeError("Expected boundary argument to be a string.");
+    }
+    if (options && !lib_isPlainObject(options)) {
+      throw new TypeError("Expected options argument to be an object.");
+    }
+    __privateSet(this, _form, Array.from(form.entries()));
+    __privateSet(this, _options, { ...defaultOptions, ...options });
+    __privateSet(this, _CRLF_BYTES, __privateGet(this, _encoder).encode(__privateGet(this, _CRLF)));
+    __privateSet(this, _CRLF_BYTES_LENGTH, __privateGet(this, _CRLF_BYTES).byteLength);
+    this.boundary = `form-data-boundary-${boundary}`;
+    this.contentType = `multipart/form-data; boundary=${this.boundary}`;
+    __privateSet(this, _footer, __privateGet(this, _encoder).encode(
+      `${__privateGet(this, _DASHES)}${this.boundary}${__privateGet(this, _DASHES)}${__privateGet(this, _CRLF).repeat(2)}`
+    ));
+    const headers = {
+      "Content-Type": this.contentType
+    };
+    const contentLength = __privateMethod(this, _getContentLength, getContentLength_fn).call(this);
+    if (contentLength) {
+      this.contentLength = contentLength;
+      headers["Content-Length"] = contentLength;
+    }
+    this.headers = proxyHeaders(Object.freeze(headers));
+    Object.defineProperties(this, {
+      boundary: readonlyProp,
+      contentType: readonlyProp,
+      contentLength: readonlyProp,
+      headers: readonlyProp
+    });
+  }
+  /**
+   * Creates an iterator allowing to go through form-data parts (with metadata).
+   * This method **will not** read the files and **will not** split values big into smaller chunks.
+   *
+   * Using this method, you can convert form-data content into Blob:
+   *
+   * @example
+   *
+   * ```ts
+   * import {Readable} from "stream"
+   *
+   * import {FormDataEncoder} from "form-data-encoder"
+   *
+   * import {FormData} from "formdata-polyfill/esm-min.js"
+   * import {fileFrom} from "fetch-blob/form.js"
+   * import {File} from "fetch-blob/file.js"
+   * import {Blob} from "fetch-blob"
+   *
+   * import fetch from "node-fetch"
+   *
+   * const form = new FormData()
+   *
+   * form.set("field", "Just a random string")
+   * form.set("file", new File(["Using files is class amazing"]))
+   * form.set("fileFromPath", await fileFrom("path/to/a/file.txt"))
+   *
+   * const encoder = new FormDataEncoder(form)
+   *
+   * const options = {
+   *   method: "post",
+   *   body: new Blob(encoder, {type: encoder.contentType})
+   * }
+   *
+   * const response = await fetch("https://httpbin.org/post", options)
+   *
+   * console.log(await response.json())
+   * ```
+   */
+  *values() {
+    for (const [name, raw] of __privateGet(this, _form)) {
+      const value = isFile(raw) ? raw : __privateGet(this, _encoder).encode(
+        normalizeValue(raw)
+      );
+      yield __privateMethod(this, _getFieldHeader, getFieldHeader_fn).call(this, name, value);
+      yield value;
+      yield __privateGet(this, _CRLF_BYTES);
+    }
+    yield __privateGet(this, _footer);
+  }
+  /**
+   * Creates an async iterator allowing to perform the encoding by portions.
+   * This method reads through files and splits big values into smaller pieces (65536 bytes per each).
+   *
+   * @example
+   *
+   * ```ts
+   * import {Readable} from "stream"
+   *
+   * import {FormData, File, fileFromPath} from "formdata-node"
+   * import {FormDataEncoder} from "form-data-encoder"
+   *
+   * import fetch from "node-fetch"
+   *
+   * const form = new FormData()
+   *
+   * form.set("field", "Just a random string")
+   * form.set("file", new File(["Using files is class amazing"], "file.txt"))
+   * form.set("fileFromPath", await fileFromPath("path/to/a/file.txt"))
+   *
+   * const encoder = new FormDataEncoder(form)
+   *
+   * const options = {
+   *   method: "post",
+   *   headers: encoder.headers,
+   *   body: Readable.from(encoder.encode()) // or Readable.from(encoder)
+   * }
+   *
+   * const response = await fetch("https://httpbin.org/post", options)
+   *
+   * console.log(await response.json())
+   * ```
+   */
+  async *encode() {
+    for (const part of this.values()) {
+      if (isFile(part)) {
+        yield* getStreamIterator(part.stream());
+      } else {
+        yield* chunk(part);
+      }
+    }
+  }
+  /**
+   * Creates an iterator allowing to read through the encoder data using for...of loops
+   */
+  [Symbol.iterator]() {
+    return this.values();
+  }
+  /**
+   * Creates an **async** iterator allowing to read through the encoder data using for-await...of loops
+   */
+  [Symbol.asyncIterator]() {
+    return this.encode();
+  }
 };
-var _FormDataEncoder_instances, _FormDataEncoder_CRLF, _FormDataEncoder_CRLF_BYTES, _FormDataEncoder_CRLF_BYTES_LENGTH, _FormDataEncoder_DASHES, _FormDataEncoder_encoder, _FormDataEncoder_footer, _FormDataEncoder_form, _FormDataEncoder_options, _FormDataEncoder_getFieldHeader, _FormDataEncoder_getContentLength;
-
-
-
-
-
-
-
-
-const defaultOptions = {
-    enableAdditionalHeaders: false
+_CRLF = new WeakMap();
+_CRLF_BYTES = new WeakMap();
+_CRLF_BYTES_LENGTH = new WeakMap();
+_DASHES = new WeakMap();
+_encoder = new WeakMap();
+_footer = new WeakMap();
+_form = new WeakMap();
+_options = new WeakMap();
+_getFieldHeader = new WeakSet();
+getFieldHeader_fn = function(name, value) {
+  let header = "";
+  header += `${__privateGet(this, _DASHES)}${this.boundary}${__privateGet(this, _CRLF)}`;
+  header += `Content-Disposition: form-data; name="${escapeName(name)}"`;
+  if (isFile(value)) {
+    header += `; filename="${escapeName(value.name)}"${__privateGet(this, _CRLF)}`;
+    header += `Content-Type: ${value.type || "application/octet-stream"}`;
+  }
+  if (__privateGet(this, _options).enableAdditionalHeaders === true) {
+    const size = isFile(value) ? value.size : value.byteLength;
+    if (size != null && !isNaN(size)) {
+      header += `${__privateGet(this, _CRLF)}Content-Length: ${size}`;
+    }
+  }
+  return __privateGet(this, _encoder).encode(`${header}${__privateGet(this, _CRLF).repeat(2)}`);
 };
-const readonlyProp = { writable: false, configurable: false };
-class FormDataEncoder {
-    constructor(form, boundaryOrOptions, options) {
-        _FormDataEncoder_instances.add(this);
-        _FormDataEncoder_CRLF.set(this, "\r\n");
-        _FormDataEncoder_CRLF_BYTES.set(this, void 0);
-        _FormDataEncoder_CRLF_BYTES_LENGTH.set(this, void 0);
-        _FormDataEncoder_DASHES.set(this, "-".repeat(2));
-        _FormDataEncoder_encoder.set(this, new TextEncoder());
-        _FormDataEncoder_footer.set(this, void 0);
-        _FormDataEncoder_form.set(this, void 0);
-        _FormDataEncoder_options.set(this, void 0);
-        if (!isFormData(form)) {
-            throw new TypeError("Expected first argument to be a FormData instance.");
-        }
-        let boundary;
-        if (isPlainObject(boundaryOrOptions)) {
-            options = boundaryOrOptions;
-        }
-        else {
-            boundary = boundaryOrOptions;
-        }
-        if (!boundary) {
-            boundary = createBoundary();
-        }
-        if (typeof boundary !== "string") {
-            throw new TypeError("Expected boundary argument to be a string.");
-        }
-        if (options && !isPlainObject(options)) {
-            throw new TypeError("Expected options argument to be an object.");
-        }
-        __classPrivateFieldSet(this, _FormDataEncoder_form, Array.from(form.entries()), "f");
-        __classPrivateFieldSet(this, _FormDataEncoder_options, { ...defaultOptions, ...options }, "f");
-        __classPrivateFieldSet(this, _FormDataEncoder_CRLF_BYTES, __classPrivateFieldGet(this, _FormDataEncoder_encoder, "f").encode(__classPrivateFieldGet(this, _FormDataEncoder_CRLF, "f")), "f");
-        __classPrivateFieldSet(this, _FormDataEncoder_CRLF_BYTES_LENGTH, __classPrivateFieldGet(this, _FormDataEncoder_CRLF_BYTES, "f").byteLength, "f");
-        this.boundary = `form-data-boundary-${boundary}`;
-        this.contentType = `multipart/form-data; boundary=${this.boundary}`;
-        __classPrivateFieldSet(this, _FormDataEncoder_footer, __classPrivateFieldGet(this, _FormDataEncoder_encoder, "f").encode(`${__classPrivateFieldGet(this, _FormDataEncoder_DASHES, "f")}${this.boundary}${__classPrivateFieldGet(this, _FormDataEncoder_DASHES, "f")}${__classPrivateFieldGet(this, _FormDataEncoder_CRLF, "f").repeat(2)}`), "f");
-        const headers = {
-            "Content-Type": this.contentType
-        };
-        const contentLength = __classPrivateFieldGet(this, _FormDataEncoder_instances, "m", _FormDataEncoder_getContentLength).call(this);
-        if (contentLength) {
-            this.contentLength = contentLength;
-            headers["Content-Length"] = contentLength;
-        }
-        this.headers = proxyHeaders(Object.freeze(headers));
-        Object.defineProperties(this, {
-            boundary: readonlyProp,
-            contentType: readonlyProp,
-            contentLength: readonlyProp,
-            headers: readonlyProp
-        });
+_getContentLength = new WeakSet();
+getContentLength_fn = function() {
+  let length = 0;
+  for (const [name, raw] of __privateGet(this, _form)) {
+    const value = isFile(raw) ? raw : __privateGet(this, _encoder).encode(
+      normalizeValue(raw)
+    );
+    const size = isFile(value) ? value.size : value.byteLength;
+    if (size == null || isNaN(size)) {
+      return void 0;
     }
-    getContentLength() {
-        return this.contentLength == null ? undefined : Number(this.contentLength);
-    }
-    *values() {
-        for (const [name, raw] of __classPrivateFieldGet(this, _FormDataEncoder_form, "f")) {
-            const value = isFile(raw) ? raw : __classPrivateFieldGet(this, _FormDataEncoder_encoder, "f").encode(normalizeValue(raw));
-            yield __classPrivateFieldGet(this, _FormDataEncoder_instances, "m", _FormDataEncoder_getFieldHeader).call(this, name, value);
-            yield value;
-            yield __classPrivateFieldGet(this, _FormDataEncoder_CRLF_BYTES, "f");
-        }
-        yield __classPrivateFieldGet(this, _FormDataEncoder_footer, "f");
-    }
-    async *encode() {
-        for (const part of this.values()) {
-            if (isFile(part)) {
-                yield* getStreamIterator(part.stream());
-            }
-            else {
-                yield part;
-            }
-        }
-    }
-    [(_FormDataEncoder_CRLF = new WeakMap(), _FormDataEncoder_CRLF_BYTES = new WeakMap(), _FormDataEncoder_CRLF_BYTES_LENGTH = new WeakMap(), _FormDataEncoder_DASHES = new WeakMap(), _FormDataEncoder_encoder = new WeakMap(), _FormDataEncoder_footer = new WeakMap(), _FormDataEncoder_form = new WeakMap(), _FormDataEncoder_options = new WeakMap(), _FormDataEncoder_instances = new WeakSet(), _FormDataEncoder_getFieldHeader = function _FormDataEncoder_getFieldHeader(name, value) {
-        let header = "";
-        header += `${__classPrivateFieldGet(this, _FormDataEncoder_DASHES, "f")}${this.boundary}${__classPrivateFieldGet(this, _FormDataEncoder_CRLF, "f")}`;
-        header += `Content-Disposition: form-data; name="${escapeName(name)}"`;
-        if (isFile(value)) {
-            header += `; filename="${escapeName(value.name)}"${__classPrivateFieldGet(this, _FormDataEncoder_CRLF, "f")}`;
-            header += `Content-Type: ${value.type || "application/octet-stream"}`;
-        }
-        const size = isFile(value) ? value.size : value.byteLength;
-        if (__classPrivateFieldGet(this, _FormDataEncoder_options, "f").enableAdditionalHeaders === true
-            && size != null
-            && !isNaN(size)) {
-            header += `${__classPrivateFieldGet(this, _FormDataEncoder_CRLF, "f")}Content-Length: ${isFile(value) ? value.size : value.byteLength}`;
-        }
-        return __classPrivateFieldGet(this, _FormDataEncoder_encoder, "f").encode(`${header}${__classPrivateFieldGet(this, _FormDataEncoder_CRLF, "f").repeat(2)}`);
-    }, _FormDataEncoder_getContentLength = function _FormDataEncoder_getContentLength() {
-        let length = 0;
-        for (const [name, raw] of __classPrivateFieldGet(this, _FormDataEncoder_form, "f")) {
-            const value = isFile(raw) ? raw : __classPrivateFieldGet(this, _FormDataEncoder_encoder, "f").encode(normalizeValue(raw));
-            const size = isFile(value) ? value.size : value.byteLength;
-            if (size == null || isNaN(size)) {
-                return undefined;
-            }
-            length += __classPrivateFieldGet(this, _FormDataEncoder_instances, "m", _FormDataEncoder_getFieldHeader).call(this, name, value).byteLength;
-            length += size;
-            length += __classPrivateFieldGet(this, _FormDataEncoder_CRLF_BYTES_LENGTH, "f");
-        }
-        return String(length + __classPrivateFieldGet(this, _FormDataEncoder_footer, "f").byteLength);
-    }, Symbol.iterator)]() {
-        return this.values();
-    }
-    [Symbol.asyncIterator]() {
-        return this.encode();
-    }
-}
+    length += __privateMethod(this, _getFieldHeader, getFieldHeader_fn).call(this, name, value).byteLength;
+    length += size;
+    length += __privateGet(this, _CRLF_BYTES_LENGTH);
+  }
+  return String(length + __privateGet(this, _footer).byteLength);
+};
+
 
 ;// CONCATENATED MODULE: ./node_modules/got/dist/source/core/utils/is-form-data.js
 
@@ -39160,8 +50582,8 @@ async function getBodySize(body, headers) {
 function proxyEvents(from, to, events) {
     const eventFunctions = {};
     for (const event of events) {
-        const eventFunction = (...args) => {
-            to.emit(event, ...args);
+        const eventFunction = (...arguments_) => {
+            to.emit(event, ...arguments_);
         };
         eventFunctions[event] = eventFunction;
         from.on(event, eventFunction);
@@ -39183,9 +50605,9 @@ const external_node_net_namespaceObject = __WEBPACK_EXTERNAL_createRequire(impor
 function unhandle() {
     const handlers = [];
     return {
-        once(origin, event, fn) {
-            origin.once(event, fn);
-            handlers.push({ origin, event, fn });
+        once(origin, event, function_) {
+            origin.once(event, function_);
+            handlers.push({ origin, event, fn: function_ });
         },
         unhandleAll() {
             for (const handler of handlers) {
@@ -39203,20 +50625,11 @@ function unhandle() {
 const reentry = Symbol('reentry');
 const timed_out_noop = () => { };
 class timed_out_TimeoutError extends Error {
+    event;
+    code;
     constructor(threshold, event) {
         super(`Timeout awaiting '${event}' for ${threshold}ms`);
-        Object.defineProperty(this, "event", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: event
-        });
-        Object.defineProperty(this, "code", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
+        this.event = event;
         this.name = 'TimeoutError';
         this.code = 'ETIMEDOUT';
     }
@@ -39363,19 +50776,9 @@ function urlToOptions(url) {
 
 ;// CONCATENATED MODULE: ./node_modules/got/dist/source/core/utils/weakable-map.js
 class WeakableMap {
+    weakMap;
+    map;
     constructor() {
-        Object.defineProperty(this, "weakMap", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "map", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
         this.weakMap = new WeakMap();
         this.map = new Map();
     }
@@ -39493,7 +50896,7 @@ const getIfaceInfo = () => {
 	return {has4, has6};
 };
 
-const isIterable = map => {
+const source_isIterable = map => {
 	return Symbol.iterator in map;
 };
 
@@ -39767,7 +51170,7 @@ class CacheableLookup {
 				};
 			}
 
-			if (isIterable(this._cache)) {
+			if (source_isIterable(this._cache)) {
 				this._tick(cacheTtl);
 			}
 		}
@@ -39897,7 +51300,7 @@ function parseLinkHeader(link) {
         const [rawUriReference, ...rawLinkParameters] = item.split(';');
         const trimmedUriReference = rawUriReference.trim();
         // eslint-disable-next-line @typescript-eslint/prefer-string-starts-ends-with
-        if (trimmedUriReference[0] !== '<' || trimmedUriReference[trimmedUriReference.length - 1] !== '>') {
+        if (trimmedUriReference[0] !== '<' || trimmedUriReference.at(-1) !== '>') {
             throw new Error(`Invalid format of the Link header reference: ${trimmedUriReference}`);
         }
         const reference = trimmedUriReference.slice(1, -1);
@@ -40100,7 +51503,7 @@ const defaultInternals = {
         shouldContinue: () => true,
         countLimit: Number.POSITIVE_INFINITY,
         backoff: 0,
-        requestLimit: 10000,
+        requestLimit: 10_000,
         stackAllItems: false,
     },
     setHost: true,
@@ -40221,31 +51624,11 @@ const init = (options, withOptions, self) => {
     }
 };
 class Options {
+    _unixOptions;
+    _internals;
+    _merging;
+    _init;
     constructor(input, options, defaults) {
-        Object.defineProperty(this, "_unixOptions", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_internals", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_merging", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_init", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
         assert.any([dist.string, dist.urlInstance, dist.object, dist.undefined], input);
         assert.any([dist.object, dist.undefined], options);
         assert.any([dist.object, dist.undefined], defaults);
@@ -40541,7 +51924,7 @@ class Options {
         return this._internals.body;
     }
     set body(value) {
-        assert.any([dist.string, dist.buffer, dist.nodeStream, dist.generator, dist.asyncGenerator, isFormData, dist.undefined], value);
+        assert.any([dist.string, dist.buffer, dist.nodeStream, dist.generator, dist.asyncGenerator, lib_isFormData, dist.undefined], value);
         if (dist.nodeStream(value)) {
             assert.truthy(value.readable);
         }
@@ -40926,7 +52309,9 @@ class Options {
         }
     }
     /**
-    Defines if redirect responses should be followed automatically.
+    Whether redirect responses should be followed automatically.
+
+    Optionally, pass a function to dynamically decide based on the response object.
 
     Note that if a `303` is sent by the server in response to any request type (`POST`, `DELETE`, etc.), Got will automatically request the resource pointed to in the location header via `GET`.
     This is in accordance with [the spec](https://tools.ietf.org/html/rfc7231#section-6.4.4). You can optionally turn on this behavior also for other redirect codes - see `methodRewriting`.
@@ -40937,7 +52322,7 @@ class Options {
         return this._internals.followRedirect;
     }
     set followRedirect(value) {
-        assert.boolean(value);
+        assert.any([dist.boolean, dist.function_], value);
         this._internals.followRedirect = value;
     }
     get followRedirects() {
@@ -41582,7 +52967,9 @@ class Options {
 
 const isResponseOk = (response) => {
     const { statusCode } = response;
-    const limitStatusCode = response.request.options.followRedirect ? 299 : 399;
+    const { followRedirect } = response.request.options;
+    const shouldFollow = typeof followRedirect === 'function' ? followRedirect(response) : followRedirect;
+    const limitStatusCode = shouldFollow ? 299 : 399;
     return (statusCode >= 200 && statusCode <= limitStatusCode) || statusCode === 304;
 };
 /**
@@ -41654,7 +53041,6 @@ function isUnixSocketURL(url) {
 
 
 
-const { buffer: core_getStreamAsBuffer } = get_stream;
 const supportsBrotli = dist.string(external_node_process_namespaceObject.versions.brotli);
 const methodsWithoutBody = new Set(['GET', 'HEAD']);
 const cacheableStore = new WeakableMap();
@@ -41668,165 +53054,40 @@ const proxiedRequestEvents = [
 ];
 const core_noop = () => { };
 class Request extends external_node_stream_.Duplex {
+    // @ts-expect-error - Ignoring for now.
+    ['constructor'];
+    _noPipe;
+    // @ts-expect-error https://github.com/microsoft/TypeScript/issues/9568
+    options;
+    response;
+    requestUrl;
+    redirectUrls;
+    retryCount;
+    _stopRetry;
+    _downloadedSize;
+    _uploadedSize;
+    _stopReading;
+    _pipedServerResponses;
+    _request;
+    _responseSize;
+    _bodySize;
+    _unproxyEvents;
+    _isFromCache;
+    _cannotHaveBody;
+    _triggerRead;
+    _cancelTimeouts;
+    _removeListeners;
+    _nativeResponse;
+    _flushed;
+    _aborted;
+    // We need this because `this._request` if `undefined` when using cache
+    _requestInitialized;
     constructor(url, options, defaults) {
         super({
             // Don't destroy immediately, as the error may be emitted on unsuccessful retry
             autoDestroy: false,
             // It needs to be zero because we're just proxying the data to another stream
             highWaterMark: 0,
-        });
-        // @ts-expect-error - Ignoring for now.
-        Object.defineProperty(this, 'constructor', {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_noPipe", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        // @ts-expect-error https://github.com/microsoft/TypeScript/issues/9568
-        Object.defineProperty(this, "options", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "response", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "requestUrl", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "redirectUrls", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "retryCount", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_stopRetry", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_downloadedSize", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_uploadedSize", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_stopReading", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_pipedServerResponses", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_request", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_responseSize", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_bodySize", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_unproxyEvents", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_isFromCache", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_cannotHaveBody", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_triggerRead", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_cancelTimeouts", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_removeListeners", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_nativeResponse", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_flushed", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        Object.defineProperty(this, "_aborted", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
-        });
-        // We need this because `this._request` if `undefined` when using cache
-        Object.defineProperty(this, "_requestInitialized", {
-            enumerable: true,
-            configurable: true,
-            writable: true,
-            value: void 0
         });
         this._downloadedSize = 0;
         this._uploadedSize = 0;
@@ -41947,7 +53208,7 @@ class Request extends external_node_stream_.Duplex {
         void (async () => {
             // Node.js parser is really weird.
             // It emits post-request Parse Errors on the same instance as previous request. WTF.
-            // Therefore we need to check if it has been destroyed as well.
+            // Therefore, we need to check if it has been destroyed as well.
             //
             // Furthermore, Node.js 16 `response.destroy()` doesn't immediately destroy the socket,
             // but makes the response unreadable. So we additionally need to check `response.readable`.
@@ -42146,7 +53407,7 @@ class Request extends external_node_stream_.Duplex {
             const noContentType = !dist.string(headers['content-type']);
             if (isBody) {
                 // Body is spec-compliant FormData
-                if (isFormData(options.body)) {
+                if (lib_isFormData(options.body)) {
                     const encoder = new FormDataEncoder(options.body);
                     if (noContentType) {
                         headers['content-type'] = encoder.headers['Content-Type'];
@@ -42245,6 +53506,7 @@ class Request extends external_node_stream_.Duplex {
         if (dist.object(options.cookieJar) && rawCookies) {
             let promises = rawCookies.map(async (rawCookie) => options.cookieJar.setCookie(rawCookie, url.toString()));
             if (options.ignoreInvalidCookies) {
+                // eslint-disable-next-line @typescript-eslint/no-floating-promises
                 promises = promises.map(async (promise) => {
                     try {
                         await promise;
@@ -42264,76 +53526,79 @@ class Request extends external_node_stream_.Duplex {
         if (this.isAborted) {
             return;
         }
-        if (options.followRedirect && response.headers.location && redirectCodes.has(statusCode)) {
+        if (response.headers.location && redirectCodes.has(statusCode)) {
             // We're being redirected, we don't care about the response.
             // It'd be best to abort the request, but we can't because
             // we would have to sacrifice the TCP connection. We don't want that.
-            response.resume();
-            this._cancelTimeouts();
-            this._unproxyEvents();
-            if (this.redirectUrls.length >= options.maxRedirects) {
-                this._beforeError(new MaxRedirectsError(this));
-                return;
-            }
-            this._request = undefined;
-            const updatedOptions = new Options(undefined, undefined, this.options);
-            const serverRequestedGet = statusCode === 303 && updatedOptions.method !== 'GET' && updatedOptions.method !== 'HEAD';
-            const canRewrite = statusCode !== 307 && statusCode !== 308;
-            const userRequestedGet = updatedOptions.methodRewriting && canRewrite;
-            if (serverRequestedGet || userRequestedGet) {
-                updatedOptions.method = 'GET';
-                updatedOptions.body = undefined;
-                updatedOptions.json = undefined;
-                updatedOptions.form = undefined;
-                delete updatedOptions.headers['content-length'];
-            }
-            try {
-                // We need this in order to support UTF-8
-                const redirectBuffer = external_node_buffer_namespaceObject.Buffer.from(response.headers.location, 'binary').toString();
-                const redirectUrl = new URL(redirectBuffer, url);
-                if (!isUnixSocketURL(url) && isUnixSocketURL(redirectUrl)) {
-                    this._beforeError(new RequestError('Cannot redirect to UNIX socket', {}, this));
+            const shouldFollow = typeof options.followRedirect === 'function' ? options.followRedirect(typedResponse) : options.followRedirect;
+            if (shouldFollow) {
+                response.resume();
+                this._cancelTimeouts();
+                this._unproxyEvents();
+                if (this.redirectUrls.length >= options.maxRedirects) {
+                    this._beforeError(new MaxRedirectsError(this));
                     return;
                 }
-                // Redirecting to a different site, clear sensitive data.
-                if (redirectUrl.hostname !== url.hostname || redirectUrl.port !== url.port) {
-                    if ('host' in updatedOptions.headers) {
-                        delete updatedOptions.headers.host;
-                    }
-                    if ('cookie' in updatedOptions.headers) {
-                        delete updatedOptions.headers.cookie;
-                    }
-                    if ('authorization' in updatedOptions.headers) {
-                        delete updatedOptions.headers.authorization;
-                    }
-                    if (updatedOptions.username || updatedOptions.password) {
-                        updatedOptions.username = '';
-                        updatedOptions.password = '';
-                    }
+                this._request = undefined;
+                const updatedOptions = new Options(undefined, undefined, this.options);
+                const serverRequestedGet = statusCode === 303 && updatedOptions.method !== 'GET' && updatedOptions.method !== 'HEAD';
+                const canRewrite = statusCode !== 307 && statusCode !== 308;
+                const userRequestedGet = updatedOptions.methodRewriting && canRewrite;
+                if (serverRequestedGet || userRequestedGet) {
+                    updatedOptions.method = 'GET';
+                    updatedOptions.body = undefined;
+                    updatedOptions.json = undefined;
+                    updatedOptions.form = undefined;
+                    delete updatedOptions.headers['content-length'];
                 }
-                else {
-                    redirectUrl.username = updatedOptions.username;
-                    redirectUrl.password = updatedOptions.password;
+                try {
+                    // We need this in order to support UTF-8
+                    const redirectBuffer = external_node_buffer_namespaceObject.Buffer.from(response.headers.location, 'binary').toString();
+                    const redirectUrl = new URL(redirectBuffer, url);
+                    if (!isUnixSocketURL(url) && isUnixSocketURL(redirectUrl)) {
+                        this._beforeError(new RequestError('Cannot redirect to UNIX socket', {}, this));
+                        return;
+                    }
+                    // Redirecting to a different site, clear sensitive data.
+                    if (redirectUrl.hostname !== url.hostname || redirectUrl.port !== url.port) {
+                        if ('host' in updatedOptions.headers) {
+                            delete updatedOptions.headers.host;
+                        }
+                        if ('cookie' in updatedOptions.headers) {
+                            delete updatedOptions.headers.cookie;
+                        }
+                        if ('authorization' in updatedOptions.headers) {
+                            delete updatedOptions.headers.authorization;
+                        }
+                        if (updatedOptions.username || updatedOptions.password) {
+                            updatedOptions.username = '';
+                            updatedOptions.password = '';
+                        }
+                    }
+                    else {
+                        redirectUrl.username = updatedOptions.username;
+                        redirectUrl.password = updatedOptions.password;
+                    }
+                    this.redirectUrls.push(redirectUrl);
+                    updatedOptions.prefixUrl = '';
+                    updatedOptions.url = redirectUrl;
+                    for (const hook of updatedOptions.hooks.beforeRedirect) {
+                        // eslint-disable-next-line no-await-in-loop
+                        await hook(updatedOptions, typedResponse);
+                    }
+                    this.emit('redirect', updatedOptions, typedResponse);
+                    this.options = updatedOptions;
+                    await this._makeRequest();
                 }
-                this.redirectUrls.push(redirectUrl);
-                updatedOptions.prefixUrl = '';
-                updatedOptions.url = redirectUrl;
-                for (const hook of updatedOptions.hooks.beforeRedirect) {
-                    // eslint-disable-next-line no-await-in-loop
-                    await hook(updatedOptions, typedResponse);
+                catch (error) {
+                    this._beforeError(error);
+                    return;
                 }
-                this.emit('redirect', updatedOptions, typedResponse);
-                this.options = updatedOptions;
-                await this._makeRequest();
-            }
-            catch (error) {
-                this._beforeError(error);
                 return;
             }
-            return;
         }
         // `HTTPError`s always have `error.response.body` defined.
-        // Therefore we cannot retry if `options.throwHttpErrors` is false.
+        // Therefore, we cannot retry if `options.throwHttpErrors` is false.
         // On the last retry, if `options.throwHttpErrors` is false, we would need to return the body,
         // but that wouldn't be possible since the body would be already read in `error.response.body`.
         if (options.isStream && options.throwHttpErrors && !isResponseOk(typedResponse)) {
@@ -42383,7 +53648,7 @@ class Request extends external_node_stream_.Duplex {
         }
         try {
             // Errors are emitted via the `error` event
-            const rawBody = await core_getStreamAsBuffer(from);
+            const rawBody = await buffer_getStreamAsBuffer(from);
             // TODO: Switch to this:
             // let rawBody = await from.toArray();
             // rawBody = Buffer.concat(rawBody);
@@ -42580,9 +53845,7 @@ class Request extends external_node_stream_.Duplex {
                 break;
             }
         }
-        if (!request) {
-            request = options.getRequestFunction();
-        }
+        request ||= options.getRequestFunction();
         const url = options.url;
         this._requestOptions = options.createNativeRequestOptions();
         if (options.cache) {
@@ -42592,11 +53855,11 @@ class Request extends external_node_stream_.Duplex {
             this._prepareCache(options.cache);
         }
         // Cache support
-        const fn = options.cache ? this._createCacheableRequest : request;
+        const function_ = options.cache ? this._createCacheableRequest : request;
         try {
             // We can't do `await fn(...)`,
             // because stream `error` event can be emitted before `Promise.resolve()`.
-            let requestOrResponse = fn(url, this._requestOptions);
+            let requestOrResponse = function_(url, this._requestOptions);
             if (dist.promise(requestOrResponse)) {
                 requestOrResponse = await requestOrResponse;
             }
@@ -42830,7 +54093,13 @@ function asPromise(firstRequest) {
                     }
                     catch (error) {
                         // Fall back to `utf8`
-                        response.body = response.rawBody.toString();
+                        try {
+                            response.body = response.rawBody.toString();
+                        }
+                        catch (error) {
+                            request._beforeError(new ParseError(error, response));
+                            return;
+                        }
                         if (isResponseOk(response)) {
                             request._beforeError(error);
                             return;
@@ -42905,12 +54174,12 @@ function asPromise(firstRequest) {
         };
         makeRequest(0);
     });
-    promise.on = (event, fn) => {
-        emitter.on(event, fn);
+    promise.on = (event, function_) => {
+        emitter.on(event, function_);
         return promise;
     };
-    promise.off = (event, fn) => {
-        emitter.off(event, fn);
+    promise.off = (event, function_) => {
+        emitter.off(event, function_);
         return promise;
     };
     const shortcut = (responseType) => {
@@ -42948,7 +54217,7 @@ const delay = async (ms) => new Promise(resolve => {
     setTimeout(resolve, ms);
 });
 const isGotInstance = (value) => dist.function_(value);
-const create_aliases = [
+const aliases = [
     'get',
     'post',
     'put',
@@ -42979,9 +54248,7 @@ const create = (defaults) => {
             if (normalized.isStream) {
                 return request;
             }
-            if (!promise) {
-                promise = asPromise(request);
-            }
+            promise ||= asPromise(request);
             return promise;
         };
         let iteration = 0;
@@ -42989,9 +54256,7 @@ const create = (defaults) => {
             const handler = defaults.handlers[iteration++] ?? lastHandler;
             const result = handler(newOptions, iterateHandlers);
             if (dist.promise(result) && !request.options.isStream) {
-                if (!promise) {
-                    promise = asPromise(request);
-                }
+                promise ||= asPromise(request);
                 if (result !== promise) {
                     const descriptors = Object.getOwnPropertyDescriptors(promise);
                     for (const key in descriptors) {
@@ -43109,7 +54374,7 @@ const create = (defaults) => {
     // Stream API
     got.stream = ((url, options) => got(url, { ...options, isStream: true }));
     // Shortcuts
-    for (const method of create_aliases) {
+    for (const method of aliases) {
         got[method] = ((url, options) => got(url, { ...options, method }));
         got.stream[method] = ((url, options) => got(url, { ...options, method, isStream: true }));
     }
@@ -43137,6 +54402,7 @@ const defaults = {
 };
 const got = source_create(defaults);
 /* harmony default export */ const got_dist_source = (got);
+// TODO: Remove this in the next major version.
 
 
 
