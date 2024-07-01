@@ -1,8 +1,11 @@
 /* eslint-disable import/no-unresolved */
-import {execa, execaCommand} from 'execa'
-import fs from 'fs'
+import {exec, execFile} from 'child_process'
+import {promisify} from 'util'
 import got from 'got'
 import path from 'path'
+
+const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
 
 interface Gem {
   name: string
@@ -24,7 +27,7 @@ export type GemWithInfo = Gem & GemInfoV2
 
 const getGems = async (gemfile: string): Promise<Gem[]> => {
   const parseScript = path.resolve(__dirname, '../parse_gemfile.rb')
-  const {stdout} = await execaCommand(`ruby ${parseScript} ${gemfile}`)
+  const {stdout} = await execAsync(`ruby ${parseScript} ${gemfile}`)
 
   return JSON.parse(stdout)
 }
@@ -65,13 +68,10 @@ const detectNewGems = async (): Promise<GemWithInfo[]> => {
     throw new Error('GITHUB_BASE_REF is undefined.')
   }
 
-  await execa('git', ['fetch', 'origin', process.env.GITHUB_BASE_REF])
-  const subProcess = execa('git', [
-    'show',
-    `remotes/origin/${process.env.GITHUB_BASE_REF}:Gemfile`
-  ])
-  subProcess.stdout?.pipe(fs.createWriteStream('.Gemfile.base'))
-  await subProcess
+  await execFileAsync('git', ['fetch', 'origin', process.env.GITHUB_BASE_REF])
+  await execAsync(
+    `git show remotes/origin/${process.env.GITHUB_BASE_REF}:Gemfile > .Gemfile.base`
+  )
 
   const gems = await getGems('Gemfile')
   const baseGemNames = (await getGems('.Gemfile.base')).map(({name}) => name)
