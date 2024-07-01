@@ -10,7 +10,11 @@ The action works only with pull_request event.
 
 ### Inputs
 
-- token - The GITHUB_TOKEN secret.
+See [action.yml](action.yml)
+
+| Name | Description | Default | Required |
+| - | - | - | - |
+| `token` | GITHUB_TOKEN | `${{ github.token }}` | no |
 
 ## Example
 
@@ -31,6 +35,4 @@ jobs:
         with:
           bundler-cache: true
       - uses: aki77/new-gems-action@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 ```
