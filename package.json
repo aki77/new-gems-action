@@ -27,7 +27,7 @@
   "dependencies": {
     "@actions/core": "^1.9.1",
     "@actions/github": "^6.0.0",
-    "@aki77/actions-replace-comment": "^0.6.0",
+    "@aki77/actions-replace-comment": "^0.6.2",
     "got": "14.4.1",
     "markdown-table": "^3.0.0"
   },
