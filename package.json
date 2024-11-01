@@ -29,7 +29,7 @@
     "@actions/github": "^6.0.0",
     "@aki77/actions-replace-comment": "^0.6.0",
     "got": "14.4.3",
-    "markdown-table": "^3.0.0"
+    "markdown-table": "^3.0.4"
   },
   "devDependencies": {
     "@types/markdown-table": "^3.0.0",
