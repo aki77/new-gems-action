@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@types/markdown-table": "^3.0.0",
-    "@types/node": "^20.17.21",
+    "@types/node": "^20.17.28",
     "@typescript-eslint/parser": "^8.25.0",
     "@vercel/ncc": "^0.38.3",
     "eslint": "^9.23.0",
