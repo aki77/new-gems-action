@@ -38628,6 +38628,8 @@ ${table}
 const external_node_child_process_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:child_process");
 ;// CONCATENATED MODULE: external "node:path"
 const external_node_path_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:path");
+;// CONCATENATED MODULE: external "node:url"
+const external_node_url_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:url");
 // EXTERNAL MODULE: external "node:util"
 var external_node_util_ = __nccwpck_require__(7975);
 ;// CONCATENATED MODULE: external "node:timers/promises"
@@ -40320,8 +40322,6 @@ const timer = (request) => {
 };
 /* harmony default export */ const dist_source = (timer);
 
-;// CONCATENATED MODULE: external "node:url"
-const external_node_url_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:url");
 // EXTERNAL MODULE: external "node:crypto"
 var external_node_crypto_ = __nccwpck_require__(7598);
 ;// CONCATENATED MODULE: ./node_modules/normalize-url/index.js
@@ -45738,10 +45738,12 @@ var gems_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arg
 
 
 
+
+const gems_dirname = external_node_path_namespaceObject.dirname((0,external_node_url_namespaceObject.fileURLToPath)(import.meta.url));
 const execAsync = (0,external_node_util_.promisify)(external_node_child_process_namespaceObject.exec);
 const execFileAsync = (0,external_node_util_.promisify)(external_node_child_process_namespaceObject.execFile);
 const getGems = (gemfile) => gems_awaiter(void 0, void 0, void 0, function* () {
-    const parseScript = external_node_path_namespaceObject.resolve(__dirname, '../parse_gemfile.rb');
+    const parseScript = external_node_path_namespaceObject.resolve(gems_dirname, '../parse_gemfile.rb');
     const { stdout } = yield execAsync(`ruby ${parseScript} ${gemfile}`);
     return JSON.parse(stdout);
 });

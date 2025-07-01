@@ -1,8 +1,11 @@
 /* eslint-disable import/no-unresolved */
 import { exec, execFile } from 'node:child_process';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import got from 'got';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
