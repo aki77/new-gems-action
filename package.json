@@ -7,11 +7,14 @@
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
-    "format": "prettier --write **/*.ts",
-    "format-check": "prettier --check **/*.ts",
-    "lint": "eslint src/**/*.ts",
+    "format": "biome format --write .",
+    "format-check": "biome format --check .",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --fix .",
+    "check": "biome check .",
+    "check:fix": "biome check --fix .",
     "pack": "ncc build",
-    "all": "npm run build && npm run format && npm run lint && npm run pack"
+    "all": "npm run build && npm run check && npm run pack"
   },
   "repository": {
     "type": "git",
@@ -32,16 +35,11 @@
     "markdown-table": "^3.0.4"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.0.6",
     "@types/markdown-table": "^3.0.0",
     "@types/node": "^20.17.57",
-    "@typescript-eslint/parser": "^8.33.0",
     "@vercel/ncc": "^0.38.3",
-    "eslint": "^9.30.0",
-    "eslint-plugin-github": "^6.0.0",
-    "eslint-plugin-jest": "^29.0.1",
-    "eslint-plugin-prettier": "^5.4.1",
     "js-yaml": "^4.1.0",
-    "prettier": "^3.6.2",
     "typescript": "^5.8.3"
   }
 }
