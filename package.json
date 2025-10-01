@@ -35,7 +35,7 @@
     "markdown-table": "^3.0.4"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.2.2",
+    "@biomejs/biome": "^2.2.4",
     "@types/markdown-table": "^3.0.0",
     "@types/node": "^20.19.11",
     "@vercel/ncc": "^0.38.3",
