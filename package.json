@@ -39,7 +39,7 @@
     "@types/markdown-table": "^3.0.0",
     "@types/node": "^20.19.24",
     "@vercel/ncc": "^0.38.4",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.1.1",
     "typescript": "^5.9.3"
   }
 }
