@@ -313,10 +313,10 @@
   dependencies:
     markdown-table "*"
 
-"@types/node@^20.19.31":
-  version "20.19.31"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-20.19.31.tgz#762ddf4088b3ac2389077cf1fb5336800a1fb4d5"
-  integrity sha512-5jsi0wpncvTD33Sh1UCgacK37FFwDn+EG7wCmEvs62fCvBL+n8/76cAYDok21NF6+jaVWIqKwCZyX7Vbu8eB3A==
+"@types/node@^20.19.35":
+  version "20.19.35"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-20.19.35.tgz#117b373fd1dff528b2f9f8c2d1a85de6af8101ca"
+  integrity sha512-Uarfe6J91b9HAUXxjvSOdiO2UPOKLm07Q1oh0JHxoZ1y8HoqxDAu3gVrsrOHeiio0kSsoVBt4wFrKOm0dKxVPQ==
   dependencies:
     undici-types "~6.21.0"
 
